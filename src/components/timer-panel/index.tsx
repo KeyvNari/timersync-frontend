@@ -26,6 +26,7 @@ import { IconAlertTriangle } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
 import { Drawer, Textarea, NumberInput, Checkbox, Stack } from '@mantine/core';
 import { useForm } from '@mantine/form';
+import { Select } from '@mantine/core';
 import classes from './timers.module.css';
 
 interface Timer {
@@ -296,37 +297,6 @@ function SortableItem({ item, onUpdateTimer, onSelectTimer, onOpenSettings, even
   const borderColor = getBorderColor(item, theme);
   const backgroundColor = getBackgroundColor(item, theme, colorScheme);
 
-  // Editing states
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [isEditingDuration, setIsEditingDuration] = useState(false);
-  const [isEditingSchedule, setIsEditingSchedule] = useState(false);
-  const [editingTitle, setEditingTitle] = useState(item.title);
-  const [editingDuration, setEditingDuration] = useState(formatDuration(item.duration_seconds));
-  const [editingSchedule, setEditingSchedule] = useState<Date | null>(
-    item.scheduled_start_date && item.scheduled_start_time 
-      ? new Date(`${item.scheduled_start_date}T${item.scheduled_start_time}`)
-      : null
-  );
-
-  // Refs for input fields
-  const titleInputRef = useRef<HTMLInputElement>(null);
-  const durationInputRef = useRef<HTMLInputElement>(null);
-
-  // Focus input when editing starts
-  useEffect(() => {
-    if (isEditingTitle && titleInputRef.current) {
-      titleInputRef.current.focus();
-      titleInputRef.current.select();
-    }
-  }, [isEditingTitle]);
-
-  useEffect(() => {
-    if (isEditingDuration && durationInputRef.current) {
-      durationInputRef.current.focus();
-      durationInputRef.current.select();
-    }
-  }, [isEditingDuration]);
-
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -354,100 +324,6 @@ function SortableItem({ item, onUpdateTimer, onSelectTimer, onOpenSettings, even
     onSelectTimer(item.id);
   };
 
-  // Title editing handlers
-  const handleTitleClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsEditingTitle(true);
-    setEditingTitle(item.title);
-  };
-
-  const handleTitleSubmit = () => {
-    if (editingTitle.trim() && editingTitle !== item.title) {
-      onUpdateTimer(item.id, { title: editingTitle.trim() });
-      events?.onTimerEdit?.(item, 'title', editingTitle.trim());
-    }
-    setIsEditingTitle(false);
-  };
-
-  const handleTitleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleTitleSubmit();
-    } else if (e.key === 'Escape') {
-      setEditingTitle(item.title);
-      setIsEditingTitle(false);
-    }
-  };
-
-  // Duration editing handlers
-  const handleDurationClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsEditingDuration(true);
-    setEditingDuration(formatDuration(item.duration_seconds));
-  };
-
-  const handleDurationSubmit = () => {
-    const newDurationSeconds = parseDuration(editingDuration);
-    if (newDurationSeconds > 0 && newDurationSeconds !== item.duration_seconds) {
-      const updates = {
-        duration_seconds: newDurationSeconds,
-        current_time_seconds: item.is_stopped ? newDurationSeconds : item.current_time_seconds,
-      };
-      onUpdateTimer(item.id, updates);
-      events?.onTimerEdit?.(item, 'duration_seconds', newDurationSeconds);
-    }
-    setIsEditingDuration(false);
-  };
-
-  const handleDurationKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleDurationSubmit();
-    } else if (e.key === 'Escape') {
-      setEditingDuration(formatDuration(item.duration_seconds));
-      setIsEditingDuration(false);
-    }
-  };
-
-  const handleDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    if (/^\d{0,2}:?\d{0,2}$/.test(value)) {
-      setEditingDuration(value);
-    }
-  };
-
-  // Schedule editing handlers
-  const handleScheduleClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsEditingSchedule(true);
-    setEditingSchedule(
-      item.scheduled_start_date && item.scheduled_start_time 
-        ? new Date(`${item.scheduled_start_date}T${item.scheduled_start_time}`)
-        : new Date()
-    );
-  };
-
-  const handleScheduleSubmit = (date: Date | null) => {
-    if (date) {
-      const dateStr = dayjs(date).format('YYYY-MM-DD');
-      const timeStr = dayjs(date).format('HH:mm:ss');
-      const updates = { 
-        scheduled_start_date: dateStr,
-        scheduled_start_time: timeStr,
-        is_manual_start: false,
-      };
-      onUpdateTimer(item.id, updates);
-      events?.onTimerEdit?.(item, 'schedule', { date: dateStr, time: timeStr });
-    } else {
-      const updates = { 
-        scheduled_start_date: null,
-        scheduled_start_time: null,
-        is_manual_start: true,
-      };
-      onUpdateTimer(item.id, updates);
-      events?.onTimerEdit?.(item, 'schedule', null);
-    }
-    setIsEditingSchedule(false);
-  };
-
   return (
     <Tooltip label="Double-click to select timer" position="top" withArrow>
       <div
@@ -467,27 +343,7 @@ function SortableItem({ item, onUpdateTimer, onSelectTimer, onOpenSettings, even
         </Tooltip>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            {isEditingTitle ? (
-              <TextInput
-                ref={titleInputRef}
-                value={editingTitle}
-                onChange={(e) => setEditingTitle(e.target.value)}
-                onBlur={handleTitleSubmit}
-                onKeyDown={handleTitleKeyDown}
-                size="sm"
-                style={{ minWidth: '150px', maxWidth: '300px' }}
-                variant="unstyled"
-              />
-            ) : (
-              <Tooltip label="Click to edit timer name • Double-click anywhere to select timer" position="top" withArrow>
-                <Text
-                  style={{ cursor: 'pointer' }}
-                  onClick={handleTitleClick}
-                >
-                  {item.title}
-                </Text>
-              </Tooltip>
-            )}
+            <Text>{item.title}</Text>
             {item.notes && (
               <HoverCard width={320} shadow="md" withArrow>
                 <HoverCard.Target>
@@ -508,58 +364,21 @@ function SortableItem({ item, onUpdateTimer, onSelectTimer, onOpenSettings, even
                 {timerState.toUpperCase()}
               </Text>
             )}
+            {item.speaker && (
+              <Text c="dimmed" size="xs">Speaker: {item.speaker}</Text>
+            )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Text c="dimmed" size="sm">Duration:</Text>
-              {isEditingDuration ? (
-                <TextInput
-                  ref={durationInputRef}
-                  value={editingDuration}
-                  onChange={handleDurationChange}
-                  onBlur={handleDurationSubmit}
-                  onKeyDown={handleDurationKeyDown}
-                  size="sm"
-                  style={{ width: '60px' }}
-                  variant="unstyled"
-                  placeholder="MM:SS"
-                />
-              ) : (
-                <Tooltip label="Click to edit duration (MM:SS)" position="top" withArrow>
-                  <Text c="dimmed" size="sm" style={{ cursor: 'pointer' }} onClick={handleDurationClick}>
-                    {formatDuration(item.duration_seconds)}
-                  </Text>
-                </Tooltip>
-              )}
-            </div>
+            <Text c="dimmed" size="sm">Duration: {formatDuration(item.duration_seconds)}</Text>
             {item.is_active && (
               <Text c={timerState === 'critical' ? 'red' : timerState === 'warning' ? 'orange' : 'blue'} size="sm" fw={600}>
                 Remaining: {formatDuration(item.current_time_seconds)}
               </Text>
             )}
-            {(item.scheduled_start_time || item.scheduled_start_date) && !isEditingSchedule && (
-              <Tooltip label="Click to edit schedule" position="top" withArrow>
-                <Text c="violet" size="xs" style={{ cursor: 'pointer' }} onClick={handleScheduleClick}>
-                  Scheduled: {item.scheduled_start_date} {item.scheduled_start_time}
-                </Text>
-              </Tooltip>
-            )}
-            {!item.scheduled_start_time && !item.scheduled_start_date && !isEditingSchedule && (
-              <Tooltip label="Click to set schedule" position="top" withArrow>
-                <Text c="dimmed" size="xs" style={{ cursor: 'pointer' }} onClick={handleScheduleClick}>
-                  Set schedule
-                </Text>
-              </Tooltip>
-            )}
-            {isEditingSchedule && (
-              <DateTimePicker
-                value={editingSchedule}
-                onChange={handleScheduleSubmit}
-                placeholder="Pick date and time"
-                size="xs"
-                clearable
-                withSeconds={false}
-              />
+            {item.scheduled_start_time && item.scheduled_start_date && (
+              <Text c="violet" size="xs">
+                Scheduled: {item.scheduled_start_date} {item.scheduled_start_time}
+              </Text>
             )}
           </div>
         </div>
@@ -672,18 +491,26 @@ export function Timers({
 
   const form = useForm({
     initialValues: {
+      title: '',
       speaker: '',
+      duration_seconds: 0,
+      scheduled_start_time: null as Date | null,
+      is_manual_start: true,
+      linked_timer_id: null as string | null,
       notes: '',
       warning_time: 60,
       critical_time: 30,
+      overtime_seconds: 0,
       show_title: true,
       show_speaker: true,
       show_notes: false,
     },
     validate: {
+      title: (value) => value.trim().length === 0 ? 'Title is required' : null,
+      duration_seconds: (value) => value <= 0 ? 'Duration must be positive' : null,
       warning_time: (value) => (value <= 0 ? 'Warning time must be positive' : null),
-      critical_time: (value, values) => 
-        value <= 0 ? 'Critical time must be positive' : 
+      critical_time: (value, values) =>
+        value <= 0 ? 'Critical time must be positive' :
         value >= values.warning_time ? 'Critical time must be less than warning time' : null,
     },
   });
@@ -691,21 +518,43 @@ export function Timers({
   useEffect(() => {
     if (editingTimer) {
       form.setValues({
+        title: editingTimer.title,
         speaker: editingTimer.speaker || '',
+        duration_seconds: editingTimer.duration_seconds,
+        scheduled_start_time: editingTimer.scheduled_start_date && editingTimer.scheduled_start_time
+          ? new Date(`${editingTimer.scheduled_start_date}T${editingTimer.scheduled_start_time}`)
+          : null,
+        is_manual_start: editingTimer.is_manual_start,
+        linked_timer_id: editingTimer.linked_timer_id ? editingTimer.linked_timer_id.toString() : null,
         notes: editingTimer.notes || '',
         warning_time: editingTimer.warning_time || 60,
         critical_time: editingTimer.critical_time || 30,
+        overtime_seconds: editingTimer.overtime_seconds || 0,
         show_title: editingTimer.show_title ?? true,
         show_speaker: editingTimer.show_speaker ?? true,
         show_notes: editingTimer.show_notes ?? false,
       });
     }
-  }, [editingTimer, form]);
+  }, [editingTimer]);
 
   const handleAdvancedSubmit = (values: typeof form.values) => {
     if (editingTimer) {
-      handleUpdateTimer(editingTimer.id, values);
-      events?.onTimerEdit?.(editingTimer, 'advanced_settings', values);
+      // Transform the Date to proper string format for scheduled_start_time
+      const transformedValues = {
+        ...values,
+        scheduled_start_date: values.scheduled_start_time
+          ? dayjs(values.scheduled_start_time).format('YYYY-MM-DD')
+          : null,
+        scheduled_start_time: values.scheduled_start_time
+          ? dayjs(values.scheduled_start_time).format('HH:mm:ss')
+          : null,
+        linked_timer_id: values.linked_timer_id ? parseInt(values.linked_timer_id, 10) : null,
+      };
+      // Remove the Date field and add the string fields
+      const { scheduled_start_time: dateValue, ...finalValues } = transformedValues;
+
+      handleUpdateTimer(editingTimer.id, finalValues as Partial<Timer>);
+      events?.onTimerEdit?.(editingTimer, 'advanced_settings', finalValues);
     }
     close();
   };
@@ -739,10 +588,33 @@ export function Timers({
         {editingTimer && (
           <form onSubmit={form.onSubmit(handleAdvancedSubmit)}>
             <Stack>
+              <TextInput label="Title" {...form.getInputProps('title')} />
               <TextInput label="Speaker" {...form.getInputProps('speaker')} />
+              <NumberInput label="Duration (seconds)" min={1} {...form.getInputProps('duration_seconds')} />
+              <DateTimePicker
+                label="Scheduled Start Time"
+                placeholder="Pick date and time"
+                clearable
+                withSeconds={false}
+                {...form.getInputProps('scheduled_start_time')}
+              />
+              <Checkbox label="Manual Start" {...form.getInputProps('is_manual_start', { type: 'checkbox' })} />
+              <Select
+                label="Linked Timer"
+                placeholder="Select a timer to link"
+                clearable
+                data={state
+                  .filter(timer => timer.id !== editingTimer.id)
+                  .map(timer => ({
+                    value: timer.id.toString(),
+                    label: timer.title
+                  }))}
+                {...form.getInputProps('linked_timer_id')}
+              />
               <Textarea label="Notes" {...form.getInputProps('notes')} />
               <NumberInput label="Warning Time (seconds)" min={0} {...form.getInputProps('warning_time')} />
               <NumberInput label="Critical Time (seconds)" min={0} {...form.getInputProps('critical_time')} />
+              <NumberInput label="Overtime (seconds)" min={0} {...form.getInputProps('overtime_seconds')} />
               <Checkbox label="Show Title" {...form.getInputProps('show_title', { type: 'checkbox' })} />
               <Checkbox label="Show Speaker" {...form.getInputProps('show_speaker', { type: 'checkbox' })} />
               <Checkbox label="Show Notes" {...form.getInputProps('show_notes', { type: 'checkbox' })} />
