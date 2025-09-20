@@ -1,0 +1,138 @@
+.item {
+  display: flex;
+  align-items: center;
+  border-radius: var(--mantine-radius-md);
+  border: 1px solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+  padding: var(--mantine-spacing-sm) var(--mantine-spacing-lg);
+  padding-left: calc(var(--mantine-spacing-xl) - var(--mantine-spacing-md));
+  background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-5));
+  margin-bottom: var(--mantine-spacing-sm);
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.itemDragging {
+  box-shadow: var(--mantine-shadow-sm);
+}
+
+.itemLinked {
+  border-left: 4px solid #72abffff;
+  margin-left: 16px;
+}
+
+.itemLinked::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #72abffff;
+  transform: translateY(-50%);
+  box-shadow: 0 0 0 2px var(--mantine-color-body);
+}
+
+.symbol {
+  font-size: 30px;
+  font-weight: 700;
+  width: 60px;
+}
+
+.dragHandle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-1));
+  margin-right: var(--mantine-spacing-lg);
+  cursor: grab;
+  transition: color 0.2s ease;
+}
+
+.dragHandle:hover {
+  color: light-dark(var(--mantine-color-gray-8), var(--mantine-color-dark-0));
+}
+
+.itemSelected {
+  background-color: #334857ff;
+  border-color: #72abffff;
+  border-radius: 8px;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .itemLinked {
+    border-left-color: #5C7CFA;
+  }
+  
+  .itemLinked::before {
+    background: #5C7CFA;
+  }
+  
+  .itemSelected {
+    background-color: #25262b;
+    border-color: #5C7CFA;
+  }
+}
+
+/* Animation for linking state changes */
+.item {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.itemLinked {
+  animation: slideInLinked 0.3s ease-out;
+}
+
+@keyframes slideInLinked {
+  from {
+    margin-left: 0;
+    border-left-width: 0;
+  }
+  to {
+    margin-left: 16px;
+    border-left-width: 4px;
+  }
+}
+
+/* Hover effects */
+.item:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--mantine-shadow-xs);
+}
+
+.itemDragging {
+  transform: rotate(2deg);
+  box-shadow: var(--mantine-shadow-md);
+  z-index: 100;
+}
+
+/* Connection line for visual hierarchy */
+.itemLinked {
+  position: relative;
+}
+
+.itemLinked + .itemLinked::after {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: -8px;
+  width: 1px;
+  height: 8px;
+  background: #72abffff;
+  opacity: 0.5;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .itemLinked {
+    margin-left: 12px;
+  }
+  
+  .itemLinked::before {
+    left: -10px;
+    width: 6px;
+    height: 6px;
+  }
+}

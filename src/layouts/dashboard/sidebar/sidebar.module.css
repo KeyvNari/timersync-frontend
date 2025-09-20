@@ -1,0 +1,172 @@
+.sidebarContainer {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: relative;
+  overflow: hidden; /* Prevent entire sidebar from scrolling */
+}
+
+.sectionsContainer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* Prevent sections container from scrolling */
+  padding-top: var(--mantine-spacing-xs);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* Each section has fixed height */
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
+.section:last-child {
+  border-bottom: none;
+}
+
+.sectionScrollArea {
+  flex: 1;
+  min-height: 0; /* Important for flex child scrolling */
+  overflow: hidden; /* Let ScrollArea handle overflow */
+}
+
+.sectionContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mantine-spacing-xs);
+  padding: var(--mantine-spacing-xs) 0;
+}
+
+.sectionTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--mantine-color-dimmed);
+  margin-bottom: var(--mantine-spacing-xs);
+  padding: var(--mantine-spacing-xs) var(--mantine-spacing-md);
+  transition: opacity 0.2s ease;
+  flex-shrink: 0; /* Prevent title from shrinking */
+  background-color: var(--mantine-color-body);
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
+.sectionLink {
+  border-radius: var(--mantine-radius-md);
+  transition: all 0.2s ease;
+  flex-shrink: 0; /* Prevent links from shrinking */
+  margin: 0 var(--mantine-spacing-xs);
+
+  & svg {
+    height: 1.25rem;
+    width: 1.25rem;
+  }
+
+  &[data-collapsed="true"] {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+    margin: 0 var(--mantine-spacing-xs);
+    
+    & [data-position="left"] {
+      margin-right: 0;
+    }
+  }
+}
+
+.sectionDropdownItemLink {
+  border-radius: var(--mantine-radius-md);
+  flex-shrink: 0; /* Prevent dropdown items from shrinking */
+  margin: 0 var(--mantine-spacing-xs);
+
+  & [data-position='left'] {
+    width: 20px;
+  }
+
+  & :global(.dot) {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  & :global(.dot)::before {
+    content: '';
+    display: inline-block;
+    background-color: var(--mantine-color-dimmed);
+    height: 0.3rem;
+    width: 0.3rem;
+    border-radius: 100%;
+  }
+
+  &[data-active='true'] :global(.dot)::before {
+    background-color: var(--mantine-primary-color-filled);
+    height: 0.4rem;
+    width: 0.4rem;
+  }
+}
+
+.collapsed .sectionsContainer {
+  align-items: center;
+}
+
+.collapsed .sectionTitle {
+  opacity: 0;
+  visibility: hidden;
+  height: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.collapsed .section {
+  width: 100%;
+  align-items: center;
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
+.collapsed .section:last-child {
+  border-bottom: none;
+}
+
+.collapsed .sectionContent {
+  align-items: center;
+  width: 100%;
+}
+
+.collapsed .sectionLink {
+  margin: 0 var(--mantine-spacing-xs);
+}
+
+.collapsed .sectionDropdownItemLink {
+  margin: 0 var(--mantine-spacing-xs);
+}
+
+.toggleContainer {
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--mantine-spacing-xs) var(--mantine-spacing-md);
+  flex-shrink: 0; /* Prevent toggle from shrinking */
+  border-bottom: 1px solid var(--mantine-color-default-border);
+  background-color: var(--mantine-color-body);
+}
+
+.toggleButton {
+  position: absolute;
+  right: -8px;
+  z-index: 10;
+  background-color: var(--mantine-color-default);
+  border: 1px solid var(--mantine-color-default-border);
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: var(--mantine-color-default-hover);
+  }
+}
