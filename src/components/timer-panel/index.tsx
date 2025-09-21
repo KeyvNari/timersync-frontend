@@ -24,7 +24,7 @@ import dayjs from 'dayjs';
 import { Tooltip } from '@mantine/core';
 import { IconAlertTriangle } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
-import { Drawer, Textarea, NumberInput, Checkbox, Stack } from '@mantine/core';
+import { Drawer, Textarea, NumberInput, Checkbox, Stack, Paper, Title, Divider } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { Select } from '@mantine/core';
 import classes from './timers.module.css';
@@ -297,6 +297,10 @@ function SortableItem({ item, onUpdateTimer, onSelectTimer, onOpenSettings, even
   const borderColor = getBorderColor(item, theme);
   const backgroundColor = getBackgroundColor(item, theme, colorScheme);
 
+  // State for inline editing
+  const [editingField, setEditingField] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
+
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -324,6 +328,42 @@ function SortableItem({ item, onUpdateTimer, onSelectTimer, onOpenSettings, even
     onSelectTimer(item.id);
   };
 
+  // Inline editing functions
+  const startEditing = (field: string, currentValue: string) => {
+    setEditingField(field);
+    setEditValue(currentValue);
+  };
+
+  const saveEdit = () => {
+    if (editingField && editValue !== '') {
+      if (editingField === 'duration_seconds') {
+        const seconds = parseDuration(editValue);
+        if (seconds > 0) {
+          onUpdateTimer(item.id, { [editingField]: seconds });
+          events?.onTimerEdit?.(item, editingField, seconds);
+        }
+      } else {
+        onUpdateTimer(item.id, { [editingField]: editValue });
+        events?.onTimerEdit?.(item, editingField, editValue);
+      }
+    }
+    setEditingField(null);
+    setEditValue('');
+  };
+
+  const cancelEdit = () => {
+    setEditingField(null);
+    setEditValue('');
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      saveEdit();
+    } else if (e.key === 'Escape') {
+      cancelEdit();
+    }
+  };
+
   return (
     <Tooltip label="Double-click to select timer" position="top" withArrow>
       <div
@@ -343,7 +383,21 @@ function SortableItem({ item, onUpdateTimer, onSelectTimer, onOpenSettings, even
         </Tooltip>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <Text>{item.title}</Text>
+            {editingField === 'title' ? (
+              <TextInput
+                value={editValue}
+                onChange={(e) => setEditValue(e.currentTarget.value)}
+                onBlur={saveEdit}
+                onKeyDown={handleKeyPress}
+                size="xs"
+                style={{ minWidth: '150px' }}
+                autoFocus
+              />
+            ) : (
+              <Text style={{ cursor: 'pointer' }} onClick={() => startEditing('title', item.title)}>
+                {item.title}
+              </Text>
+            )}
             {item.notes && (
               <HoverCard width={320} shadow="md" withArrow>
                 <HoverCard.Target>
@@ -365,11 +419,44 @@ function SortableItem({ item, onUpdateTimer, onSelectTimer, onOpenSettings, even
               </Text>
             )}
             {item.speaker && (
-              <Text c="dimmed" size="xs">Speaker: {item.speaker}</Text>
+              <Text c="dimmed" size="xs">
+                Speaker: {editingField === 'speaker' ? (
+                  <TextInput
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.currentTarget.value)}
+                    onBlur={saveEdit}
+                    onKeyDown={handleKeyPress}
+                    size="xs"
+                    style={{ minWidth: '100px', display: 'inline-block' }}
+                    autoFocus
+                  />
+                ) : (
+                  <span style={{ cursor: 'pointer' }} onClick={() => startEditing('speaker', item.speaker || '')}>
+                    {item.speaker}
+                  </span>
+                )}
+              </Text>
             )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            <Text c="dimmed" size="sm">Duration: {formatDuration(item.duration_seconds)}</Text>
+            <Text c="dimmed" size="sm">
+              Duration: {editingField === 'duration_seconds' ? (
+                <TextInput
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.currentTarget.value)}
+                  onBlur={saveEdit}
+                  onKeyDown={handleKeyPress}
+                  size="xs"
+                  placeholder="MM:SS"
+                  style={{ minWidth: '80px', display: 'inline-block' }}
+                  autoFocus
+                />
+              ) : (
+                <span style={{ cursor: 'pointer' }} onClick={() => startEditing('duration_seconds', formatDuration(item.duration_seconds))}>
+                  {formatDuration(item.duration_seconds)}
+                </span>
+              )}
+            </Text>
             {item.is_active && (
               <Text c={timerState === 'critical' ? 'red' : timerState === 'warning' ? 'orange' : 'blue'} size="sm" fw={600}>
                 Remaining: {formatDuration(item.current_time_seconds)}
@@ -584,41 +671,138 @@ export function Timers({
           ))}
         </SortableContext>
       </DndContext>
-      <Drawer opened={opened} onClose={close} title="Advanced Settings">
+
+      {/* Updated Drawer with wider size and organized categories */}
+      <Drawer 
+        opened={opened} 
+        onClose={close} 
+        title="Timer Settings"
+        size="lg" 
+        position="right"
+      >
         {editingTimer && (
           <form onSubmit={form.onSubmit(handleAdvancedSubmit)}>
-            <Stack>
-              <TextInput label="Title" {...form.getInputProps('title')} />
-              <TextInput label="Speaker" {...form.getInputProps('speaker')} />
-              <NumberInput label="Duration (seconds)" min={1} {...form.getInputProps('duration_seconds')} />
-              <DateTimePicker
-                label="Scheduled Start Time"
-                placeholder="Pick date and time"
-                clearable
-                withSeconds={false}
-                {...form.getInputProps('scheduled_start_time')}
-              />
-              <Checkbox label="Manual Start" {...form.getInputProps('is_manual_start', { type: 'checkbox' })} />
-              <Select
-                label="Linked Timer"
-                placeholder="Select a timer to link"
-                clearable
-                data={state
-                  .filter(timer => timer.id !== editingTimer.id)
-                  .map(timer => ({
-                    value: timer.id.toString(),
-                    label: timer.title
-                  }))}
-                {...form.getInputProps('linked_timer_id')}
-              />
-              <Textarea label="Notes" {...form.getInputProps('notes')} />
-              <NumberInput label="Warning Time (seconds)" min={0} {...form.getInputProps('warning_time')} />
-              <NumberInput label="Critical Time (seconds)" min={0} {...form.getInputProps('critical_time')} />
-              <NumberInput label="Overtime (seconds)" min={0} {...form.getInputProps('overtime_seconds')} />
-              <Checkbox label="Show Title" {...form.getInputProps('show_title', { type: 'checkbox' })} />
-              <Checkbox label="Show Speaker" {...form.getInputProps('show_speaker', { type: 'checkbox' })} />
-              <Checkbox label="Show Notes" {...form.getInputProps('show_notes', { type: 'checkbox' })} />
-              <Button type="submit">Save Changes</Button>
+            <Stack gap="lg">
+              {/* Basic Information Category */}
+              <Paper p="md" withBorder>
+                <Title order={4} mb="md">Basic Information</Title>
+                <Stack gap="md">
+                  <TextInput 
+                    label="Title" 
+                    placeholder="Enter timer title"
+                    {...form.getInputProps('title')} 
+                  />
+                  <TextInput 
+                    label="Speaker" 
+                    placeholder="Enter speaker name (optional)"
+                    {...form.getInputProps('speaker')} 
+                  />
+                  <Textarea 
+                    label="Notes" 
+                    placeholder="Add any additional notes"
+                    rows={3}
+                    {...form.getInputProps('notes')} 
+                  />
+                </Stack>
+              </Paper>
+
+              {/* Timer Configuration Category */}
+              <Paper p="md" withBorder>
+                <Title order={4} mb="md">Timer Configuration</Title>
+                <Stack gap="md">
+                  <NumberInput 
+                    label="Duration (seconds)" 
+                    placeholder="Enter duration in seconds"
+                    min={1} 
+                    {...form.getInputProps('duration_seconds')} 
+                  />
+                 
+                  <Select
+                    label="Linked Timer"
+                    placeholder="Select a timer to link"
+                    clearable
+                    data={state
+                      .filter(timer => timer.id !== editingTimer.id)
+                      .map(timer => ({
+                        value: timer.id.toString(),
+                        label: timer.title
+                      }))}
+                    {...form.getInputProps('linked_timer_id')}
+                  />
+                </Stack>
+              </Paper>
+
+              {/* Scheduling Category */}
+              <Paper p="md" withBorder>
+                <Title order={4} mb="md">Scheduling</Title>
+                <Stack gap="md">
+                  <DateTimePicker
+                    label="Scheduled Start Time"
+                    placeholder="Pick date and time"
+                    clearable
+                    withSeconds={false}
+                    {...form.getInputProps('scheduled_start_time')}
+                  />
+                  <Checkbox 
+                    label="Manual Start" 
+                    description="Require manual start instead of automatic scheduling"
+                    {...form.getInputProps('is_manual_start', { type: 'checkbox' })} 
+                  />
+                </Stack>
+              </Paper>
+
+              {/* Alerts & Warnings Category */}
+              <Paper p="md" withBorder>
+                <Title order={4} mb="md">Alerts & Warnings</Title>
+                <Stack gap="md">
+                  <NumberInput 
+                    label="Warning Time (seconds)" 
+                    placeholder="Time before warning appears"
+                    min={0} 
+                    {...form.getInputProps('warning_time')} 
+                  />
+                  <NumberInput 
+                    label="Critical Time (seconds)" 
+                    placeholder="Time before critical warning appears"
+                    min={0} 
+                    {...form.getInputProps('critical_time')} 
+                  />
+                </Stack>
+              </Paper>
+
+              {/* Display Options Category */}
+              <Paper p="md" withBorder>
+                <Title order={4} mb="md">Display Options</Title>
+                <Stack gap="md">
+                  <Checkbox 
+                    label="Show Title" 
+                    description="Display timer title on screen"
+                    {...form.getInputProps('show_title', { type: 'checkbox' })} 
+                  />
+                  <Checkbox 
+                    label="Show Speaker" 
+                    description="Display speaker name on screen"
+                    {...form.getInputProps('show_speaker', { type: 'checkbox' })} 
+                  />
+                  <Checkbox 
+                    label="Show Notes" 
+                    description="Display notes on screen"
+                    {...form.getInputProps('show_notes', { type: 'checkbox' })} 
+                  />
+                </Stack>
+              </Paper>
+
+              <Divider />
+              
+              {/* Action Buttons */}
+              <Group justify="flex-end" gap="md">
+                <Button variant="light" onClick={close}>
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  Save Changes
+                </Button>
+              </Group>
             </Stack>
           </form>
         )}

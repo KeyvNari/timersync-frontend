@@ -6,13 +6,136 @@ import { ColorSchemeToggle } from './color-scheme-toggle';
 import { Welcome } from './welcome';
 import classes from './home.module.css';
 import { Button, Group } from '@mantine/core';
-
+import TimerDisplay from '@/components/timer-display';
 export default function HomePage() {
   const [leftWidth, setLeftWidth] = useState(66); // Initial 8/12 ratio as percentage
   const theme = useMantineTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
+  type Display = {
+  name: string;
+  logo_image?: string | null;
+  logo_size_percent?: number | null;
+  logo_position?: string | null;
+  timer_format?: string | null;
+  timer_font_family?: string | null;
+  timer_color?: string | null;
+  time_of_day_color?: string | null;
+  timer_text_style?: string | null;
+  timer_size_percent?: number | null;
+  timer_position?: string | null;
+  auto_hide_completed?: boolean;
+  clock_format?: string | null;
+  clock_font_family?: string | null;
+  clock_color?: string | null;
+  clock_visible?: boolean;
+  message_font_family?: string | null;
+  message_color?: string | null;
+  title_display_location?: string | null;
+  speaker_display_location?: string | null;
+  next_cue_display_location?: string | null;
+  header_font_family?: string | null;
+  header_color?: string | null;
+  footer_font_family?: string | null;
+  footer_color?: string | null;
+  theme_name?: string | null;
+  text_style?: string | null;
+  display_ratio?: string | null;
+  background_type?: string | null;
+  background_color?: string | null;
+  background_image?: string | null;
+  background_preset?: string | null;
+  progress_style?: string | null;
+  progress_color_main?: string | null;
+  progress_color_secondary?: string | null;
+  progress_color_tertiary?: string | null;
+};
 
+type Timer = {
+  title: string;
+  speaker?: string | null;
+  notes?: string | null;
+  display_id?: number | null;
+  show_title: boolean;
+  show_speaker: boolean;
+  show_notes: boolean;
+  timer_type: 'countdown' | 'countup';
+  duration_seconds?: number | null;
+  is_active: boolean;
+  is_paused: boolean;
+  is_finished: boolean;
+  is_stopped: boolean;
+  current_time_seconds: number;
+  started_at?: Date | null;
+  paused_at?: Date | null;
+  completed_at?: Date | null;
+  accumulated_seconds: number;
+  warning_time?: number | null;
+  critical_time?: number | null;
+  is_overtime: boolean;
+  overtime_seconds: number;
+  last_calculated_at?: Date | null;
+};
+// Mock data for testing
+const mockDisplay: Display = {
+  name: 'Untitled Display',
+  logo_image: null,
+  logo_size_percent: 60,
+  logo_position: 'top_left',
+  timer_format: 'hh:mm:ss',
+  timer_font_family: 'Inter',
+  timer_color: '#ffffffff',
+  time_of_day_color: '#ffffffff',
+  timer_text_style: 'default',
+  timer_size_percent: 10,
+  timer_position: 'center',
+  auto_hide_completed: false,
+  clock_format: 'browser_default',
+  clock_font_family: 'Inter',
+  clock_color: '#ffffff',
+  clock_visible: true,
+  message_font_family: 'Inter',
+  message_color: '#ffffff',
+  title_display_location: 'header',
+  speaker_display_location: 'footer',
+  header_font_family: 'Inter',
+  header_color: '#ffffff',
+  footer_font_family: 'Inter',
+  footer_color: '#ffffffff',
+  theme_name: 'default',
+  text_style: 'default',
+  display_ratio: '16:9',
+  background_type: 'color',
+  background_color: '#000000ff',
+  background_image: null,
+  background_preset: null,
+  progress_style: 'bottom_bar',
+  progress_color_main: 'green',
+  progress_color_secondary: 'yellow',
+  progress_color_tertiary: 'red',
+};
+
+const mockTimer: Timer = {
+  title: 'Sample Timer',
+  speaker: 'Jane Doe',
+  notes: 'This is a mock note',
+  show_title: true,
+  show_speaker: true,
+  show_notes: true,
+  timer_type: 'countdown',
+  duration_seconds: 600,
+  current_time_seconds: 300,
+  is_active: true,
+  is_paused: false,
+  is_finished: false,
+  is_stopped: false,
+  accumulated_seconds: 0,
+  warning_time: 120,
+  critical_time: 60,
+  is_overtime: false,
+  overtime_seconds: 0,
+  last_calculated_at: new Date(),
+};
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     isDraggingRef.current = true;
@@ -194,12 +317,13 @@ export default function HomePage() {
                 overflow: 'auto' // Allow content to scroll if needed
               }}
             >
-              <Box>
-                <h3>Top Section</h3>
+              <TimerDisplay display={mockDisplay} timer={mockTimer} />
+              {/* <Box> */}
+                {/* <h3>Top Section</h3>
                 <p>This takes up 8/12 (66.67%) of the right column height</p>
                 <p>Current left width: {leftWidth.toFixed(1)}%</p>
                 <p>Responsive height that adapts to screen size</p>
-              </Box>
+              </Box> */}
             </Paper>
             
             {/* Bottom section - 33.33% height */}
