@@ -148,9 +148,9 @@ const mockTimer: Timer = {
 
     const containerRect = containerRef.current.getBoundingClientRect();
     const newLeftWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100;
-    
-    // Constrain between 30% and 80%
-    const constrainedWidth = Math.min(Math.max(newLeftWidth, 30), 80);
+
+    // Constrain between 30% and 70%
+    const constrainedWidth = Math.min(Math.max(newLeftWidth, 30), 70);
     setLeftWidth(constrainedWidth);
   }, []);
 
@@ -307,13 +307,13 @@ const mockTimer: Timer = {
             height: '100%', 
             gap: theme.spacing.xs 
           }}>
-            {/* Top section - 66.67% height */}
-            <Paper 
-              withBorder 
-              p="md" 
-              style={{ 
-                flex: '2 1 0', // Flexible with 2:1 ratio
-                minHeight: '200px',
+            {/* Top section */}
+            <Paper
+              withBorder
+              p="md"
+              style={{
+                aspectRatio: '16 / 9',
+                flex: 'none',
                 overflow: 'auto' // Allow content to scroll if needed
               }}
             >
