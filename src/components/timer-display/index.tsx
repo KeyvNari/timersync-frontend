@@ -141,9 +141,12 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
     }
 
     let formatted = parts.join(':');
+    
+    // Handle overtime display
     if (seconds < 0 && safeTimer.timer_type === 'countdown') {
-      formatted = `-${formatted}`;
+      formatted = `+${formatted}`;
     }
+    
     return formatted;
   };
 
@@ -152,6 +155,75 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
       return currentDate.toLocaleTimeString();
     }
     return currentDate.toLocaleTimeString();
+  };
+
+  // Function to get the current progress bar color (for both timer and border)
+  const getCurrentProgressColor = () => {
+    if (safeTimer.timer_type === 'countdown' && safeTimer.duration_seconds) {
+      const warningTime = safeTimer.warning_time || (safeTimer.duration_seconds * 0.3);
+      const criticalTime = safeTimer.critical_time || (safeTimer.duration_seconds * 0.1);
+      
+      if (currentTime < 0) {
+        // Overtime - use tertiary color
+        return display.progress_color_tertiary || 'red';
+      } else if (currentTime <= criticalTime) {
+        // Critical time - use tertiary color
+        return display.progress_color_tertiary || 'red';
+      } else if (currentTime <= warningTime) {
+        // Warning time - use secondary color
+        return display.progress_color_secondary || 'yellow';
+      } else {
+        // Normal time - use main color
+        return display.progress_color_main || 'green';
+      }
+    } else if (safeTimer.timer_type === 'countup' && safeTimer.duration_seconds) {
+      // For countup, check if we've reached warning/critical thresholds
+      if (safeTimer.critical_time && currentTime >= safeTimer.critical_time) {
+        return display.progress_color_tertiary || 'red';
+      } else if (safeTimer.warning_time && currentTime >= safeTimer.warning_time) {
+        return display.progress_color_secondary || 'yellow';
+      } else {
+        return display.progress_color_main || 'green';
+      }
+    }
+    
+    // Default to main color
+    return display.progress_color_main || 'green';
+  };
+
+  // Determine timer color based on current state
+  const getTimerColor = () => {
+    if (safeTimer.timer_type === 'countdown' && safeTimer.duration_seconds) {
+      const warningTime = safeTimer.warning_time || (safeTimer.duration_seconds * 0.3);
+      const criticalTime = safeTimer.critical_time || (safeTimer.duration_seconds * 0.1);
+      
+      if (currentTime < 0) {
+        // Overtime - use tertiary color
+        return display.progress_color_tertiary || 'red';
+      } else if (currentTime <= criticalTime) {
+        // Critical time - use tertiary color
+        return display.progress_color_tertiary || 'red';
+      } else if (currentTime <= warningTime) {
+        // Warning time - use secondary color
+        return display.progress_color_secondary || 'yellow';
+      } else {
+        // Normal time - use default timer color (white)
+        return display.timer_color || '#ffffff';
+      }
+    } else if (safeTimer.timer_type === 'countup' && safeTimer.duration_seconds) {
+      // For countup, check if we've reached warning/critical thresholds
+      if (safeTimer.critical_time && currentTime >= safeTimer.critical_time) {
+        return display.progress_color_tertiary || 'red';
+      } else if (safeTimer.warning_time && currentTime >= safeTimer.warning_time) {
+        return display.progress_color_secondary || 'yellow';
+      } else {
+        // Normal time - use default timer color (white)
+        return display.timer_color || '#ffffff';
+      }
+    }
+    
+    // Default color (white)
+    return display.timer_color || '#ffffff';
   };
 
   const timerText = formatTime(currentTime, display.timer_format || 'hhh:mmm:ss');
@@ -183,9 +255,9 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
   // Calculate responsive font size based on container dimensions
   const baseFontSize = (display.timer_size_percent || 100) / 100;
   const timerStyle: React.CSSProperties = {
-    fontFamily: display.timer_font_family || 'Inter',
-    color: display.timer_color || '#ffffff',
-    fontSize: `${baseFontSize * 6}rem`, // Reduced base size
+    fontFamily: display.timer_font_family || 'Roboto Mono',
+    color: getTimerColor(), // Use dynamic color based on timer state
+    fontSize: `${baseFontSize * 6*7}rem`, // Reduced base size
     textAlign: 'center' as const,
     margin: 0,
     lineHeight: 1,
@@ -203,7 +275,7 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
   }
 
   const clockStyle: React.CSSProperties = {
-    fontFamily: display.clock_font_family || 'Inter',
+    fontFamily: display.clock_font_family || 'Roboto Mono',
     color: display.clock_color || display.time_of_day_color || '#ffffff',
     fontSize: showOnlyClock ? `${baseFontSize * 4}rem` : '2rem',
     textAlign: 'center' as const,
@@ -238,19 +310,55 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
       break;
   }
 
-  let progressValue = 0;
+  // Calculate progress sections for countdown timer
+  let mainSection = 0;
+  let warningSection = 0;
+  let criticalSection = 0;
   let progressColor = display.progress_color_main || 'green';
 
   if (safeTimer.duration_seconds && safeTimer.duration_seconds > 0) {
     if (safeTimer.timer_type === 'countdown') {
       let remaining = currentTime;
       if (remaining < 0) remaining = 0;
-      progressValue = (remaining / safeTimer.duration_seconds) * 100;
-      if (safeTimer.warning_time && remaining <= safeTimer.warning_time) progressColor = display.progress_color_secondary || 'yellow';
-      if (safeTimer.critical_time && remaining <= safeTimer.critical_time) progressColor = display.progress_color_tertiary || 'red';
+      
+      // Calculate percentages for each section based on time thresholds
+      const warningTime = safeTimer.warning_time || (safeTimer.duration_seconds * 0.3);
+      const criticalTime = safeTimer.critical_time || (safeTimer.duration_seconds * 0.1);
+      
+      // Calculate what percentage each section should be when full
+      const criticalPercent = (criticalTime / safeTimer.duration_seconds) * 100;
+      const warningPercent = ((warningTime - criticalTime) / safeTimer.duration_seconds) * 100;
+      const mainPercent = 100 - criticalPercent - warningPercent;
+      
+      // Now calculate actual values based on remaining time
+      if (remaining > warningTime) {
+        // All sections full, but main section is depleting
+        const mainRemaining = remaining - warningTime;
+        const mainTotal = safeTimer.duration_seconds - warningTime;
+        mainSection = (mainRemaining / mainTotal) * mainPercent;
+        warningSection = warningPercent;
+        criticalSection = criticalPercent;
+        progressColor = display.progress_color_main || 'green';
+      } else if (remaining > criticalTime) {
+        // Main section empty, warning section depleting
+        const warningRemaining = remaining - criticalTime;
+        const warningTotal = warningTime - criticalTime;
+        mainSection = 0;
+        warningSection = (warningRemaining / warningTotal) * warningPercent;
+        criticalSection = criticalPercent;
+        progressColor = display.progress_color_secondary || 'yellow';
+      } else {
+        // Main and warning empty, critical section depleting
+        mainSection = 0;
+        warningSection = 0;
+        criticalSection = (remaining / criticalTime) * criticalPercent;
+        progressColor = display.progress_color_tertiary || 'red';
+      }
     } else {
-      progressValue = (currentTime / safeTimer.duration_seconds) * 100;
+      // For countup, use simple progress
+      let progressValue = (currentTime / safeTimer.duration_seconds) * 100;
       if (progressValue > 100) progressValue = 100;
+      mainSection = progressValue;
       if (safeTimer.warning_time && currentTime >= safeTimer.warning_time) progressColor = display.progress_color_secondary || 'yellow';
       if (safeTimer.critical_time && currentTime >= safeTimer.critical_time) progressColor = display.progress_color_tertiary || 'red';
     }
@@ -260,14 +368,76 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
   const progressStyle = display.progress_style || 'bottom_bar';
   if (progressStyle !== 'hidden') {
     if (progressStyle === 'bottom_bar' || progressStyle === 'top_bar') {
-      progressComponent = <Progress value={progressValue} color={progressColor} size="lg" striped animated={safeTimer.is_active && !safeTimer.is_paused} />;
+      if (safeTimer.timer_type === 'countdown') {
+        // Calculate total progress percentage for handle position
+        const totalProgress = mainSection + warningSection + criticalSection;
+        
+        // Multi-section progress for countdown - reversed order so green empties first
+        progressComponent = (
+          <Box style={{ position: 'relative' }}>
+            <Progress.Root size="xl" radius="xs">
+              <Progress.Section value={criticalSection} color={display.progress_color_tertiary || 'red'}
+                striped={mainSection === 0 && warningSection === 0 && criticalSection > 0 && safeTimer.is_active && !safeTimer.is_paused}
+                animated={mainSection === 0 && warningSection === 0 && criticalSection > 0 && safeTimer.is_active && !safeTimer.is_paused} />
+              <Progress.Section value={warningSection} color={display.progress_color_secondary || 'yellow'}
+                striped={mainSection === 0 && warningSection > 0 && safeTimer.is_active && !safeTimer.is_paused}
+                animated={mainSection === 0 && warningSection > 0 && safeTimer.is_active && !safeTimer.is_paused} />
+              <Progress.Section value={mainSection} color={display.progress_color_main || 'green'} 
+                striped={mainSection > 0 && safeTimer.is_active && !safeTimer.is_paused} 
+                animated={mainSection > 0 && safeTimer.is_active && !safeTimer.is_paused} />
+            </Progress.Root>
+            {/* White handle indicator */}
+            <Box
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: `${totalProgress}%`,
+                transform: 'translate(-50%, -50%)',
+                width: '4px',
+                height: '20px',
+                backgroundColor: 'white',
+                borderRadius: '2px',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.5)',
+                zIndex: 2,
+                transition: 'left 0.3s ease',
+              }}
+            />
+          </Box>
+        );
+      } else {
+        // Simple progress for countup
+        progressComponent = (
+          <Box style={{ position: 'relative' }}>
+            <Progress.Root size="xl" radius="xs">
+              <Progress.Section value={mainSection} color={progressColor} striped animated={safeTimer.is_active && !safeTimer.is_paused} />
+            </Progress.Root>
+            {/* White handle indicator */}
+            <Box
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: `${mainSection}%`,
+                transform: 'translate(-50%, -50%)',
+                width: '4px',
+                height: '20px',
+                backgroundColor: 'white',
+                borderRadius: '2px',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.5)',
+                zIndex: 2,
+                transition: 'left 0.3s ease',
+              }}
+            />
+          </Box>
+        );
+      }
     } else if (progressStyle === 'ring') {
+      const ringValue = mainSection + warningSection + criticalSection;
       progressComponent = (
         <RingProgress
-          sections={[{ value: progressValue, color: progressColor }]}
+          sections={[{ value: ringValue, color: progressColor }]}
           size={120}
           thickness={12}
-          label={<Text size="sm" ta="center" c={progressColor}>{Math.round(progressValue)}%</Text>}
+          label={<Text size="sm" ta="center" c={progressColor}>{Math.round(ringValue)}%</Text>}
         />
       );
     }
@@ -282,20 +452,20 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
   if (display.speaker_display_location === 'footer' && safeTimer.show_speaker && safeTimer.speaker) footerItems.push(safeTimer.speaker);
 
   const header = headerItems.length > 0 ? (
-    <Text size="lg" style={{ fontFamily: display.header_font_family || 'Inter', color: display.header_color || '#ffffff', textAlign: 'center' }}>
+    <Text size="lg" style={{ fontFamily: display.header_font_family || 'Roboto Mono', color: display.header_color || '#ffffff', textAlign: 'center' }}>
       {headerItems.join(' | ')}
     </Text>
   ) : null;
 
   const footer = footerItems.length > 0 ? (
-    <Text size="lg" style={{ fontFamily: display.footer_font_family || 'Inter', color: display.footer_color || '#ffffff', textAlign: 'center' }}>
+    <Text size="lg" style={{ fontFamily: display.footer_font_family || 'Roboto Mono', color: display.footer_color || '#ffffff', textAlign: 'center' }}>
       {footerItems.join(' | ')}
     </Text>
   ) : null;
 
   const message = safeTimer.show_notes && safeTimer.notes ? safeTimer.notes : '';
   const messageComponent = message ? (
-    <Text size="md" style={{ fontFamily: display.message_font_family || 'Inter', color: display.message_color || '#ffffff', textAlign: 'center' }}>
+    <Text size="md" style={{ fontFamily: display.message_font_family || 'Roboto Mono', color: display.message_color || '#ffffff', textAlign: 'center' }}>
       {message}
     </Text>
   ) : null;
@@ -303,6 +473,9 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
   // Parse aspect ratio
   const [ratioWidth, ratioHeight] = (display.display_ratio || '16:9').split(':').map(Number);
   const aspectRatio = ratioWidth / ratioHeight;
+
+  // Get the current border color (matches progress bar color)
+  const borderColor = getCurrentProgressColor();
 
   return (
     <Box
@@ -313,32 +486,39 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
         position: 'relative',
         overflow: 'hidden',
         ...backgroundStyle,
-        borderRadius: '8px',
+        borderRadius: '0px',
+        border: `1px solid ${borderColor}`, // Add border that matches progress color
+        transition: 'border-color 0.3s ease', // Smooth color transition
+        boxSizing: 'border-box', // Ensure border doesn't affect dimensions
       }}
     >
-      <Flex 
-        direction="column" 
-        justify="space-between" 
-        style={{ 
-          height: '100%', 
+      {progressStyle === 'top_bar' && (
+        <Box style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1 }}>
+          {progressComponent}
+        </Box>
+      )}
+
+      <Flex
+        direction="column"
+        justify="space-between"
+        style={{
+          height: '100%',
           width: '100%',
           padding: '1rem',
           position: 'relative',
           overflow: 'hidden',
         }}
       >
-        {progressStyle === 'top_bar' && progressComponent}
-        
         {header && (
           <Box style={{ flexShrink: 0 }}>
             {header}
           </Box>
         )}
-        
+
         <Stack align="center" justify="center" gap="md" style={{ flex: 1, minHeight: 0 }}>
           {showTimer && (
-            <Box style={{ 
-              maxWidth: '100%', 
+            <Box style={{
+              maxWidth: '100%',
               maxHeight: '100%',
               overflow: 'hidden',
               display: 'flex',
@@ -354,7 +534,7 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
               </Text>
             </Box>
           )}
-          
+
           {display.clock_visible && !showOnlyClock && (
             <Box style={{ maxWidth: '100%', overflow: 'hidden' }}>
               <Text style={{
@@ -363,7 +543,7 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
               }}>{clockText}</Text>
             </Box>
           )}
-          
+
           {showOnlyClock && (
             <Box style={{ maxWidth: '100%', overflow: 'hidden' }}>
               <Text style={{
@@ -372,27 +552,31 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
               }}>{clockText}</Text>
             </Box>
           )}
-          
+
           {messageComponent && (
             <Box style={{ maxWidth: '100%', overflow: 'hidden' }}>
               {messageComponent}
             </Box>
           )}
         </Stack>
-        
+
         {footer && (
           <Box style={{ flexShrink: 0 }}>
             {footer}
           </Box>
         )}
-        
-        {progressStyle === 'bottom_bar' && progressComponent}
       </Flex>
-      
+
+      {progressStyle === 'bottom_bar' && (
+        <Box style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 1 }}>
+          {progressComponent}
+        </Box>
+      )}
+
       {display.logo_image && (
         <Image src={`data:image/png;base64,${display.logo_image}`} style={logoStyle} />
       )}
-      
+
       {progressStyle === 'ring' && progressComponent && (
         <Box style={{ position: 'absolute', bottom: 20, right: 20, zIndex: 10 }}>
           {progressComponent}

@@ -6,6 +6,7 @@ export const theme = createTheme({
   components,
   cursorType: 'pointer',
   fontFamily: 'Inter, sans-serif',
+  fontFamilyMonospace: 'Roboto Mono, ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
   breakpoints: {
     xs: '30em',
     sm: '40em',

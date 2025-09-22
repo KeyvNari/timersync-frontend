@@ -15,7 +15,7 @@ export function DashboardLayout() {
 
   return (
     <div className={classes.root}>
-      <Paper 
+      {/* <Paper 
         className={`${classes.sidebarWrapper} ${sidebarCollapsed ? classes.sidebarCollapsed : ''}`} 
         withBorder
       >
@@ -25,7 +25,7 @@ export function DashboardLayout() {
         <div className={classes.sidebarContent}>
           <Sidebar collapsed={sidebarCollapsed} onToggle={handleToggleSidebar} />
         </div>
-      </Paper>
+      </Paper> */}
       <div className={`${classes.content} ${sidebarCollapsed ? classes.contentExpanded : ''}`}>
         <Header />
 
