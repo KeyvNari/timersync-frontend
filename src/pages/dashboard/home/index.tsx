@@ -82,7 +82,7 @@ const mockDisplay: Display = {
   logo_image: null,
   logo_size_percent: 60,
   logo_position: 'top_left',
-  timer_format: 'ss',
+  timer_format: 'mm:ss',
   timer_font_family: 'Roboto Mono',
   timer_color: '#ffffffff',
   time_of_day_color: '#ffffffff',
@@ -123,8 +123,8 @@ const mockTimer: Timer = {
   show_speaker: false,
   show_notes: false,
   timer_type: 'countdown',
-  duration_seconds: 135,
-  current_time_seconds: 135,
+  duration_seconds: 130,
+  current_time_seconds: 130,
   is_active: true,
   is_paused: false,
   is_finished: false,
@@ -133,7 +133,7 @@ const mockTimer: Timer = {
   warning_time: 120,
   critical_time: 60,
   is_overtime: false,
-  overtime_seconds: 0,
+  overtime_seconds: 5,
   last_calculated_at: new Date(),
 };
   const handleMouseDown = useCallback((e: React.MouseEvent) => {

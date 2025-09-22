@@ -13,10 +13,10 @@ export function Header() {
   return (
     <StickyHeader className={classes.root}>
       <div className={classes.rightContent}>
-        <Link to="/" className={classes.logo}>
+        {/* <Link to="/" className={classes.logo}>
           <Logo />
         </Link>
-        <SpotlightSearchBarButton placeholder="Search for feature" spotlight={<SearchMenu />} />
+        <SpotlightSearchBarButton placeholder="Search for feature" spotlight={<SearchMenu />} /> */}
       </div>
 
       <Group>

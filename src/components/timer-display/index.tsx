@@ -119,17 +119,34 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
   }, [safeTimer]);
 
   const formatTime = (seconds: number, formatStr: string) => {
-    const absSeconds = Math.abs(seconds);
+  const absSeconds = Math.abs(seconds);
+  
+  const hMatch = formatStr.match(/h+/);
+  const mMatch = formatStr.match(/m+/);
+  const sMatch = formatStr.match(/s+/);
+  
+  // Count how many different time units are requested
+  const unitCount = [hMatch, mMatch, sMatch].filter(Boolean).length;
+  
+  let parts: string[] = [];
+  
+  if (unitCount === 1) {
+    // If only one unit is requested, show total time in that unit
+    if (hMatch) {
+      const totalHours = Math.floor(absSeconds / 3600);
+      parts.push(totalHours.toString().padStart(hMatch[0].length, '0'));
+    } else if (mMatch) {
+      const totalMinutes = Math.floor(absSeconds / 60);
+      parts.push(totalMinutes.toString().padStart(mMatch[0].length, '0'));
+    } else if (sMatch) {
+      parts.push(absSeconds.toString().padStart(sMatch[0].length, '0'));
+    }
+  } else {
+    // Multiple units - use traditional clock format
     const hrs = Math.floor(absSeconds / 3600);
     const mins = Math.floor((absSeconds % 3600) / 60);
     const secs = absSeconds % 60;
-
-    const hMatch = formatStr.match(/h+/);
-    const mMatch = formatStr.match(/m+/);
-    const sMatch = formatStr.match(/s+/);
-
-    let parts: string[] = [];
-
+    
     if (hMatch) {
       parts.push(hrs.toString().padStart(hMatch[0].length, '0'));
     }
@@ -139,16 +156,17 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
     if (sMatch) {
       parts.push(secs.toString().padStart(sMatch[0].length, '0'));
     }
+  }
 
-    let formatted = parts.join(':');
-    
-    // Handle overtime display
-    if (seconds < 0 && safeTimer.timer_type === 'countdown') {
-      formatted = `+${formatted}`;
-    }
-    
-    return formatted;
-  };
+  let formatted = unitCount === 1 ? parts[0] : parts.join(':');
+  
+  // Handle overtime display
+  if (seconds < 0 && safeTimer.timer_type === 'countdown') {
+    formatted = `+${formatted}`;
+  }
+  
+  return formatted;
+};
 
   const formatClock = () => {
     if (display.clock_format === 'browser_default' || !display.clock_format) {
@@ -378,13 +396,13 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
             <Progress.Root size="xl" radius="xs">
               <Progress.Section value={criticalSection} color={display.progress_color_tertiary || 'red'}
                 striped={mainSection === 0 && warningSection === 0 && criticalSection > 0 && safeTimer.is_active && !safeTimer.is_paused}
-                animated={mainSection === 0 && warningSection === 0 && criticalSection > 0 && safeTimer.is_active && !safeTimer.is_paused} />
+                animated={mainSection === 0 && warningSection === 0 && criticalSection > 0 && safeTimer.is_active && !safeTimer.is_paused}   style={{ transition: 'width 1s linear' }}/>
               <Progress.Section value={warningSection} color={display.progress_color_secondary || 'yellow'}
                 striped={mainSection === 0 && warningSection > 0 && safeTimer.is_active && !safeTimer.is_paused}
-                animated={mainSection === 0 && warningSection > 0 && safeTimer.is_active && !safeTimer.is_paused} />
+                animated={mainSection === 0 && warningSection > 0 && safeTimer.is_active && !safeTimer.is_paused}   style={{ transition: 'width 1s linear' }}/>
               <Progress.Section value={mainSection} color={display.progress_color_main || 'green'} 
                 striped={mainSection > 0 && safeTimer.is_active && !safeTimer.is_paused} 
-                animated={mainSection > 0 && safeTimer.is_active && !safeTimer.is_paused} />
+                animated={mainSection > 0 && safeTimer.is_active && !safeTimer.is_paused}   style={{ transition: 'width 1s linear' }}/>
             </Progress.Root>
             {/* White handle indicator */}
             <Box
@@ -399,7 +417,7 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
                 borderRadius: '2px',
                 boxShadow: '0 2px 4px rgba(0,0,0,0.5)',
                 zIndex: 2,
-                transition: 'left 0.3s ease',
+                transition: 'left 1s linear',
               }}
             />
           </Box>
