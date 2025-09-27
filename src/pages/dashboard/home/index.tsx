@@ -7,6 +7,8 @@ import { Welcome } from './welcome';
 import classes from './home.module.css';
 import { Button, Group } from '@mantine/core';
 import TimerDisplay from '@/components/timer-display';
+import { ConnectedDevices } from '@/components/connected-devices';
+
 export default function HomePage() {
   const [leftWidth, setLeftWidth] = useState(66); // Initial 8/12 ratio as percentage
   const theme = useMantineTheme();
@@ -74,15 +76,18 @@ type Timer = {
   critical_time?: number | null;
   is_overtime: boolean;
   overtime_seconds: number;
-  last_calculated_at?: Date | null;
+  last_calculated_at?: Date | null; 
+  accumulated_pause_time ?: number | null
+  server_time?: Date | null
 };
 // Mock data for testing
+
 const mockDisplay: Display = {
   name: 'Untitled Display',
   logo_image: null,
   logo_size_percent: 60,
   logo_position: 'top_left',
-  timer_format: 'mm:ss',
+  timer_format: 'hh:mm:ss',
   timer_font_family: 'Roboto Mono',
   timer_color: '#ffffffff',
   time_of_day_color: '#ffffffff',
@@ -93,7 +98,7 @@ const mockDisplay: Display = {
   clock_format: 'browser_default',
   clock_font_family: 'Roboto Mono',
   clock_color: '#ffffff',
-  clock_visible: false,
+  clock_visible: true,
   message_font_family: 'Roboto Mono',
   message_color: '#ffffff',
   title_display_location: 'header',
@@ -120,11 +125,11 @@ const mockTimer: Timer = {
   speaker: 'Jane Doe',
   notes: 'This is a mock note',
   show_title: true,
-  show_speaker: false,
-  show_notes: false,
+  show_speaker: true,
+  show_notes: true,
   timer_type: 'countdown',
-  duration_seconds: 130,
-  current_time_seconds: 130,
+  duration_seconds: 250,
+  current_time_seconds: 140,
   is_active: true,
   is_paused: false,
   is_finished: false,
@@ -132,9 +137,13 @@ const mockTimer: Timer = {
   accumulated_seconds: 0,
   warning_time: 120,
   critical_time: 60,
-  is_overtime: false,
+  started_at : new Date(),
+  paused_at: null, 
+  accumulated_pause_time: 0,
+  is_overtime: true,
   overtime_seconds: 5,
   last_calculated_at: new Date(),
+  server_time: new Date(),
 };
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -337,9 +346,10 @@ const mockTimer: Timer = {
               }}
             >
               <Box>
-                <h3>Bottom Section</h3>
-                <p>This takes up 4/12 (33.33%) of the right column height</p>
-                <p>Adapts to available space</p>
+             <ConnectedDevices 
+              currentUserAccess="full"
+             
+/>
               </Box>
             </Paper>
           </Box>

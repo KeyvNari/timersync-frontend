@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Text, Image, Flex, Stack, Progress, Box, RingProgress } from '@mantine/core';
 
 type Display = {
@@ -54,17 +54,103 @@ type Timer = {
   is_paused: boolean;
   is_finished: boolean;
   is_stopped: boolean;
-  current_time_seconds: number;
-  started_at?: Date | null;
-  paused_at?: Date | null;
-  completed_at?: Date | null;
-  accumulated_seconds: number;
+  // New fields for client-side calculation
+  started_at?: string | null; // UTC ISO string
+  paused_at?: string | null; // UTC ISO string
+  accumulated_pause_time?: number; // Total seconds spent paused
   warning_time?: number | null;
   critical_time?: number | null;
-  is_overtime: boolean;
-  overtime_seconds: number;
-  last_calculated_at?: Date | null;
+  server_time?: Date | null;
 };
+
+// Clock synchronization utilities
+class ClockSync {
+  private static clockOffset: number = 0;
+  private static isInitialized: boolean = false;
+
+  static initialize(serverTimeUTC: string) {
+    const serverTime = new Date(serverTimeUTC).getTime();
+    const clientTime = Date.now();
+    this.clockOffset = serverTime - clientTime;
+    this.isInitialized = true;
+  }
+
+  static getServerTime(): Date {
+    if (!this.isInitialized) {
+      console.warn('Clock sync not initialized, using client time');
+      return new Date();
+    }
+    return new Date(Date.now() + this.clockOffset);
+  }
+
+  static getOffset(): number {
+    return this.clockOffset;
+  }
+}
+
+// Timer calculation utilities
+function calculateCurrentTime(timer: Timer): {
+  currentTime: number;
+  isOvertime: boolean;
+  overtimeSeconds: number;
+} {
+  if (!timer.started_at || !timer.is_active || timer.is_stopped) {
+    return {
+      currentTime: timer.duration_seconds || 0,
+      isOvertime: false,
+      overtimeSeconds: 0
+    };
+  }
+
+  const now = ClockSync.getServerTime();
+  const startTime = new Date(timer.started_at);
+  
+  // Calculate elapsed time since start
+  let elapsedMs = now.getTime() - startTime.getTime();
+  
+  // Subtract accumulated pause time from previous pauses
+  if (timer.accumulated_pause_time) {
+    elapsedMs -= timer.accumulated_pause_time * 1000;
+  }
+  
+  // If currently paused, subtract time since current pause started
+  // This handles the current pause period that isn't yet included in accumulated_pause_time
+  if (timer.is_paused && timer.paused_at) {
+    const pauseStart = new Date(timer.paused_at);
+    const currentPausedMs = now.getTime() - pauseStart.getTime();
+    elapsedMs -= currentPausedMs;
+  }
+  
+  const elapsedSeconds = Math.max(0, Math.floor(elapsedMs / 1000));
+  
+  if (timer.timer_type === 'countdown') {
+    const remainingTime = (timer.duration_seconds || 0) - elapsedSeconds;
+    
+    if (remainingTime < 0) {
+      // Timer is in overtime
+      return {
+        currentTime: 0,
+        isOvertime: true,
+        overtimeSeconds: Math.abs(remainingTime)
+      };
+    } else {
+      return {
+        currentTime: remainingTime,
+        isOvertime: false,
+        overtimeSeconds: 0
+      };
+    }
+  } else {
+    // Countup timer
+    return {
+      currentTime: elapsedSeconds,
+      isOvertime: false,
+      overtimeSeconds: 0
+    };
+  }
+}
+
+
 
 function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
   const defaultTimer: Timer = {
@@ -80,93 +166,86 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
     is_paused: false,
     is_finished: false,
     is_stopped: false,
-    current_time_seconds: 0,
-    accumulated_seconds: 0,
-    is_overtime: false,
-    overtime_seconds: 0,
   };
 
   const safeTimer = timer ?? defaultTimer;
-  const [currentTime, setCurrentTime] = useState(safeTimer.current_time_seconds);
+  
+  // Initialize clock sync when timer data includes server time
+  useEffect(() => {
+    if (safeTimer.server_time) {
+      ClockSync.initialize(safeTimer.server_time);
+    }
+  }, [safeTimer.server_time]);
+
+  const [displayState, setDisplayState] = useState(() => {
+    const calculated = calculateCurrentTime(safeTimer);
+    return {
+      currentTime: calculated.currentTime,
+      isOvertime: calculated.isOvertime,
+      overtimeSeconds: calculated.overtimeSeconds
+    };
+  });
+  
   const [currentDate, setCurrentDate] = useState(new Date());
 
   useEffect(() => {
     const interval = setInterval(() => {
-      const now = new Date();
+      const now = ClockSync.getServerTime();
       setCurrentDate(now);
 
-      if (safeTimer.is_active && !safeTimer.is_paused && !safeTimer.is_finished) {
-        const currentTimestamp = now.getTime();
-        const lastTimestamp = safeTimer.last_calculated_at
-          ? safeTimer.last_calculated_at.getTime()
-          : currentTimestamp;
-        const delta = Math.floor((currentTimestamp - lastTimestamp) / 1000);
-
-        let newCurrent = safeTimer.current_time_seconds;
-        if (safeTimer.timer_type === 'countdown') {
-          newCurrent -= delta;
-          if (newCurrent < 0) {
-            newCurrent = safeTimer.is_overtime ? newCurrent : 0;
-          }
-        } else {
-          newCurrent += delta;
-        }
-        setCurrentTime(newCurrent);
-      }
-    }, 1000);
+      // Recalculate timer state
+      const calculated = calculateCurrentTime(safeTimer);
+      setDisplayState({
+        currentTime: calculated.currentTime,
+        isOvertime: calculated.isOvertime,
+        overtimeSeconds: calculated.overtimeSeconds
+      });
+    }, 100); // Update every 100ms for smooth display
 
     return () => clearInterval(interval);
   }, [safeTimer]);
 
   const formatTime = (seconds: number, formatStr: string) => {
-  const absSeconds = Math.abs(seconds);
-  
-  const hMatch = formatStr.match(/h+/);
-  const mMatch = formatStr.match(/m+/);
-  const sMatch = formatStr.match(/s+/);
-  
-  // Count how many different time units are requested
-  const unitCount = [hMatch, mMatch, sMatch].filter(Boolean).length;
-  
-  let parts: string[] = [];
-  
-  if (unitCount === 1) {
-    // If only one unit is requested, show total time in that unit
-    if (hMatch) {
-      const totalHours = Math.floor(absSeconds / 3600);
-      parts.push(totalHours.toString().padStart(hMatch[0].length, '0'));
-    } else if (mMatch) {
-      const totalMinutes = Math.floor(absSeconds / 60);
-      parts.push(totalMinutes.toString().padStart(mMatch[0].length, '0'));
-    } else if (sMatch) {
-      parts.push(absSeconds.toString().padStart(sMatch[0].length, '0'));
-    }
-  } else {
-    // Multiple units - use traditional clock format
-    const hrs = Math.floor(absSeconds / 3600);
-    const mins = Math.floor((absSeconds % 3600) / 60);
-    const secs = absSeconds % 60;
+    const absSeconds = Math.abs(seconds);
     
-    if (hMatch) {
-      parts.push(hrs.toString().padStart(hMatch[0].length, '0'));
+    const hMatch = formatStr.match(/h+/);
+    const mMatch = formatStr.match(/m+/);
+    const sMatch = formatStr.match(/s+/);
+    
+    const unitCount = [hMatch, mMatch, sMatch].filter(Boolean).length;
+    
+    let parts: string[] = [];
+    
+    if (unitCount === 1) {
+      if (hMatch) {
+        const totalHours = Math.floor(absSeconds / 3600);
+        parts.push(totalHours.toString().padStart(hMatch[0].length, '0'));
+      } else if (mMatch) {
+        const totalMinutes = Math.floor(absSeconds / 60);
+        parts.push(totalMinutes.toString().padStart(mMatch[0].length, '0'));
+      } else if (sMatch) {
+        parts.push(absSeconds.toString().padStart(sMatch[0].length, '0'));
+      }
+    } else {
+      const hrs = Math.floor(absSeconds / 3600);
+      const mins = Math.floor((absSeconds % 3600) / 60);
+      const secs = absSeconds % 60;
+      
+      if (hMatch) {
+        parts.push(hrs.toString().padStart(hMatch[0].length, '0'));
+      }
+      if (mMatch) {
+        parts.push(mins.toString().padStart(mMatch[0].length, '0'));
+      }
+      if (sMatch) {
+        parts.push(secs.toString().padStart(sMatch[0].length, '0'));
+      }
     }
-    if (mMatch) {
-      parts.push(mins.toString().padStart(mMatch[0].length, '0'));
-    }
-    if (sMatch) {
-      parts.push(secs.toString().padStart(sMatch[0].length, '0'));
-    }
-  }
 
-  let formatted = unitCount === 1 ? parts[0] : parts.join(':');
-  
-  // Handle overtime display
-  if (seconds < 0 && safeTimer.timer_type === 'countdown') {
-    formatted = `+${formatted}`;
-  }
-  
-  return formatted;
-};
+    let formatted = unitCount === 1 ? parts[0] : parts.join(':');
+    
+    return formatted;
+  };
 
   const formatClock = () => {
     if (display.clock_format === 'browser_default' || !display.clock_format) {
@@ -175,81 +254,73 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
     return currentDate.toLocaleTimeString();
   };
 
-  // Function to get the current progress bar color (for both timer and border)
+  // Function to get the current progress bar color
   const getCurrentProgressColor = () => {
     if (safeTimer.timer_type === 'countdown' && safeTimer.duration_seconds) {
       const warningTime = safeTimer.warning_time || (safeTimer.duration_seconds * 0.3);
       const criticalTime = safeTimer.critical_time || (safeTimer.duration_seconds * 0.1);
       
-      if (currentTime < 0) {
-        // Overtime - use tertiary color
+      if (displayState.isOvertime) {
         return display.progress_color_tertiary || 'red';
-      } else if (currentTime <= criticalTime) {
-        // Critical time - use tertiary color
+      } else if (displayState.currentTime <= criticalTime) {
         return display.progress_color_tertiary || 'red';
-      } else if (currentTime <= warningTime) {
-        // Warning time - use secondary color
+      } else if (displayState.currentTime <= warningTime) {
         return display.progress_color_secondary || 'yellow';
       } else {
-        // Normal time - use main color
         return display.progress_color_main || 'green';
       }
     } else if (safeTimer.timer_type === 'countup' && safeTimer.duration_seconds) {
-      // For countup, check if we've reached warning/critical thresholds
-      if (safeTimer.critical_time && currentTime >= safeTimer.critical_time) {
+      if (safeTimer.critical_time && displayState.currentTime >= safeTimer.critical_time) {
         return display.progress_color_tertiary || 'red';
-      } else if (safeTimer.warning_time && currentTime >= safeTimer.warning_time) {
+      } else if (safeTimer.warning_time && displayState.currentTime >= safeTimer.warning_time) {
         return display.progress_color_secondary || 'yellow';
       } else {
         return display.progress_color_main || 'green';
       }
     }
     
-    // Default to main color
     return display.progress_color_main || 'green';
   };
 
-  // Determine timer color based on current state
   const getTimerColor = () => {
     if (safeTimer.timer_type === 'countdown' && safeTimer.duration_seconds) {
       const warningTime = safeTimer.warning_time || (safeTimer.duration_seconds * 0.3);
       const criticalTime = safeTimer.critical_time || (safeTimer.duration_seconds * 0.1);
       
-      if (currentTime < 0) {
-        // Overtime - use tertiary color
+      if (displayState.isOvertime) {
         return display.progress_color_tertiary || 'red';
-      } else if (currentTime <= criticalTime) {
-        // Critical time - use tertiary color
+      } else if (displayState.currentTime <= criticalTime) {
         return display.progress_color_tertiary || 'red';
-      } else if (currentTime <= warningTime) {
-        // Warning time - use secondary color
+      } else if (displayState.currentTime <= warningTime) {
         return display.progress_color_secondary || 'yellow';
       } else {
-        // Normal time - use default timer color (white)
         return display.timer_color || '#ffffff';
       }
     } else if (safeTimer.timer_type === 'countup' && safeTimer.duration_seconds) {
-      // For countup, check if we've reached warning/critical thresholds
-      if (safeTimer.critical_time && currentTime >= safeTimer.critical_time) {
+      if (safeTimer.critical_time && displayState.currentTime >= safeTimer.critical_time) {
         return display.progress_color_tertiary || 'red';
-      } else if (safeTimer.warning_time && currentTime >= safeTimer.warning_time) {
+      } else if (safeTimer.warning_time && displayState.currentTime >= safeTimer.warning_time) {
         return display.progress_color_secondary || 'yellow';
       } else {
-        // Normal time - use default timer color (white)
         return display.timer_color || '#ffffff';
       }
     }
     
-    // Default color (white)
     return display.timer_color || '#ffffff';
   };
 
-  const timerText = formatTime(currentTime, display.timer_format || 'hhh:mmm:ss');
-  const clockText = formatClock();
+  // Format timer text with overtime handling
+  let timerText = formatTime(displayState.currentTime, display.timer_format || 'mm:ss');
+  
+  if (displayState.isOvertime) {
+    timerText = `+${formatTime(displayState.overtimeSeconds, display.timer_format || 'mm:ss')}`;
+  }
 
+  const clockText = formatClock();
   const showTimer = !(display.auto_hide_completed && safeTimer.is_finished);
   const showOnlyClock = !showTimer && display.clock_visible;
 
+  // Background style setup
   const backgroundStyle: React.CSSProperties = {};
   switch (display.background_type || 'color') {
     case 'color':
@@ -270,13 +341,64 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
       break;
   }
 
-  // Calculate responsive font size based on container dimensions
+  // Calculate progress for progress bars
+  let mainSection = 0;
+  let warningSection = 0;
+  let criticalSection = 0;
+  let progressColor = display.progress_color_main || 'green';
+
+  if (safeTimer.duration_seconds && safeTimer.duration_seconds > 0) {
+    if (safeTimer.timer_type === 'countdown') {
+      let remaining = displayState.currentTime;
+      if (remaining < 0) remaining = 0;
+
+      const warningTime = safeTimer.warning_time || (safeTimer.duration_seconds * 0.3);
+      const criticalTime = safeTimer.critical_time || (safeTimer.duration_seconds * 0.1);
+
+      const criticalPercent = (criticalTime / safeTimer.duration_seconds) * 100;
+      const warningPercent = ((warningTime - criticalTime) / safeTimer.duration_seconds) * 100;
+      const mainPercent = 100 - criticalPercent - warningPercent;
+
+      if (remaining > warningTime) {
+        const mainRemaining = remaining - warningTime;
+        const mainTotal = safeTimer.duration_seconds - warningTime;
+        mainSection = (mainRemaining / mainTotal) * mainPercent;
+        warningSection = warningPercent;
+        criticalSection = criticalPercent;
+        progressColor = display.progress_color_main || 'green';
+      } else if (remaining > criticalTime) {
+        const warningRemaining = remaining - criticalTime;
+        const warningTotal = warningTime - criticalTime;
+        mainSection = 0;
+        warningSection = (warningRemaining / warningTotal) * warningPercent;
+        criticalSection = criticalPercent;
+        progressColor = display.progress_color_secondary || 'yellow';
+      } else {
+        mainSection = 0;
+        warningSection = 0;
+        criticalSection = (remaining / criticalTime) * criticalPercent;
+        progressColor = display.progress_color_tertiary || 'red';
+      }
+    } else {
+      let progressValue = (displayState.currentTime / safeTimer.duration_seconds) * 100;
+      if (progressValue > 100) progressValue = 100;
+      mainSection = progressValue;
+      if (safeTimer.warning_time && displayState.currentTime >= safeTimer.warning_time) {
+        progressColor = display.progress_color_secondary || 'yellow';
+      }
+      if (safeTimer.critical_time && displayState.currentTime >= safeTimer.critical_time) {
+        progressColor = display.progress_color_tertiary || 'red';
+      }
+    }
+  }
+
+  // Timer styling
   const baseFontSize = (display.timer_size_percent || 100) / 100;
   const timerStyle: React.CSSProperties = {
     fontFamily: display.timer_font_family || 'Roboto Mono',
-    color: getTimerColor(), // Use dynamic color based on timer state
-    fontSize: `${baseFontSize * 6*7}rem`, // Reduced base size
-    textAlign: 'center' as const,
+    color: getTimerColor(),
+    fontSize: `${baseFontSize * 6 * 7}rem`,
+    textAlign: 'center',
     margin: 0,
     lineHeight: 1,
     whiteSpace: 'nowrap',
@@ -301,6 +423,7 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
     whiteSpace: 'nowrap',
   };
 
+  // Logo positioning
   const logoSize = display.logo_size_percent || 60;
   const logoStyle: React.CSSProperties = {
     position: 'absolute' as const,
@@ -328,83 +451,37 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
       break;
   }
 
-  // Calculate progress sections for countdown timer
-  let mainSection = 0;
-  let warningSection = 0;
-  let criticalSection = 0;
-  let progressColor = display.progress_color_main || 'green';
-
-  if (safeTimer.duration_seconds && safeTimer.duration_seconds > 0) {
-    if (safeTimer.timer_type === 'countdown') {
-      let remaining = currentTime;
-      if (remaining < 0) remaining = 0;
-      
-      // Calculate percentages for each section based on time thresholds
-      const warningTime = safeTimer.warning_time || (safeTimer.duration_seconds * 0.3);
-      const criticalTime = safeTimer.critical_time || (safeTimer.duration_seconds * 0.1);
-      
-      // Calculate what percentage each section should be when full
-      const criticalPercent = (criticalTime / safeTimer.duration_seconds) * 100;
-      const warningPercent = ((warningTime - criticalTime) / safeTimer.duration_seconds) * 100;
-      const mainPercent = 100 - criticalPercent - warningPercent;
-      
-      // Now calculate actual values based on remaining time
-      if (remaining > warningTime) {
-        // All sections full, but main section is depleting
-        const mainRemaining = remaining - warningTime;
-        const mainTotal = safeTimer.duration_seconds - warningTime;
-        mainSection = (mainRemaining / mainTotal) * mainPercent;
-        warningSection = warningPercent;
-        criticalSection = criticalPercent;
-        progressColor = display.progress_color_main || 'green';
-      } else if (remaining > criticalTime) {
-        // Main section empty, warning section depleting
-        const warningRemaining = remaining - criticalTime;
-        const warningTotal = warningTime - criticalTime;
-        mainSection = 0;
-        warningSection = (warningRemaining / warningTotal) * warningPercent;
-        criticalSection = criticalPercent;
-        progressColor = display.progress_color_secondary || 'yellow';
-      } else {
-        // Main and warning empty, critical section depleting
-        mainSection = 0;
-        warningSection = 0;
-        criticalSection = (remaining / criticalTime) * criticalPercent;
-        progressColor = display.progress_color_tertiary || 'red';
-      }
-    } else {
-      // For countup, use simple progress
-      let progressValue = (currentTime / safeTimer.duration_seconds) * 100;
-      if (progressValue > 100) progressValue = 100;
-      mainSection = progressValue;
-      if (safeTimer.warning_time && currentTime >= safeTimer.warning_time) progressColor = display.progress_color_secondary || 'yellow';
-      if (safeTimer.critical_time && currentTime >= safeTimer.critical_time) progressColor = display.progress_color_tertiary || 'red';
-    }
-  }
-
+  // Progress components
   let progressComponent = null;
   const progressStyle = display.progress_style || 'bottom_bar';
+
   if (progressStyle !== 'hidden') {
     if (progressStyle === 'bottom_bar' || progressStyle === 'top_bar') {
       if (safeTimer.timer_type === 'countdown') {
-        // Calculate total progress percentage for handle position
         const totalProgress = mainSection + warningSection + criticalSection;
-        
-        // Multi-section progress for countdown - reversed order so green empties first
+
         progressComponent = (
           <Box style={{ position: 'relative' }}>
             <Progress.Root size="xl" radius="xs">
-              <Progress.Section value={criticalSection} color={display.progress_color_tertiary || 'red'}
+              <Progress.Section
+                value={criticalSection}
+                color={display.progress_color_tertiary || 'red'}
                 striped={mainSection === 0 && warningSection === 0 && criticalSection > 0 && safeTimer.is_active && !safeTimer.is_paused}
-                animated={mainSection === 0 && warningSection === 0 && criticalSection > 0 && safeTimer.is_active && !safeTimer.is_paused}   style={{ transition: 'width 1s linear' }}/>
-              <Progress.Section value={warningSection} color={display.progress_color_secondary || 'yellow'}
+                animated={mainSection === 0 && warningSection === 0 && criticalSection > 0 && safeTimer.is_active && !safeTimer.is_paused}
+              />
+              <Progress.Section
+                value={warningSection}
+                color={display.progress_color_secondary || 'yellow'}
                 striped={mainSection === 0 && warningSection > 0 && safeTimer.is_active && !safeTimer.is_paused}
-                animated={mainSection === 0 && warningSection > 0 && safeTimer.is_active && !safeTimer.is_paused}   style={{ transition: 'width 1s linear' }}/>
-              <Progress.Section value={mainSection} color={display.progress_color_main || 'green'} 
-                striped={mainSection > 0 && safeTimer.is_active && !safeTimer.is_paused} 
-                animated={mainSection > 0 && safeTimer.is_active && !safeTimer.is_paused}   style={{ transition: 'width 1s linear' }}/>
+                animated={mainSection === 0 && warningSection > 0 && safeTimer.is_active && !safeTimer.is_paused}
+              />
+              <Progress.Section
+                value={mainSection}
+                color={display.progress_color_main || 'green'}
+                striped={mainSection > 0 && safeTimer.is_active && !safeTimer.is_paused}
+                animated={mainSection > 0 && safeTimer.is_active && !safeTimer.is_paused}
+              />
             </Progress.Root>
-            {/* White handle indicator */}
             <Box
               style={{
                 position: 'absolute',
@@ -417,19 +494,21 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
                 borderRadius: '2px',
                 boxShadow: '0 2px 4px rgba(0,0,0,0.5)',
                 zIndex: 2,
-                transition: 'left 1s linear',
               }}
             />
           </Box>
         );
       } else {
-        // Simple progress for countup
         progressComponent = (
           <Box style={{ position: 'relative' }}>
             <Progress.Root size="xl" radius="xs">
-              <Progress.Section value={mainSection} color={progressColor} striped animated={safeTimer.is_active && !safeTimer.is_paused} />
+              <Progress.Section
+                value={mainSection}
+                color={progressColor}
+                striped
+                animated={safeTimer.is_active && !safeTimer.is_paused}
+              />
             </Progress.Root>
-            {/* White handle indicator */}
             <Box
               style={{
                 position: 'absolute',
@@ -442,7 +521,6 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
                 borderRadius: '2px',
                 boxShadow: '0 2px 4px rgba(0,0,0,0.5)',
                 zIndex: 2,
-                transition: 'left 0.3s ease',
               }}
             />
           </Box>
@@ -461,6 +539,7 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
     }
   }
 
+  // Header and footer content
   const headerItems: string[] = [];
   if (display.title_display_location === 'header' && safeTimer.show_title) headerItems.push(safeTimer.title);
   if (display.speaker_display_location === 'header' && safeTimer.show_speaker && safeTimer.speaker) headerItems.push(safeTimer.speaker);
@@ -488,11 +567,10 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
     </Text>
   ) : null;
 
-  // Parse aspect ratio
+  // Aspect ratio calculation
   const [ratioWidth, ratioHeight] = (display.display_ratio || '16:9').split(':').map(Number);
   const aspectRatio = ratioWidth / ratioHeight;
 
-  // Get the current border color (matches progress bar color)
   const borderColor = getCurrentProgressColor();
 
   return (
@@ -505,9 +583,9 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
         overflow: 'hidden',
         ...backgroundStyle,
         borderRadius: '0px',
-        border: `1px solid ${borderColor}`, // Add border that matches progress color
-        transition: 'border-color 0.3s ease', // Smooth color transition
-        boxSizing: 'border-box', // Ensure border doesn't affect dimensions
+        border: `1px solid ${borderColor}`,
+        transition: 'border-color 0.1s ease',
+        boxSizing: 'border-box',
       }}
     >
       {progressStyle === 'top_bar' && (
@@ -545,7 +623,6 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
             }}>
               <Text style={{
                 ...timerStyle,
-                // Scale based on both container width AND height
                 fontSize: `min(${timerStyle.fontSize}, 15vw, 15vh)`,
               }}>
                 {timerText}

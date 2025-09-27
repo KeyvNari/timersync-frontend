@@ -1,22 +1,25 @@
-import { Link } from 'react-router-dom';
 import { Group } from '@mantine/core';
 import { ColorSchemeToggler } from '@/components/color-scheme-toggler';
-import { Logo } from '@/components/logo';
-import { SpotlightSearchBarButton } from '@/components/spotlight-search-bar-button';
 import { StickyHeader } from '@/components/sticky-header';
 import { CurrentUser } from './current-user';
 import { Notifications } from './notifications';
-import { SearchMenu } from './search-menu';
+import { EditableRoomName } from './editable-room-name';
 import classes from './header.module.css';
 
 export function Header() {
+  const handleRoomNameSave = (newName: string) => {
+    // TODO: Backend integration - save the room name
+    console.log('Room name saved:', newName);
+  };
+
   return (
     <StickyHeader className={classes.root}>
       <div className={classes.rightContent}>
-        {/* <Link to="/" className={classes.logo}>
-          <Logo />
-        </Link>
-        <SpotlightSearchBarButton placeholder="Search for feature" spotlight={<SearchMenu />} /> */}
+        <EditableRoomName 
+          initialName="Unnamed Room..."
+          onSave={handleRoomNameSave}
+          maxLength={50}
+        />
       </div>
 
       <Group>
