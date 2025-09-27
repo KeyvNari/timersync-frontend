@@ -151,39 +151,38 @@ function ConnectionItem({
   return (
     <Group justify="space-between" wrap="nowrap" p="sm">
       <Group wrap="nowrap" gap="sm" style={{ flex: 1, minWidth: 0 }}>
-        <Indicator 
-          color={isOnline ? 'teal' : 'gray'} 
-          size={8} 
+        <Indicator
+          color={isOnline ? 'teal' : 'gray'}
+          size={8}
           offset={3}
           processing={isOnline}
         >
           <Avatar size="md" color="blue">
-            {connection.access_level === 'full' ? 
-              <AdminIcon size="1.2rem" /> : 
+            {connection.access_level === 'full' ?
+              <AdminIcon size="1.2rem" /> :
               <ViewerIcon size="1.2rem" />
             }
           </Avatar>
         </Indicator>
-        
+
         <div style={{ flex: 1, minWidth: 0 }}>
           <Group gap="xs" wrap="nowrap">
-            <Text size="sm" fw={connection.is_self ? 600 : 400} truncate>
+            <Text size="sm" fw={500} truncate>
               {connection.connection_name}
-              {connection.is_self && ' (You)'}
             </Text>
-            <Badge 
-              size="xs" 
+            <Badge
+              size="xs"
               color={connection.access_level === 'full' ? 'blue' : 'gray'}
               variant="outline"
             >
               {connection.access_level}
             </Badge>
           </Group>
-          
+
           <Text size="xs" c="dimmed" truncate>
             {deviceType} • Connected {formatTimeAgo(connection.connected_at)}
           </Text>
-          
+
           {currentUserAccess === 'full' && (
             <Text size="xs" c="dimmed" truncate>
               {connection.ip_address}
@@ -192,19 +191,26 @@ function ConnectionItem({
           )}
         </div>
       </Group>
-      
-      {currentUserAccess === 'full' && !connection.is_self && onDisconnect && (
-        <Tooltip label="Disconnect device">
-          <ActionIcon 
-            variant="subtle" 
-            color="red" 
-            size="sm"
-            onClick={() => onDisconnect(connection.connection_id)}
-          >
-            <DisconnectIcon size="1rem" />
-          </ActionIcon>
-        </Tooltip>
-      )}
+
+      <Group gap="xs">
+        {connection.is_self && (
+          <Badge size="sm" color="green" variant="filled">
+            You
+          </Badge>
+        )}
+        {currentUserAccess === 'full' && !connection.is_self && onDisconnect && (
+          <Tooltip label="Disconnect device">
+            <ActionIcon
+              variant="subtle"
+              color="red"
+              size="sm"
+              onClick={() => onDisconnect(connection.connection_id)}
+            >
+              <DisconnectIcon size="1rem" />
+            </ActionIcon>
+          </Tooltip>
+        )}
+      </Group>
     </Group>
   );
 }

@@ -5,6 +5,8 @@ import { CurrentUser } from './current-user';
 import { Notifications } from './notifications';
 import { EditableRoomName } from './editable-room-name';
 import classes from './header.module.css';
+import {  Button } from '@mantine/core';
+import { IconShare, IconDownload, IconArrowRight } from '@tabler/icons-react';
 
 export function Header() {
   const handleRoomNameSave = (newName: string) => {
@@ -20,12 +22,18 @@ export function Header() {
           onSave={handleRoomNameSave}
           maxLength={50}
         />
+      
       </div>
 
       <Group>
-        <ColorSchemeToggler />
-        <Notifications />
+      
+        {/* <ColorSchemeToggler /> */}
+      <Button leftSection={<IconShare size={16} />} variant="default">
+        Share Room
+      </Button>
+        {/* <Notifications /> */}
         <CurrentUser />
+      
       </Group>
     </StickyHeader>
   );
