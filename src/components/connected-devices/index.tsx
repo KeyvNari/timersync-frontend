@@ -14,13 +14,14 @@ import {
   Box,
   Indicator
 } from '@mantine/core';
-import { 
+import {
   PiDevices as DeviceIcon,
   PiUser as UserIcon,
   PiEye as ViewerIcon,
   PiCrown as AdminIcon,
   PiCircle as OnlineIcon,
-  PiSignOut as DisconnectIcon
+  PiSignOut as DisconnectIcon,
+  PiDotsThreeOutline as DetailsIcon
 } from 'react-icons/pi';
 
 // Types based on the backend structure
@@ -135,83 +136,97 @@ function getDeviceType(userAgent?: string | null): string {
   return 'Browser';
 }
 
-function ConnectionItem({ 
-  connection, 
-  currentUserAccess, 
-  onDisconnect 
-}: { 
-  connection: ConnectionInfo; 
+function ConnectionItem({
+  connection,
+  currentUserAccess,
+  onDisconnect
+}: {
+  connection: ConnectionInfo;
   currentUserAccess: 'viewer' | 'full';
   onDisconnect?: (connectionId: string) => void;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const deviceType = getDeviceType(connection.user_agent);
-  const isOnline = connection.last_ping ? 
-    (new Date().getTime() - new Date(connection.last_ping).getTime()) < 60000 : true;
-  
+  const isOnline = connection.last_ping ?
+    (new Date().getTime() - new Date(connection.last_ping).getTime()) < 300000  : true;
+
   return (
-    <Group justify="space-between" wrap="nowrap" p="sm">
-      <Group wrap="nowrap" gap="sm" style={{ flex: 1, minWidth: 0 }}>
-        <Indicator
-          color={isOnline ? 'teal' : 'gray'}
-          size={8}
-          offset={3}
-          processing={isOnline}
-        >
-          <Avatar size="md" color="blue">
-            {connection.access_level === 'full' ?
-              <AdminIcon size="1.2rem" /> :
-              <ViewerIcon size="1.2rem" />
-            }
-          </Avatar>
-        </Indicator>
+    <Box p="sm">
+      <Group justify="space-between" wrap="nowrap">
+        <Group wrap="nowrap" gap="sm" style={{ flex: 1, minWidth: 0 }}>
+          <Indicator
+            color={isOnline ? 'teal' : 'gray'}
+            size={6}
+            offset={2}
+            processing={isOnline}
+          >
+            <Avatar size="sm" color="blue">
+              <UserIcon size="1rem" />
+            </Avatar>
+          </Indicator>
 
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <Group gap="xs" wrap="nowrap">
-            <Text size="sm" fw={500} truncate>
-              {connection.connection_name}
-            </Text>
-            <Badge
-              size="xs"
-              color={connection.access_level === 'full' ? 'blue' : 'gray'}
-              variant="outline"
-            >
-              {connection.access_level}
-            </Badge>
-          </Group>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <Group gap="xs" wrap="nowrap" align="center">
+              <Text size="sm" fw={500} truncate>
+                {connection.connection_name}
+              </Text>
+              
+              <Tooltip label={connection.access_level === 'full' ? 'Admin access' : 'Viewer access'}>
+                {connection.access_level === 'full' ? (
+                  <AdminIcon size="0.7rem" color="var(--mantine-color-blue-6)" />
+                ) : (
+                  <ViewerIcon size="0.7rem" color="var(--mantine-color-gray-6)" />
+                )}
+              </Tooltip>
+              
+              {connection.is_self && (
+                <Badge size="xs" color="green" variant="dot">
+                  You
+                </Badge>
+              )}
+            </Group>
+          </div>
+        </Group>
 
-          <Text size="xs" c="dimmed" truncate>
+        <Group gap="xs">
+          {currentUserAccess === 'full' && (
+            <Tooltip label={expanded ? "Hide details" : "Show details"}>
+              <ActionIcon
+                variant="subtle"
+                size="xs"
+                onClick={() => setExpanded(!expanded)}
+              >
+                <DetailsIcon size="0.8rem" />
+              </ActionIcon>
+            </Tooltip>
+          )}
+          {currentUserAccess === 'full' && !connection.is_self && onDisconnect && (
+            <Tooltip label="Disconnect device">
+              <ActionIcon
+                variant="subtle"
+                color="red"
+                size="xs"
+                onClick={() => onDisconnect(connection.connection_id)}
+              >
+                <DisconnectIcon size="0.8rem" />
+              </ActionIcon>
+            </Tooltip>
+          )}
+        </Group>
+      </Group>
+
+      {expanded && currentUserAccess === 'full' && (
+        <Box mt="xs" pl="calc(var(--mantine-spacing-sm) * 2.5)">
+          <Text size="xs" c="dimmed">
             {deviceType} • Connected {formatTimeAgo(connection.connected_at)}
           </Text>
-
-          {currentUserAccess === 'full' && (
-            <Text size="xs" c="dimmed" truncate>
-              {connection.ip_address}
-              {connection.last_ping && ` • Last seen ${formatTimeAgo(connection.last_ping)}`}
-            </Text>
-          )}
-        </div>
-      </Group>
-
-      <Group gap="xs">
-        {connection.is_self && (
-          <Badge size="sm" color="green" variant="filled">
-            You
-          </Badge>
-        )}
-        {currentUserAccess === 'full' && !connection.is_self && onDisconnect && (
-          <Tooltip label="Disconnect device">
-            <ActionIcon
-              variant="subtle"
-              color="red"
-              size="sm"
-              onClick={() => onDisconnect(connection.connection_id)}
-            >
-              <DisconnectIcon size="1rem" />
-            </ActionIcon>
-          </Tooltip>
-        )}
-      </Group>
-    </Group>
+          <Text size="xs" c="dimmed">
+            {connection.ip_address}
+            {connection.last_ping && ` • Last seen ${formatTimeAgo(connection.last_ping)}`}
+          </Text>
+        </Box>
+      )}
+    </Box>
   );
 }
 

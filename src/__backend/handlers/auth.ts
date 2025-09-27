@@ -8,7 +8,7 @@ const TOKEN_EXPIRATION_IN_HOURS = 24;
 
 export default [
   // POST /auth/login
-  http.post(apiUrl('/auth/login'), async ({ request }) => {
+  http.post(apiUrl('/api/v1/login'), async ({ request }) => {
     const schema = z.object({
       email: z.string().email(),
       password: z.string(),

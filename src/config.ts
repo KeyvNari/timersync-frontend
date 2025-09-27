@@ -1,7 +1,7 @@
 export const app = {
-  name: 'Mantine Dashboard',
-  apiBaseUrl: 'https://api.example.com',
-  fakeBackend: true,
+  name: 'clockverse',
+  apiBaseUrl: 'http://localhost:8000',
+  fakeBackend: false,
   redirectQueryParamName: 'r',
   accessTokenStoreKey: 'access_token',
 };

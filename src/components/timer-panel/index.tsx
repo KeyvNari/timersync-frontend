@@ -291,11 +291,7 @@ function SortableItem({ item, onUpdateTimer, onSelectTimer, onOpenSettings, even
     id: item.room_sequence_order,
   });
 
-  const theme = useMantineTheme();
-  const { colorScheme } = useMantineColorScheme();
   const timerState = getTimerState(item);
-  const borderColor = getBorderColor(item, theme);
-  const backgroundColor = getBackgroundColor(item, theme, colorScheme);
 
   // State for inline editing
   const [editingField, setEditingField] = useState<string | null>(null);
@@ -304,23 +300,17 @@ function SortableItem({ item, onUpdateTimer, onSelectTimer, onOpenSettings, even
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
-    backgroundColor,
-    border: borderColor ? `2px solid ${borderColor}` : undefined,
-    borderRadius: borderColor ? '8px' : undefined,
   };
 
   const handlePlay = () => {
-    // Just emit the event - backend handles the actual timer start logic
     events?.onTimerStart?.(item);
   };
 
   const handlePause = () => {
-    // Just emit the event - backend handles the actual timer pause logic
     events?.onTimerPause?.(item);
   };
 
   const handleStop = () => {
-    // Just emit the event - backend handles the actual timer stop/reset logic
     events?.onTimerStop?.(item);
   };
 
@@ -364,25 +354,37 @@ function SortableItem({ item, onUpdateTimer, onSelectTimer, onOpenSettings, even
     }
   };
 
+  // Get status for styling
+  const getItemStatus = () => {
+    if (item.is_active && !item.is_paused) {
+      if (timerState === 'critical') return 'critical';
+      if (timerState === 'warning') return 'warning';
+      return 'active';
+    }
+    return null;
+  };
+
   return (
-    <Tooltip label="Double-click to select timer" position="top" withArrow>
-      <div
-        className={cx(classes.item, {
-          [classes.itemDragging]: isDragging,
-          [classes.itemSelected]: item.is_selected,
-        })}
-        ref={setNodeRef}
-        style={style}
-        onDoubleClick={handleDoubleClick}
-        {...attributes}
-      >
+    <div
+      className={cx(classes.item, {
+        [classes.itemDragging]: isDragging,
+        [classes.itemSelected]: item.is_selected,
+      })}
+      ref={setNodeRef}
+      style={style}
+      onDoubleClick={handleDoubleClick}
+      data-status={getItemStatus()}
+      title="Double-click to select timer"
+      {...attributes}
+    >
         <Tooltip label="Drag to reorder" position="top" withArrow>
           <div className={classes.dragHandle} {...listeners}>
-            <IconGripVertical size={18} stroke={1.5} />
+            <IconGripVertical size={16} stroke={1.5} />
           </div>
         </Tooltip>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+
+        <div className={classes.timerContent}>
+          <div className={classes.timerHeader}>
             {editingField === 'title' ? (
               <TextInput
                 value={editValue}
@@ -394,52 +396,39 @@ function SortableItem({ item, onUpdateTimer, onSelectTimer, onOpenSettings, even
                 autoFocus
               />
             ) : (
-              <Text style={{ cursor: 'pointer' }} onClick={() => startEditing('title', item.title)}>
+              <div className={classes.timerTitle} onClick={() => startEditing('title', item.title)}>
                 {item.title}
-              </Text>
+              </div>
             )}
+            
+            {/* Status indicator */}
+            {getItemStatus() && (
+              <div className={cx(classes.statusBadge, classes[getItemStatus()])}>
+                {getItemStatus()}
+              </div>
+            )}
+
+            {/* Notes indicator */}
             {item.notes && (
               <HoverCard width={320} shadow="md" withArrow>
                 <HoverCard.Target>
-                  <Button variant="subtle" size="compact-xs" color="gray">
-                    <IconNotes size="0.8rem" />
-                  </Button>
+                  <div className={classes.notesIndicator}>
+                    <IconNotes size="10" />
+                  </div>
                 </HoverCard.Target>
                 <HoverCard.Dropdown>
                   <Text size="sm">{item.notes}</Text>
                 </HoverCard.Dropdown>
               </HoverCard>
             )}
+
             {!item.is_manual_start && (
-              <Text c="teal" size="xs">Autostart: ON</Text>
-            )}
-            {timerState !== 'normal' && (
-              <Text c={timerState === 'critical' ? 'red' : 'orange'} size="xs" fw={600}>
-                {timerState.toUpperCase()}
-              </Text>
-            )}
-            {item.speaker && (
-              <Text c="dimmed" size="xs">
-                Speaker: {editingField === 'speaker' ? (
-                  <TextInput
-                    value={editValue}
-                    onChange={(e) => setEditValue(e.currentTarget.value)}
-                    onBlur={saveEdit}
-                    onKeyDown={handleKeyPress}
-                    size="xs"
-                    style={{ minWidth: '100px', display: 'inline-block' }}
-                    autoFocus
-                  />
-                ) : (
-                  <span style={{ cursor: 'pointer' }} onClick={() => startEditing('speaker', item.speaker || '')}>
-                    {item.speaker}
-                  </span>
-                )}
-              </Text>
+              <Text size="xs" c="teal" fw={500}>Auto Start</Text>
             )}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            <Text c="dimmed" size="sm">
+
+          <div className={classes.timerMeta}>
+            <span className={classes.editableField}>
               Duration: {editingField === 'duration_seconds' ? (
                 <TextInput
                   value={editValue}
@@ -452,47 +441,90 @@ function SortableItem({ item, onUpdateTimer, onSelectTimer, onOpenSettings, even
                   autoFocus
                 />
               ) : (
-                <span style={{ cursor: 'pointer' }} onClick={() => startEditing('duration_seconds', formatDuration(item.duration_seconds))}>
+                <span onClick={() => startEditing('duration_seconds', formatDuration(item.duration_seconds))}>
                   {formatDuration(item.duration_seconds)}
                 </span>
               )}
-            </Text>
+            </span>
+
             {item.is_active && (
-              <Text c={timerState === 'critical' ? 'red' : timerState === 'warning' ? 'orange' : 'blue'} size="sm" fw={600}>
+              <span className={cx(classes.remainingTime, {
+                [classes.warning]: timerState === 'warning',
+                [classes.critical]: timerState === 'critical',
+              })}>
                 Remaining: {formatDuration(item.current_time_seconds)}
-              </Text>
+              </span>
             )}
+
+            {item.speaker && (
+              <span className={classes.editableField}>
+                Speaker: {editingField === 'speaker' ? (
+                  <TextInput
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.currentTarget.value)}
+                    onBlur={saveEdit}
+                    onKeyDown={handleKeyPress}
+                    size="xs"
+                    style={{ minWidth: '100px', display: 'inline-block' }}
+                    autoFocus
+                  />
+                ) : (
+                  <span onClick={() => startEditing('speaker', item.speaker || '')}>
+                    {item.speaker}
+                  </span>
+                )}
+              </span>
+            )}
+
             {item.scheduled_start_time && item.scheduled_start_date && (
-              <Text c="violet" size="xs">
+              <span>
                 Scheduled: {item.scheduled_start_date} {item.scheduled_start_time}
-              </Text>
+              </span>
             )}
           </div>
         </div>
-        <Group gap="xs">
+
+        <div className={classes.controls}>
           <Tooltip label="Start timer" position="top" withArrow>
-            <Button size="xs" variant="light" color="teal" onClick={handlePlay} disabled={item.is_active && !item.is_paused}>
+            <button 
+              className={cx(classes.controlButton, classes.play)}
+              onClick={handlePlay} 
+              disabled={item.is_active && !item.is_paused}
+            >
               <IconPlayerPlay size={14} />
-            </Button>
+            </button>
           </Tooltip>
+          
           <Tooltip label="Pause timer" position="top" withArrow>
-            <Button size="xs" variant="light" color="yellow" onClick={handlePause} disabled={!item.is_active || item.is_paused}>
+            <button 
+              className={cx(classes.controlButton, classes.pause)}
+              onClick={handlePause} 
+              disabled={!item.is_active || item.is_paused}
+            >
               <IconPlayerPause size={14} />
-            </Button>
+            </button>
           </Tooltip>
+          
           <Tooltip label="Stop/Reset timer" position="top" withArrow>
-            <Button size="xs" variant="light" color="red" onClick={handleStop} disabled={item.is_stopped}>
+            <button 
+              className={cx(classes.controlButton, classes.stop)}
+              onClick={handleStop} 
+              disabled={item.is_stopped}
+            >
               <IconRestore size={14} />
-            </Button>
+            </button>
           </Tooltip>
+          
           <Tooltip label="Advanced settings" position="top" withArrow>
-            <Button size="xs" variant="light" color="gray" onClick={() => onOpenSettings(item)}>
+            <button 
+              className={classes.controlButton}
+              onClick={() => onOpenSettings(item)}
+            >
               <IconSettings size={14} />
-            </Button>
+            </button>
           </Tooltip>
-        </Group>
       </div>
-    </Tooltip>
+    </div>
   );
 }
 
