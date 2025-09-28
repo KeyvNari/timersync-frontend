@@ -7,12 +7,13 @@ import {
   PiSignOut,
   PiStarDuotone,
   PiTrashDuotone,
+  PiUserDuotone,
   PiUserSwitchDuotone,
 } from 'react-icons/pi';
 import { Avatar, AvatarProps, ElementProps, Menu } from '@mantine/core';
 import { useAuth, useGetAccountInfo, useLogout } from '@/hooks';
 import { paths } from '@/routes';
-
+import { IconUser } from '@tabler/icons-react';
 type CurrentUserProps = Omit<AvatarProps, 'src' | 'alt'> & ElementProps<'div', keyof AvatarProps>;
 
 export function CurrentUser(props: CurrentUserProps) {
@@ -37,18 +38,19 @@ const handleLogout = () => {
   return (
     <Menu>
       <Menu.Target>
+        
         <Avatar
-          src={user?.avatarUrl}
-          alt={user?.displayName ?? 'Current user'}
+          src={user?.profile_image_url}
+          alt={user?.name ?? 'Current user'}
           {...props}
           style={{ cursor: 'pointer', ...props.style }}
         >
-          CU
+          <IconUser size="1.5rem" />
         </Avatar>
       </Menu.Target>
       <Menu.Dropdown>
-        <Menu.Item leftSection={<PiHeartDuotone size="1rem" color="var(--mantine-color-red-6)" />}>
-          Liked posts
+        <Menu.Item>
+         {user?.username}
         </Menu.Item>
         <Menu.Item
           leftSection={<PiStarDuotone size="1rem" color="var(--mantine-color-yellow-6)" />}
