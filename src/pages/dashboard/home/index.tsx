@@ -129,7 +129,7 @@ const mockTimer: Timer = {
   show_notes: true,
   timer_type: 'countdown',
   duration_seconds: 250,
-  current_time_seconds: 140,
+  current_time_seconds: 50,
   is_active: true,
   is_paused: false,
   is_finished: false,
