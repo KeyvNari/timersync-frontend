@@ -1,8 +1,9 @@
-// src/pages/viewer/index-fixed.tsx
+// src/pages/viewer/index.tsx
 import { useEffect, useState } from 'react';
-import { Box, Alert, Loader, Center, Text } from '@mantine/core';
-import { useParams } from 'react-router-dom';
-import { IconAlertCircle } from '@tabler/icons-react';
+import { Box, Alert, Loader, Center, Text, Paper, PasswordInput, Button, Stack, Title } from '@mantine/core';
+import { useParams, useLocation } from 'react-router-dom';
+import { IconAlertCircle, IconLock } from '@tabler/icons-react';
+import { useForm } from '@mantine/form';
 import TimerDisplay from '@/components/timer-display';
 import { SimpleWebSocketService, createSimpleWebSocketService } from '@/services/websocket-simple';
 
@@ -85,14 +86,45 @@ const defaultDisplay: Display = {
 
 export default function ViewerPage() {
   const { roomId: roomIdParam, token } = useParams<{ roomId: string; token: string }>();
-  const [connectionState, setConnectionState] = useState<'connecting' | 'connected' | 'error' | 'disconnected'>('connecting');
+  const location = useLocation();
+  
+  // Check if password is required (URL ends with /psw)
+  const requiresPassword = location.pathname.endsWith('/psw');
+  
+  // State management
+  const [connectionState, setConnectionState] = useState<'connecting' | 'connected' | 'error' | 'disconnected' | 'password_required'>('password_required');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [wsService, setWsService] = useState<SimpleWebSocketService | null>(null);
   const [display, setDisplay] = useState<Display>(defaultDisplay);
   const [selectedTimer, setSelectedTimer] = useState<any>(null);
   const [timers, setTimers] = useState<any[]>([]);
+  const [roomPassword, setRoomPassword] = useState<string>('');
+  const [isAuthenticated, setIsAuthenticated] = useState(!requiresPassword);
 
+  // Password form
+  const passwordForm = useForm({
+    initialValues: {
+      password: '',
+    },
+    validate: {
+      password: (value) => (value.length === 0 ? 'Password is required' : null),
+    },
+  });
+
+  // Handle password submission
+  const handlePasswordSubmit = (values: { password: string }) => {
+    setRoomPassword(values.password);
+    setIsAuthenticated(true);
+    setConnectionState('connecting');
+  };
+
+  // WebSocket connection effect
   useEffect(() => {
+    // Don't connect if password is required but not provided
+    if (requiresPassword && !isAuthenticated) {
+      return;
+    }
+
     if (!roomIdParam || !token) {
       setConnectionState('error');
       setErrorMessage('Missing room ID or token');
@@ -106,14 +138,23 @@ export default function ViewerPage() {
       return;
     }
 
-    // Create WebSocket service with simplified implementation
-    const ws = createSimpleWebSocketService({
+    setConnectionState('connecting');
+
+    // Create WebSocket service with password if required
+    const wsOptions: any = {
       roomId,
       roomToken: token,
       autoReconnect: true,
       reconnectInterval: 3000,
       maxReconnectAttempts: 5,
-    });
+    };
+
+    // Add room password if required
+    if (requiresPassword && roomPassword) {
+      wsOptions.tokenPassword = roomPassword;
+    }
+
+    const ws = createSimpleWebSocketService(wsOptions);
 
     // Set up event handlers
     ws.on('success', (message) => {
@@ -129,8 +170,21 @@ export default function ViewerPage() {
 
     ws.on('error', (message) => {
       console.error('WebSocket error:', message);
-      setConnectionState('error');
-      setErrorMessage(message.message || 'Connection error occurred');
+      
+      // Handle password-related errors
+      if (message.message && (
+        message.message.includes('Invalid password') ||
+        message.message.includes('Password required') ||
+        message.message.includes('Unauthorized')
+      )) {
+        setConnectionState('password_required');
+        setIsAuthenticated(false);
+        setErrorMessage('Invalid password. Please try again.');
+        passwordForm.setFieldError('password', 'Invalid password');
+      } else {
+        setConnectionState('error');
+        setErrorMessage(message.message || 'Connection error occurred');
+      }
     });
 
     ws.on('timer_update', (message) => {
@@ -187,7 +241,7 @@ export default function ViewerPage() {
     return () => {
       ws.disconnect();
     };
-  }, [roomIdParam, token]);
+  }, [roomIdParam, token, requiresPassword, isAuthenticated, roomPassword]);
 
   // Get the timer to display
   const displayTimer = selectedTimer || timers.find(t => t.is_active) || timers[0];
@@ -215,6 +269,60 @@ export default function ViewerPage() {
     server_time: new Date(),
   } : null;
 
+  // Show password form if required and not authenticated
+  if (requiresPassword && !isAuthenticated) {
+    return (
+      <Box
+        style={{
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: '#000000',
+          margin: 0,
+          padding: 0,
+          overflow: 'hidden',
+        }}
+      >
+        <Center h="100%">
+          <Paper shadow="xl" p="xl" radius="md" maw={400} w="90%">
+            <Stack gap="lg">
+              <Center>
+                <IconLock size={48} color="var(--mantine-color-blue-6)" />
+              </Center>
+              
+              <div>
+                <Title order={2} ta="center" mb="xs">
+                  Room Password Required
+                </Title>
+                <Text size="sm" c="dimmed" ta="center">
+                  This room is password protected. Please enter the password to continue.
+                </Text>
+              </div>
+
+              <form onSubmit={passwordForm.onSubmit(handlePasswordSubmit)}>
+                <Stack gap="md">
+                  <PasswordInput
+                    label="Password"
+                    placeholder="Enter room password"
+                    required
+                    {...passwordForm.getInputProps('password')}
+                    error={errorMessage && passwordForm.errors.password ? errorMessage : passwordForm.errors.password}
+                  />
+                  
+                  <Button type="submit" fullWidth size="md">
+                    Connect to Room
+                  </Button>
+                </Stack>
+              </form>
+
+              <Text size="xs" c="dimmed" ta="center">
+              </Text>
+            </Stack>
+          </Paper>
+        </Center>
+      </Box>
+    );
+  }
+
   // Show loading state while connecting
   if (connectionState === 'connecting') {
     return (
@@ -233,6 +341,7 @@ export default function ViewerPage() {
             <Loader size="xl" color="blue" mb="md" />
             <Text c="white" size="lg">Connecting to room...</Text>
             <Text c="gray" size="sm" mt="xs">Room: {roomIdParam}</Text>
+            {requiresPassword && <Text c="gray" size="xs" mt="xs">Password protected</Text>}
           </Box>
         </Center>
       </Box>
@@ -261,6 +370,21 @@ export default function ViewerPage() {
           >
             {errorMessage || 'Unable to connect to the timer room'}
             <Text size="sm" mt="xs">Room: {roomIdParam}</Text>
+            {requiresPassword && (
+              <Button 
+                variant="light" 
+                size="xs" 
+                mt="md"
+                onClick={() => {
+                  setConnectionState('password_required');
+                  setIsAuthenticated(false);
+                  setErrorMessage(null);
+                  passwordForm.reset();
+                }}
+              >
+                Try Different Password
+              </Button>
+            )}
           </Alert>
         </Center>
       </Box>
