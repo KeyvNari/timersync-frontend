@@ -174,6 +174,9 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
   useEffect(() => {
     if (safeTimer.server_time) {
       ClockSync.initialize(safeTimer.server_time);
+    } else {
+      // Initialize with client time if no server time available
+      ClockSync.initialize(new Date().toISOString());
     }
   }, [safeTimer.server_time]);
 

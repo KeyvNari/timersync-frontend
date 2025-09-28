@@ -1,9 +1,11 @@
+// src/hooks/api/auth.ts - Updated registration hook
 import { z } from 'zod';
 import { notifications } from '@mantine/notifications';
 import { removeClientAccessToken, setClientAccessToken } from '@/api/axios';
-import { LoginRequestSchema, LoginResponseSchema, RegisterRequestSchema, RegisterResponseSchema } from '@/api/dtos';
+import { LoginRequestSchema, LoginResponseSchema } from '@/api/dtos';
 import { createPostMutationHook } from '@/api/helpers';
 
+// Keep existing login schemas
 export const useLogin = createPostMutationHook({
   endpoint: '/api/v1/login',
   bodySchema: LoginRequestSchema,
@@ -12,7 +14,6 @@ export const useLogin = createPostMutationHook({
   rMutationParams: {
     onSuccess: (data) => {
       setClientAccessToken(data.access_token);
-      // Refresh token is automatically set as httpOnly cookie by backend
     },
     onError: (error) => {
       console.error('Login error:', error);
@@ -25,30 +26,21 @@ export const useLogin = createPostMutationHook({
   },
 });
 
-export const useLogout = createPostMutationHook({
-  endpoint: '/api/v1/logout',
-  bodySchema: z.object({}),
-  responseSchema: z.object({}),
-  rMutationParams: {
-    onSuccess: () => {
-      removeClientAccessToken();
-      // Backend will clear the refresh token cookie
-      notifications.show({ 
-        title: 'Logged Out',
-        message: 'You have been successfully logged out', 
-        color: 'green' 
-      });
-    },
-    onError: () => {
-      // Even if logout API fails, still remove local token
-      removeClientAccessToken();
-      notifications.show({ 
-        title: 'Logged Out',
-        message: 'Session ended', 
-        color: 'blue' 
-      });
-    },
-  },
+// Updated registration schemas to match TimerSync API
+const RegisterRequestSchema = z.object({
+  name: z.string().min(2).max(30),
+  username: z.string().min(2).max(20).regex(/^[a-z0-9]+$/),
+  email: z.string().email(),
+  password: z.string().min(8),
+});
+
+const RegisterResponseSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  username: z.string(),
+  email: z.string().email(),
+  profile_image_url: z.string(),
+  plan: z.string(),
 });
 
 export const useRegister = createPostMutationHook({
@@ -59,16 +51,57 @@ export const useRegister = createPostMutationHook({
     onSuccess: () => {
       notifications.show({ 
         title: 'Account Created!', 
-        message: 'Registration successful. Please log in with your credentials.', 
+        message: 'Registration successful. You can now log in with your credentials.', 
         color: 'green' 
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Registration error:', error);
+      
+      // Handle validation errors from backend
+      if (error?.detail && Array.isArray(error.detail)) {
+        const errorMessages = error.detail.map((err: any) => err.msg).join(', ');
+        notifications.show({ 
+          title: 'Registration Failed',
+          message: errorMessages, 
+          color: 'red' 
+        });
+      } else if (error?.message) {
+        notifications.show({ 
+          title: 'Registration Failed',
+          message: error.message, 
+          color: 'red' 
+        });
+      } else {
+        notifications.show({ 
+          title: 'Registration Failed',
+          message: 'Registration failed. Please try again.', 
+          color: 'red' 
+        });
+      }
+    },
+  },
+});
+
+export const useLogout = createPostMutationHook({
+  endpoint: '/api/v1/logout',
+  bodySchema: z.object({}),
+  responseSchema: z.object({}),
+  rMutationParams: {
+    onSuccess: () => {
+      removeClientAccessToken();
       notifications.show({ 
-        title: 'Registration Failed',
-        message: error?.message || 'Registration failed. Please try again.', 
-        color: 'red' 
+        title: 'Logged Out',
+        message: 'You have been successfully logged out', 
+        color: 'green' 
+      });
+    },
+    onError: () => {
+      removeClientAccessToken();
+      notifications.show({ 
+        title: 'Logged Out',
+        message: 'Session ended', 
+        color: 'blue' 
       });
     },
   },

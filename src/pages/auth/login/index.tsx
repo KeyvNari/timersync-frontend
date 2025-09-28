@@ -1,12 +1,19 @@
+// src/pages/auth/login/index.tsx - Show success message from registration
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { PiGoogleLogoDuotone as GoogleIcon, PiXLogoDuotone as XIcon } from 'react-icons/pi';
 import { NavLink } from 'react-router-dom';
-import { Anchor, Button, Divider, Group, Stack, Text, Title } from '@mantine/core';
+import { Anchor, Button, Divider, Group, Stack, Text, Title, Alert } from '@mantine/core';
+import { IconCheck } from '@tabler/icons-react';
 import { Page } from '@/components/page';
 import { UnderlineShape } from '@/components/underline-shape';
 import { paths } from '@/routes';
 import { LoginForm } from './login-form';
 
 export default function LoginPage() {
+  const location = useLocation();
+  const successMessage = location.state?.message;
+
   return (
     <Page title="Login">
       <Stack gap="xl">
@@ -31,6 +38,12 @@ export default function LoginPage() {
             first to hear about exciting news and updates.
           </Text>
         </Stack>
+
+        {successMessage && (
+          <Alert icon={<IconCheck size="1rem" />} color="green" title="Success">
+            {successMessage}
+          </Alert>
+        )}
 
         <Group grow>
           <Button leftSection={<XIcon size="1rem" />} variant="outline" color="gray">
