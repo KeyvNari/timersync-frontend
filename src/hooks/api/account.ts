@@ -1,8 +1,17 @@
-import { User } from '@/api/entities';
+import { z } from 'zod';
 import { createGetQueryHook } from '@/api/helpers';
 
+const UserSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  username: z.string(),
+  email: z.string().email(),
+  profile_image_url: z.string().url(),
+  plan: z.string(),
+});
+
 export const useGetAccountInfo = createGetQueryHook({
-  endpoint: '/account',
-  responseSchema: User,
+  endpoint: '/api/v1/user/me/',
+  responseSchema: UserSchema,
   rQueryParams: { queryKey: ['account'] },
 });

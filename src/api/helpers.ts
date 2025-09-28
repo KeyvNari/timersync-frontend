@@ -162,7 +162,7 @@ interface CreatePostMutationHookArgs<
   responseSchema: ResponseSchema;
   /** The mutation parameters for the react-query hook */
   rMutationParams?: EnhancedMutationParams<z.infer<ResponseSchema>, Error, z.infer<BodySchema>>;
-  options?: { isMultipart?: boolean };
+  options?: { isMultipart?: boolean; isFormEncoded?: boolean };
 }
 
 /**
@@ -203,12 +203,24 @@ export function createPostMutationHook<
     }) => {
       const url = createUrl(baseUrl, query, route);
 
-      const config = options?.isMultipart
-        ? { headers: { 'Content-Type': 'multipart/form-data' } }
-        : undefined;
+      let config;
+      let requestData = bodySchema.parse(variables);
+
+      if (options?.isFormEncoded) {
+        config = { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
+        const params = new URLSearchParams();
+        Object.entries(requestData as Record<string, any>).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            params.append(key, String(value));
+          }
+        });
+        requestData = params;
+      } else if (options?.isMultipart) {
+        config = { headers: { 'Content-Type': 'multipart/form-data' } };
+      }
 
       return client
-        .post(url, bodySchema.parse(variables), config)
+        .post(url, requestData, config)
         .then((response) => responseSchema.parse(response.data))
         .catch(handleRequestError);
     };

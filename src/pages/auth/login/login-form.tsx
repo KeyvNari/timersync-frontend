@@ -1,5 +1,5 @@
-import { NavLink } from 'react-router-dom';
-import { Anchor, Button, Group, Stack, StackProps } from '@mantine/core';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { Anchor, Button, Stack, StackProps } from '@mantine/core';
 import { useForm, zodResolver } from '@mantine/form';
 import { LoginRequestSchema } from '@/api/dtos';
 import { Checkbox } from '@/components/forms/checkbox';
@@ -15,20 +15,32 @@ interface LoginFormProps extends Omit<StackProps, 'children'> {
 }
 
 export function LoginForm({ onSuccess, ...props }: LoginFormProps) {
+  const navigate = useNavigate();
   const { setIsAuthenticated } = useAuth();
   const { mutate: login, isPending } = useLogin();
 
   const form = useForm({
     mode: 'uncontrolled',
     validate: zodResolver(LoginRequestSchema),
-    initialValues: { email: 'john.doe@example.com', password: '123456789', remember: false },
+    initialValues: {
+      username: '',
+      password: '',
+      grant_type: 'password' as const,
+      scope: '',
+      client_id: '',
+      client_secret: '',
+    },
   });
 
   const handleSubmit = form.onSubmit((variables) => {
     login(
       { variables },
       {
-        onSuccess: () => setIsAuthenticated(true),
+        onSuccess: () => {
+          setIsAuthenticated(true);
+          onSuccess?.();
+          navigate(paths.dashboard.home, { replace: true });
+        },
         onError: (error) => handleFormErrors(form, error),
       }
     );
@@ -37,14 +49,13 @@ export function LoginForm({ onSuccess, ...props }: LoginFormProps) {
   return (
     <FormProvider form={form} onSubmit={handleSubmit}>
       <Stack {...props}>
-        <TextInput name="email" label="Email" required />
+        <TextInput name="username" label="Email" type="email" required />
         <PasswordInput name="password" label="Password" required />
-        <Group justify="space-between">
-          <Checkbox name="remember" label="Remember me" />
-          <Anchor size="sm" component={NavLink} to={paths.auth.forgotPassword}>
-            Forgot password?
-          </Anchor>
-        </Group>
+        
+        <Anchor size="sm" component={NavLink} to={paths.auth.forgotPassword}>
+          Forgot your password?
+        </Anchor>
+        
         <Button type="submit" loading={isPending}>
           Login
         </Button>

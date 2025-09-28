@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import {
   PiChatDuotone,
   PiGearSixDuotone,
@@ -10,17 +11,28 @@ import {
 } from 'react-icons/pi';
 import { Avatar, AvatarProps, ElementProps, Menu } from '@mantine/core';
 import { useAuth, useGetAccountInfo, useLogout } from '@/hooks';
+import { paths } from '@/routes';
 
 type CurrentUserProps = Omit<AvatarProps, 'src' | 'alt'> & ElementProps<'div', keyof AvatarProps>;
 
 export function CurrentUser(props: CurrentUserProps) {
+  const navigate = useNavigate();
   const { mutate: logout } = useLogout();
   const { setIsAuthenticated } = useAuth();
   const { data: user } = useGetAccountInfo();
 
-  const handleLogout = () => {
-    logout({ variables: null }, { onSuccess: () => setIsAuthenticated(false) });
-  };
+const handleLogout = () => {
+  logout(
+    { variables: {} },
+    {
+      onSettled: () => {
+        // Always clear auth state and redirect, regardless of API response
+        setIsAuthenticated(false);
+        navigate(paths.auth.login, { replace: true });
+      }
+    }
+  );
+};
 
   return (
     <Menu>

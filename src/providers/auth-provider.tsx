@@ -1,6 +1,7 @@
 import { createContext, ReactNode, useEffect, useMemo, useState } from 'react';
 import { loadAccessToken } from '@/api/axios';
 import { getAccountInfo } from '@/api/resources';
+import { app } from '@/config';
 
 interface AuthContextValues {
   isAuthenticated: boolean;
@@ -21,10 +22,41 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     loadAccessToken();
 
-    getAccountInfo()
-      .then(() => setIsAuthenticated(true))
-      .catch(() => setIsAuthenticated(false))
-      .finally(() => setIsInitialized(true));
+    // Check if user is authenticated
+    const checkAuth = async () => {
+      const token = localStorage.getItem(app.accessTokenStoreKey);
+      
+      if (!token) {
+        setIsAuthenticated(false);
+        setIsInitialized(true);
+        return;
+      }
+
+      try {
+        await getAccountInfo();
+        setIsAuthenticated(true);
+      } catch (error) {
+        // Token is invalid, remove it
+        localStorage.removeItem(app.accessTokenStoreKey);
+        setIsAuthenticated(false);
+      } finally {
+        setIsInitialized(true);
+      }
+    };
+
+    checkAuth();
+  }, []);
+
+  // Listen for storage changes (logout from another tab)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === app.accessTokenStoreKey && !e.newValue) {
+        setIsAuthenticated(false);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const value = useMemo(
