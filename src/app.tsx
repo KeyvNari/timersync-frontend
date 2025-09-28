@@ -22,13 +22,14 @@ import { queryClient } from '@/api/query-client';
 import { AuthProvider } from '@/providers/auth-provider';
 import { Router } from '@/routes/router';
 import { theme } from '@/theme';
-
+import { WebSocketProvider } from './providers/websocket-provider'; 
 export function App() {
   return (
     <HelmetProvider>
       <QueryClientProvider client={queryClient}>
         <ReactQueryDevtools initialIsOpen={false} />
         <AuthProvider>
+          <WebSocketProvider >
           <MantineProvider theme={theme}>
             <Notifications position="bottom-center" />
             <NavigationProgress />
@@ -36,6 +37,7 @@ export function App() {
               <Router />
             </ModalsProvider>
           </MantineProvider>
+          </WebSocketProvider>
         </AuthProvider>
       </QueryClientProvider>
     </HelmetProvider>

@@ -1,3 +1,4 @@
+// src/routes/router.tsx
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
 import { AuthGuard } from '@/guards/auth-guard';
 import { GuestGuard } from '@/guards/guest-guard';
@@ -9,6 +10,10 @@ import { paths } from './paths';
 
 const router = createBrowserRouter([
   ...docsRoutes,
+  {
+    path: '/viewer/:roomId/:token',
+    element: LazyPage(() => import('@/pages/viewer')),
+  },
   {
     path: '/',
     element: <Navigate to={paths.dashboard.root} replace />,
@@ -38,22 +43,10 @@ const router = createBrowserRouter([
         path: paths.auth.forgotPassword,
         element: LazyPage(() => import('@/pages/auth/forgot-password')),
       },
-      // {
-      //   path: routes.auth.resetPassword,
-      //   element: LazyPage(() => import('@/pages/auth/reset-password')),
-      // },
       {
         path: paths.auth.otp,
         element: LazyPage(() => import('@/pages/auth/otp')),
       },
-      // {
-      //   path: routes.auth.terms,
-      //   element: LazyPage(() => import('@/pages/auth/terms')),
-      // },
-      // {
-      //   path: routes.auth.privacy,
-      //   element: LazyPage(() => import('@/pages/auth/privacy')),
-      // },
     ],
   },
   {

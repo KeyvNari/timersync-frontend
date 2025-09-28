@@ -1,7 +1,11 @@
+// src/routes/paths.ts
 import docs from '@/pages/docs/paths';
 
 export const paths = {
   docs,
+  viewer: {
+    detail: (roomId: number | string, token: string) => `/viewer/${roomId}/${token}`,
+  },
   auth: {
     root: '/auth',
     login: '/auth/login',
