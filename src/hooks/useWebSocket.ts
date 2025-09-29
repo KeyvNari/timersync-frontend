@@ -107,18 +107,11 @@ export function useWebSocket(roomId: number, options: UseWebSocketOptions = {}):
       }
     };
 
-    const handleTimerUpdate = (message: TimerUpdateMessage) => {
-      setTimers(prev => prev.map(timer => 
-        timer.id === message.timer_id 
-          ? {
-              ...timer,
-              current_time_seconds: message.current_time_seconds,
-              is_active: message.is_active,
-              is_paused: message.is_paused,
-              is_finished: message.is_finished,
-              is_overtime: message.is_overtime,
-              overtime_seconds: message.overtime_seconds,
-            }
+    const handleTimerUpdate = (message: WebSocketMessage) => {
+      if (!message.timer_data) return;
+      setTimers(prev => prev.map(timer =>
+        timer.id === message.timer_data.id
+          ? message.timer_data
           : timer
       ));
     };

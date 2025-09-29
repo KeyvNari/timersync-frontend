@@ -84,6 +84,11 @@ export function WebSocketProvider({
 
   // Setup event handlers
 const setupEventHandlers = (wsService: SimpleWebSocketService) => {
+  // Add wildcard handler for debugging
+  wsService.on('*', (message: any) => {
+    console.log('🔍 PROVIDER received message:', message.type, message);
+  });
+
   // Use lowercase to match what backend actually sends
   wsService.on('success', (message: any) => {  // Changed from 'SUCCESS'
     setConnected(true);
@@ -94,13 +99,23 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
 
     // Timer events
     wsService.on('timer_update', (message: any) => {
-      setTimers((prev) =>
-        prev.map((timer) =>
-          timer.id === message.timer_data?.id
-            ? { ...timer, ...message.timer_data }
-            : timer
-        )
-      );
+      setTimers((prev) => {
+        const timerData = message.timer_data;
+        if (!timerData?.id) return prev;
+
+        const timerExists = prev.some(timer => timer.id === timerData.id);
+        if (timerExists) {
+          // Update existing timer
+          return prev.map((timer) =>
+            timer.id === timerData.id
+              ? { ...timer, ...timerData }
+              : timer
+          );
+        } else {
+          // Add new timer to array
+          return [...prev, timerData];
+        }
+      });
     });
 
 wsService.on('error', (message: any) => {

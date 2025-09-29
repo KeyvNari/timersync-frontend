@@ -3,23 +3,45 @@ import { app } from '@/config';
 
 export interface TimerData {
   id: number;
+  display_id: number;
+  uuid: string;
   title: string;
   speaker?: string | null;
   notes?: string | null;
   timer_type: 'countdown' | 'countup';
   duration_seconds?: number | null;
   current_time_seconds: number;
+  accumulated_seconds: number;
   is_active: boolean;
   is_paused: boolean;
   is_finished: boolean;
+  is_stopped: boolean;
   is_overtime: boolean;
   overtime_seconds: number;
   room_sequence_order: number;
+  room_id: number;
+  created_by_user_id: number;
+  linked_timer_id?: number | null;
   started_at?: string | null;
+  paused_at?: string | null;
   completed_at?: string | null;
+  actual_start_time?: string | null;
+  last_calculated_at?: string | null;
   warning_time?: number | null;
   critical_time?: number | null;
-  linked_timer_id?: number | null;
+  scheduled_start_time?: string | null;
+  scheduled_start_date?: string | null;
+  is_manual_start?: boolean;
+  accumulated_pause_time: number;
+  server_time: string;
+  show_title: boolean;
+  show_speaker: boolean;
+  show_notes: boolean;
+  show_clock: boolean;
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string | null;
+  is_deleted: boolean;
 }
 
 export interface ConnectionInfo {

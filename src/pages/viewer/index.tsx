@@ -238,27 +238,34 @@ useEffect(() => {
   const activeTimer = timers?.find(timer => timer.is_active);
   const displayTimer = selectedTimer || activeTimer || timers?.[0];
 
+  // Debug: Print timer data
+  console.log('📊 Debug Timer Data in viewer:');
+  console.log('  - connected:', connected);
+  console.log('  - timers array:', timers);
+  console.log('  - selectedTimer (via getSelectedTimer):', selectedTimer);
+  console.log('  - activeTimer (via find):', activeTimer);
+  console.log('  - timers[0] (first timer):', timers?.[0]);
+  console.log('  - final displayTimer:', displayTimer);
+
   // Convert timer data to the format expected by TimerDisplay
+  // Use the real-time data from websocket updates including server-time calculated values
   const convertedTimer = displayTimer ? {
     title: displayTimer.title,
     speaker: displayTimer.speaker,
     notes: displayTimer.notes,
-    display_id: null,
-    show_title: true,
-    show_speaker: true,
-    show_notes: false,
+    display_id: displayTimer.display_id,
+    show_title: displayTimer.show_title,
+    show_speaker: displayTimer.show_speaker,
+    show_notes: displayTimer.show_notes,
     timer_type: displayTimer.timer_type || 'countdown',
     duration_seconds: displayTimer.duration_seconds,
     is_active: displayTimer.is_active || false,
     is_paused: displayTimer.is_paused || false,
     is_finished: displayTimer.is_finished || false,
-    is_stopped: !displayTimer.is_active && !displayTimer.is_finished,
-    started_at: displayTimer.started_at,
-    paused_at: null, // Not available in TimerData interface
-    accumulated_pause_time: 0, // Not available in TimerData interface
+    is_stopped: displayTimer.is_stopped || false,
+    current_time_seconds: displayTimer.current_time_seconds,
     warning_time: displayTimer.warning_time,
     critical_time: displayTimer.critical_time,
-    current_time_seconds: displayTimer.current_time_seconds,
   } : undefined;
   // Handle going back or disconnecting
   const handleGoBack = () => {
