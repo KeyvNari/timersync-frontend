@@ -416,7 +416,7 @@ return (
     }}
   >
     {/* Debug info in development */}
-    {process.env.NODE_ENV === 'development' && (
+    {/* {process.env.NODE_ENV === 'development' && (
       <Box
         style={{
           position: 'absolute',
@@ -434,12 +434,13 @@ return (
         Timers: {timers?.length || 0} | Selected: {selectedTimerId} |
         Current: {displayTimer?.current_time_seconds}
       </Box>
-    )}
+    )} */}
 
-    <TimerDisplay 
+    <TimerDisplay
       key={`${displayTimer?.id}-${displayTimer?.current_time_seconds}`}
-      display={displays[0]} 
-      timer={convertedTimer} 
+      display={displays[displayTimer?.display_id]}
+      timer={convertedTimer}
+      in_view_mode={true}
     />
   </Box>
 );

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Text, Image, Flex, Stack, Progress, Box, RingProgress } from '@mantine/core';
+import { Text, Image, Flex, Stack, Progress, Box, RingProgress, ActionIcon } from '@mantine/core';
+import { Maximize, Minimize } from 'lucide-react';
 
 type Display = {
   name: string;
@@ -59,7 +60,15 @@ type Timer = {
   critical_time?: number | null;
 };
 
-function TimerDisplay({ display, timer }: { display?: Display; timer?: Timer }) {
+function TimerDisplay({ 
+  display, 
+  timer, 
+  in_view_mode = false 
+}: { 
+  display?: Display; 
+  timer?: Timer;
+  in_view_mode?: boolean;
+}) {
   const defaultDisplay: Display = {
     name: 'Timer Display',
     logo_image: null,
@@ -113,12 +122,14 @@ function TimerDisplay({ display, timer }: { display?: Display; timer?: Timer }) 
     is_stopped: false,
     current_time_seconds: 0,
   };
-useEffect(() => {
-  console.log('⏱️ TimerDisplay received update:', {
-    current_time: timer?.current_time_seconds,
-    is_active: timer?.is_active
-  });
-}, [timer?.current_time_seconds, timer?.is_active]);
+
+  useEffect(() => {
+    console.log('⏱️ TimerDisplay received update:', {
+      current_time: timer?.current_time_seconds,
+      is_active: timer?.is_active
+    });
+  }, [timer?.current_time_seconds, timer?.is_active]);
+
   const safeDisplay = display ?? defaultDisplay;
   const safeTimer = timer ?? defaultTimer;
 
@@ -127,6 +138,9 @@ useEffect(() => {
   }));
 
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [showControls, setShowControls] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [hideTimeout, setHideTimeout] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -138,6 +152,60 @@ useEffect(() => {
 
     return () => clearInterval(interval);
   }, [safeTimer]);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+ const handleMouseMove = (e: React.MouseEvent) => {
+    if (!in_view_mode) return;
+    
+    // Check if mouse is over the controls area
+    const controlsElement = e.currentTarget.querySelector('[data-controls]');
+    if (controlsElement && controlsElement.contains(e.target as Node)) {
+      return; // Don't set hide timeout if hovering over controls
+    }
+    
+    setShowControls(true);
+    
+    if (hideTimeout) {
+      clearTimeout(hideTimeout);
+    }
+    
+    const timeout = setTimeout(() => {
+      setShowControls(false);
+    }, 4000);
+    
+    setHideTimeout(timeout);
+  };
+
+  const handleControlsMouseEnter = () => {
+    if (hideTimeout) {
+      clearTimeout(hideTimeout);
+      setHideTimeout(null);
+    }
+  };
+
+  const handleControlsMouseLeave = () => {
+    const timeout = setTimeout(() => {
+      setShowControls(false);
+    }, 1000);
+    
+    setHideTimeout(timeout);
+  };
+
+  const toggleFullscreen = async () => {
+    if (!document.fullscreenElement) {
+      await document.documentElement.requestFullscreen();
+    } else {
+      await document.exitFullscreen();
+    }
+  };
 
   const formatTime = (seconds: number, formatStr: string) => {
     const isOvertime = seconds < 0;
@@ -168,7 +236,6 @@ useEffect(() => {
       const warningTime = safeTimer.warning_time || safeTimer.duration_seconds * 0.3;
       const criticalTime = safeTimer.critical_time || safeTimer.duration_seconds * 0.1;
 
-      // Check for overtime (negative time)
       if (displayState.currentTime < 0) {
         return safeDisplay.progress_color_tertiary || 'red';
       } else if (displayState.currentTime <= criticalTime) {
@@ -193,12 +260,10 @@ useEffect(() => {
   const getTimerColor = () => {
     const progressColor = getCurrentProgressColor();
 
-    // For normal state (green), keep white. For warning/critical/overtime, use the progress color
     if (progressColor === (safeDisplay.progress_color_main || 'green')) {
       return safeDisplay.timer_color || '#ffffff';
     }
 
-    // Return the actual color value for warning, critical, and overtime states
     return progressColor;
   };
 
@@ -233,7 +298,6 @@ useEffect(() => {
   if (safeTimer.duration_seconds && safeTimer.duration_seconds > 0) {
     if (safeTimer.timer_type === 'countdown') {
       let remaining = displayState.currentTime;
-      // For overtime, show progress bar at 0%
       if (remaining < 0) {
         mainSection = 0;
       } else {
@@ -383,6 +447,7 @@ useEffect(() => {
 
   return (
     <Box
+      onMouseMove={handleMouseMove}
       style={{
         width: '100%',
         height: '100%',
@@ -399,6 +464,36 @@ useEffect(() => {
       {progressStyle === 'top_bar' && (
         <Box style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1 }}>
           {progressComponent}
+        </Box>
+      )}
+
+      {in_view_mode && (
+        <Box
+          onMouseEnter={handleControlsMouseEnter}
+          onMouseLeave={handleControlsMouseLeave}
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            padding: '0.5rem',
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            backdropFilter: 'blur(4px)',
+            borderBottomLeftRadius: '8px',
+            zIndex: 20,
+            opacity: showControls ? 1 : 0,
+            transition: 'opacity 0.3s ease',
+            pointerEvents: showControls ? 'auto' : 'none',
+          }}
+        >
+          <ActionIcon
+            variant="subtle"
+            color="gray"
+            size="lg"
+            onClick={toggleFullscreen}
+            title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+          >
+            {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
+          </ActionIcon>
         </Box>
       )}
 
