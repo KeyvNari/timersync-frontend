@@ -73,51 +73,85 @@ export class SimpleWebSocketService {
     };
   }
 
-  async connect(): Promise<void> {
-    if (this.ws?.readyState === WebSocket.OPEN) {
-      return;
-    }
-
-    return new Promise((resolve, reject) => {
-      try {
-        const wsUrl = this.buildWebSocketUrl();
-        console.log('Connecting to WebSocket:', wsUrl);
-
-        this.ws = new WebSocket(wsUrl);
-
-        this.ws.onopen = () => {
-          console.log('WebSocket connection opened');
-          this.isConnected = true;
-          this.reconnectAttempts = 0;
-          resolve();
-        };
-
-        this.ws.onmessage = (event) => {
-          this.handleMessage(event.data);
-        };
-
-        this.ws.onclose = (event) => {
-          console.log('WebSocket closed:', event.code, event.reason);
-          this.isConnected = false;
-
-          if (
-            this.options.autoReconnect &&
-            this.reconnectAttempts < (this.options.maxReconnectAttempts || 10)
-          ) {
-            this.scheduleReconnect();
-          }
-        };
-
-        this.ws.onerror = (error) => {
-          console.error('WebSocket error:', error);
-          reject(error);
-        };
-      } catch (error) {
-        reject(error);
-      }
-    });
+async connect(): Promise<void> {
+  if (this.ws?.readyState === WebSocket.OPEN) {
+    return;
   }
 
+  return new Promise((resolve, reject) => {
+    try {
+      const wsUrl = this.buildWebSocketUrl();
+      console.log('Connecting to WebSocket:', wsUrl);
+
+      this.ws = new WebSocket(wsUrl);
+
+      // Track if we've received initial acknowledgment
+      let connectionAcknowledged = false;
+
+      this.ws.onopen = () => {
+        console.log('WebSocket connection opened, waiting for server acknowledgment...');
+        // Don't set isConnected or resolve yet - wait for server to accept
+      };
+
+      this.ws.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        
+        // First message should be SUCCESS or connection acknowledgment
+        if (!connectionAcknowledged) {
+          if (message.type === 'SUCCESS' || message.type === 'success') {
+            console.log('Server acknowledged connection');
+            connectionAcknowledged = true;
+            this.isConnected = true;
+            this.reconnectAttempts = 0;
+            this.handleMessage(event.data); // Process the success message
+            resolve();
+          } else if (message.type === 'ERROR' || message.type === 'error') {
+            console.error('Connection rejected:', message);
+            reject(new Error(message.message || 'Connection rejected'));
+            this.ws?.close();
+          }
+          return;
+        }
+
+        // Process subsequent messages normally
+        this.handleMessage(event.data);
+      };
+
+      this.ws.onclose = (event) => {
+        console.log('WebSocket closed:', event.code, event.reason);
+        this.isConnected = false;
+
+        // Reject promise if closed before acknowledgment
+        if (!connectionAcknowledged) {
+          reject(new Error(`Connection closed before acknowledgment: ${event.reason}`));
+        }
+
+        if (
+          this.options.autoReconnect &&
+          this.reconnectAttempts < (this.options.maxReconnectAttempts || 10)
+        ) {
+          this.scheduleReconnect();
+        }
+      };
+
+      this.ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        reject(error);
+      };
+
+      // Timeout after 10 seconds if no acknowledgment
+      setTimeout(() => {
+        if (!connectionAcknowledged) {
+          reject(new Error('Connection timeout - no server acknowledgment'));
+          this.ws?.close();
+        }
+      }, 10000);
+
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
   disconnect(): void {
     this.options.autoReconnect = false;
     this.clearReconnectTimer();
@@ -245,37 +279,43 @@ export class SimpleWebSocketService {
     return url.toString();
   }
 
-  private handleMessage(data: string): void {
-    try {
-      const message: WebSocketMessage = JSON.parse(data);
+private handleMessage(data: string): void {
+  try {
+    const message: WebSocketMessage = JSON.parse(data);
+    
+    // Add this debug logging
+    console.log('📨 Received WebSocket message:', message.type, message);
 
-      // Emit to registered handlers
-      const handlers = this.eventHandlers.get(message.type);
-      if (handlers) {
-        handlers.forEach((handler) => {
-          try {
-            handler(message);
-          } catch (error) {
-            console.error('Error in message handler:', error);
-          }
-        });
-      }
-
-      // Emit to wildcard handlers
-      const wildcardHandlers = this.eventHandlers.get('*');
-      if (wildcardHandlers) {
-        wildcardHandlers.forEach((handler) => {
-          try {
-            handler(message);
-          } catch (error) {
-            console.error('Error in wildcard message handler:', error);
-          }
-        });
-      }
-    } catch (error) {
-      console.error('Error parsing WebSocket message:', error, data);
+    // Emit to registered handlers
+    const handlers = this.eventHandlers.get(message.type);
+    if (handlers) {
+      console.log(`✅ Found ${handlers.size} handler(s) for type: ${message.type}`);
+      handlers.forEach((handler) => {
+        try {
+          handler(message);
+        } catch (error) {
+          console.error('Error in message handler:', error);
+        }
+      });
+    } else {
+      console.warn(`⚠️ No handlers registered for message type: ${message.type}`);
     }
+
+    // Emit to wildcard handlers
+    const wildcardHandlers = this.eventHandlers.get('*');
+    if (wildcardHandlers) {
+      wildcardHandlers.forEach((handler) => {
+        try {
+          handler(message);
+        } catch (error) {
+          console.error('Error in wildcard message handler:', error);
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Error parsing WebSocket message:', error, data);
   }
+}
 
   private scheduleReconnect(): void {
     if (this.reconnectTimer) {

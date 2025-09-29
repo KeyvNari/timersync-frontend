@@ -5,6 +5,7 @@ import React, {
   useRef,
   useEffect,
   useState,
+  useCallback,
 } from 'react';
 import {
   SimpleWebSocketService,
@@ -82,18 +83,14 @@ export function WebSocketProvider({
   const [lastSuccess, setLastSuccess] = useState<string | null>(null);
 
   // Setup event handlers
-  const setupEventHandlers = (wsService: SimpleWebSocketService) => {
-    // Connection lifecycle
-    wsService.on('SUCCESS', (message: any) => {
-      setConnected(true);
-      setRoomInfo(message.room_info || null);
-      setSelectedTimerId(message.room_info?.selected_timer_id || null);
-      setLastSuccess(message.message || 'Connected successfully');
-    });
-
-    wsService.on('ERROR', (message: any) => {
-      setLastError(message.message || 'Unknown error');
-    });
+const setupEventHandlers = (wsService: SimpleWebSocketService) => {
+  // Use lowercase to match what backend actually sends
+  wsService.on('success', (message: any) => {  // Changed from 'SUCCESS'
+    setConnected(true);
+    setRoomInfo(message.room_info || null);
+    setSelectedTimerId(message.room_info?.selected_timer_id || null);
+    setLastSuccess(message.message || 'Connected successfully');
+  });
 
     // Timer events
     wsService.on('timer_update', (message: any) => {
@@ -106,16 +103,33 @@ export function WebSocketProvider({
       );
     });
 
+wsService.on('error', (message: any) => {
+  const errorMessage = message.message || 'Unknown error';
+  
+  // Check if it's a permission error
+  if (errorMessage.includes('permission') || 
+      errorMessage.includes('unauthorized') || 
+      errorMessage.includes('forbidden')) {
+    console.debug('Permission denied:', errorMessage);
+    // Don't set as a critical error - just log it
+    return;
+  }
+  
+  // Only set error state for non-permission errors
+  setLastError(errorMessage);
+});
+
+
     wsService.on('TIMER_SELECTED', (message: any) => {
       setSelectedTimerId(message.timer_id);
     });
 
-    wsService.on('ROOM_TIMERS_STATUS', (message: any) => {
-      setTimers(message.timers || []);
-      if (message.selected_timer_id !== undefined) {
-        setSelectedTimerId(message.selected_timer_id);
-      }
-    });
+   wsService.on('room_timers_status', (message: any) => {  
+    setTimers(message.timers || []);
+    if (message.selected_timer_id !== undefined) {
+      setSelectedTimerId(message.selected_timer_id);
+    }
+  });
 
     wsService.on('INITIAL_ROOM_TIMERS', (message: any) => {
       setTimers(message.timers || []);
@@ -149,66 +163,91 @@ export function WebSocketProvider({
   };
 
   // Connection management
-  const connect = async (
-    roomId: number,
-    options: Partial<WebSocketServiceOptions> = {}
-  ) => {
-    if (wsServiceRef.current) {
-      wsServiceRef.current.disconnect();
-    }
+const connect = useCallback(async (
+  roomId: number,
+  options: Partial<WebSocketServiceOptions> = {}
+) => {
+  if (wsServiceRef.current) {
+    wsServiceRef.current.disconnect();
+  }
 
-    const wsService = createSimpleWebSocketService({
-      roomId,
-      autoReconnect: true,
-      ...defaultOptions,
-      ...options,
-    });
+  const wsService = createSimpleWebSocketService({
+    roomId,
+    autoReconnect: true,
+    ...defaultOptions,
+    ...options,
+  });
 
-    wsServiceRef.current = wsService;
-    setupEventHandlers(wsService);
+  wsServiceRef.current = wsService;
+  setupEventHandlers(wsService);
 
-    try {
-      await wsService.connect();
-    } catch (error) {
-      console.error('Failed to connect WebSocket:', error);
-      throw error;
-    }
-  };
+  try {
+    await wsService.connect();
+  } catch (error) {
+    console.error('Failed to connect WebSocket:', error);
+    throw error;
+  }
+}, [defaultOptions]); // Add dependencies here
 
-  const disconnect = () => {
-    if (wsServiceRef.current) {
-      wsServiceRef.current.disconnect();
-      wsServiceRef.current = null;
-    }
+const disconnect = useCallback(() => {
+  if (wsServiceRef.current) {
+    wsServiceRef.current.disconnect();
+    wsServiceRef.current = null;
+  }
 
-    setConnected(false);
-    setTimers([]);
-    setSelectedTimerId(null);
-    setRoomInfo(null);
-    setDisplays([]);
-    setConnections([]);
-    setConnectionCount(0);
-    setLastError(null);
-    setLastSuccess(null);
-  };
+  setConnected(false);
+  setTimers([]);
+  setSelectedTimerId(null);
+  setRoomInfo(null);
+  setDisplays([]);
+  setConnections([]);
+  setConnectionCount(0);
+  setLastError(null);
+  setLastSuccess(null);
+}, []);
 
   // Timer controls
-  const startTimer = (timerId: number) => wsServiceRef.current?.startTimer(timerId);
-  const pauseTimer = (timerId: number) => wsServiceRef.current?.pauseTimer(timerId);
-  const stopTimer = (timerId: number) => wsServiceRef.current?.stopTimer(timerId);
-  const resetTimer = (timerId: number) => wsServiceRef.current?.resetTimer(timerId);
-  const selectTimer = (timerId: number, timerData?: Partial<TimerData>) =>
-    wsServiceRef.current?.selectTimer(timerId, timerData);
+const startTimer = useCallback((timerId: number) => {
+  wsServiceRef.current?.startTimer(timerId);
+}, []);
+
+const pauseTimer = useCallback((timerId: number) => {
+  wsServiceRef.current?.pauseTimer(timerId);
+}, []);
+
+const stopTimer = useCallback((timerId: number) => {
+  wsServiceRef.current?.stopTimer(timerId);
+}, []);
+
+const resetTimer = useCallback((timerId: number) => {
+  wsServiceRef.current?.resetTimer(timerId);
+}, []);
+
+const selectTimer = useCallback((timerId: number, timerData?: Partial<TimerData>) => {
+  wsServiceRef.current?.selectTimer(timerId, timerData);
+}, []);
 
   // Room actions
-  const refreshTimers = () => wsServiceRef.current?.requestRoomTimers();
-  const joinRoom = () => wsServiceRef.current?.joinRoom();
-  const leaveRoom = () => wsServiceRef.current?.leaveRoom();
-  const updateRoom = (settings: Record<string, any>) =>
-    wsServiceRef.current?.updateRoom(settings);
+const refreshTimers = useCallback(() => {
+  wsServiceRef.current?.requestRoomTimers();
+}, []);
 
-  // Connections
-  const requestConnections = () => wsServiceRef.current?.requestConnections();
+const joinRoom = useCallback(() => {
+  wsServiceRef.current?.joinRoom();
+}, []);
+
+const leaveRoom = useCallback(() => {
+  wsServiceRef.current?.leaveRoom();
+}, []);
+
+const updateRoom = useCallback((settings: Record<string, any>) => {
+  wsServiceRef.current?.updateRoom(settings);
+}, []);
+
+// Connections
+const requestConnections = useCallback(() => {
+  wsServiceRef.current?.requestConnections();
+}, []);
 
   useEffect(() => {
     return () => {

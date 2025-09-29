@@ -59,7 +59,45 @@ type Timer = {
   critical_time?: number | null;
 };
 
-function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
+function TimerDisplay({ display, timer }: { display?: Display; timer?: Timer }) {
+  const defaultDisplay: Display = {
+    name: 'Timer Display',
+    logo_image: null,
+    logo_size_percent: 60,
+    logo_position: 'top_left',
+    timer_format: 'mm:ss',
+    timer_font_family: 'Roboto Mono',
+    timer_color: '#ffffff',
+    time_of_day_color: '#ffffff',
+    timer_text_style: 'default',
+    timer_size_percent: 100,
+    timer_position: 'center',
+    auto_hide_completed: false,
+    clock_format: 'browser_default',
+    clock_font_family: 'Roboto Mono',
+    clock_color: '#ffffff',
+    clock_visible: false,
+    message_font_family: 'Roboto Mono',
+    message_color: '#ffffff',
+    title_display_location: 'header',
+    speaker_display_location: 'footer',
+    header_font_family: 'Roboto Mono',
+    header_color: '#ffffff',
+    footer_font_family: 'Roboto Mono',
+    footer_color: '#ffffff',
+    theme_name: 'default',
+    text_style: 'default',
+    display_ratio: '16:9',
+    background_type: 'color',
+    background_color: '#000000',
+    background_image: null,
+    background_preset: null,
+    progress_style: 'bottom_bar',
+    progress_color_main: 'green',
+    progress_color_secondary: 'orange',
+    progress_color_tertiary: 'red',
+  };
+
   const defaultTimer: Timer = {
     title: 'Default Timer',
     speaker: null,
@@ -76,6 +114,7 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
     current_time_seconds: 0,
   };
 
+  const safeDisplay = display ?? defaultDisplay;
   const safeTimer = timer ?? defaultTimer;
 
   const [displayState, setDisplayState] = useState(() => ({
@@ -113,7 +152,7 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
   };
 
   const formatClock = () => {
-    if (display.clock_format === 'browser_default' || !display.clock_format) {
+    if (safeDisplay.clock_format === 'browser_default' || !safeDisplay.clock_format) {
       return currentDate.toLocaleTimeString();
     }
     return currentDate.toLocaleTimeString();
@@ -126,51 +165,51 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
 
       // Check for overtime (negative time)
       if (displayState.currentTime < 0) {
-        return display.progress_color_tertiary || 'red';
+        return safeDisplay.progress_color_tertiary || 'red';
       } else if (displayState.currentTime <= criticalTime) {
-        return display.progress_color_tertiary || 'red';
+        return safeDisplay.progress_color_tertiary || 'red';
       } else if (displayState.currentTime <= warningTime) {
-        return display.progress_color_secondary || 'yellow';
+        return safeDisplay.progress_color_secondary || 'yellow';
       } else {
-        return display.progress_color_main || 'green';
+        return safeDisplay.progress_color_main || 'green';
       }
     } else if (safeTimer.timer_type === 'countup' && safeTimer.duration_seconds) {
       if (safeTimer.critical_time && displayState.currentTime >= safeTimer.critical_time) {
-        return display.progress_color_tertiary || 'red';
+        return safeDisplay.progress_color_tertiary || 'red';
       } else if (safeTimer.warning_time && displayState.currentTime >= safeTimer.warning_time) {
-        return display.progress_color_secondary || 'yellow';
+        return safeDisplay.progress_color_secondary || 'yellow';
       } else {
-        return display.progress_color_main || 'green';
+        return safeDisplay.progress_color_main || 'green';
       }
     }
-    return display.progress_color_main || 'green';
+    return safeDisplay.progress_color_main || 'green';
   };
 
   const getTimerColor = () => {
     const progressColor = getCurrentProgressColor();
-    
+
     // For normal state (green), keep white. For warning/critical/overtime, use the progress color
-    if (progressColor === (display.progress_color_main || 'green')) {
-      return display.timer_color || '#ffffff';
+    if (progressColor === (safeDisplay.progress_color_main || 'green')) {
+      return safeDisplay.timer_color || '#ffffff';
     }
-    
+
     // Return the actual color value for warning, critical, and overtime states
     return progressColor;
   };
 
-  const timerText = formatTime(displayState.currentTime, display.timer_format || 'mm:ss');
+  const timerText = formatTime(displayState.currentTime, safeDisplay.timer_format || 'mm:ss');
   const clockText = formatClock();
-  const showTimer = !(display.auto_hide_completed && safeTimer.is_finished);
-  const showOnlyClock = !showTimer && display.clock_visible;
+  const showTimer = !(safeDisplay.auto_hide_completed && safeTimer.is_finished);
+  const showOnlyClock = !showTimer && safeDisplay.clock_visible;
 
   const backgroundStyle: React.CSSProperties = {};
-  switch (display.background_type || 'color') {
+  switch (safeDisplay.background_type || 'color') {
     case 'color':
-      backgroundStyle.backgroundColor = display.background_color || '#000000';
+      backgroundStyle.backgroundColor = safeDisplay.background_color || '#000000';
       break;
     case 'image':
-      if (display.background_image) {
-        backgroundStyle.backgroundImage = `url(data:image/png;base64,${display.background_image})`;
+      if (safeDisplay.background_image) {
+        backgroundStyle.backgroundImage = `url(data:image/png;base64,${safeDisplay.background_image})`;
         backgroundStyle.backgroundSize = 'cover';
         backgroundStyle.backgroundPosition = 'center';
       }
@@ -184,7 +223,7 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
   }
 
   let mainSection = 0;
-  let progressColor = display.progress_color_main || 'green';
+  let progressColor = safeDisplay.progress_color_main || 'green';
 
   if (safeTimer.duration_seconds && safeTimer.duration_seconds > 0) {
     if (safeTimer.timer_type === 'countdown') {
@@ -204,9 +243,9 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
     }
   }
 
-  const baseFontSize = (display.timer_size_percent || 100) / 100;
+  const baseFontSize = (safeDisplay.timer_size_percent || 100) / 100;
   const timerStyle: React.CSSProperties = {
-    fontFamily: display.timer_font_family || 'Roboto Mono',
+    fontFamily: safeDisplay.timer_font_family || 'Roboto Mono',
     color: getTimerColor(),
     fontSize: `${baseFontSize * 6 * 7}rem`,
     textAlign: 'center',
@@ -215,7 +254,7 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
     whiteSpace: 'nowrap',
   };
 
-  switch (display.timer_text_style || 'default') {
+  switch (safeDisplay.timer_text_style || 'default') {
     case 'outline':
       timerStyle.WebkitTextStroke = '2px black';
       timerStyle.color = 'transparent';
@@ -226,15 +265,15 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
   }
 
   const clockStyle: React.CSSProperties = {
-    fontFamily: display.clock_font_family || 'Roboto Mono',
-    color: display.clock_color || display.time_of_day_color || '#ffffff',
+    fontFamily: safeDisplay.clock_font_family || 'Roboto Mono',
+    color: safeDisplay.clock_color || safeDisplay.time_of_day_color || '#ffffff',
     fontSize: showOnlyClock ? `${baseFontSize * 4}rem` : '2rem',
     textAlign: 'center',
     lineHeight: 1,
     whiteSpace: 'nowrap',
   };
 
-  const logoSize = display.logo_size_percent || 60;
+  const logoSize = safeDisplay.logo_size_percent || 60;
   const logoStyle: React.CSSProperties = {
     position: 'absolute',
     width: `${logoSize}px`,
@@ -242,7 +281,7 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
     zIndex: 10,
   };
 
-  switch (display.logo_position || 'top_left') {
+  switch (safeDisplay.logo_position || 'top_left') {
     case 'top_left':
       logoStyle.top = 20;
       logoStyle.left = 20;
@@ -262,7 +301,7 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
   }
 
   let progressComponent = null;
-  const progressStyle = display.progress_style || 'bottom_bar';
+  const progressStyle = safeDisplay.progress_style || 'bottom_bar';
 
   if (progressStyle !== 'hidden') {
     if (progressStyle === 'bottom_bar' || progressStyle === 'top_bar') {
@@ -306,33 +345,33 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
   }
 
   const headerItems: string[] = [];
-  if (display.title_display_location === 'header' && safeTimer.show_title) headerItems.push(safeTimer.title);
-  if (display.speaker_display_location === 'header' && safeTimer.show_speaker && safeTimer.speaker) headerItems.push(safeTimer.speaker);
+  if (safeDisplay.title_display_location === 'header' && safeTimer.show_title) headerItems.push(safeTimer.title);
+  if (safeDisplay.speaker_display_location === 'header' && safeTimer.show_speaker && safeTimer.speaker) headerItems.push(safeTimer.speaker);
 
   const footerItems: string[] = [];
-  if (display.title_display_location === 'footer' && safeTimer.show_title) footerItems.push(safeTimer.title);
-  if (display.speaker_display_location === 'footer' && safeTimer.show_speaker && safeTimer.speaker) footerItems.push(safeTimer.speaker);
+  if (safeDisplay.title_display_location === 'footer' && safeTimer.show_title) footerItems.push(safeTimer.title);
+  if (safeDisplay.speaker_display_location === 'footer' && safeTimer.show_speaker && safeTimer.speaker) footerItems.push(safeTimer.speaker);
 
   const header = headerItems.length > 0 ? (
-    <Text size="lg" style={{ fontFamily: display.header_font_family || 'Roboto Mono', color: display.header_color || '#ffffff', textAlign: 'center' }}>
+    <Text size="lg" style={{ fontFamily: safeDisplay.header_font_family || 'Roboto Mono', color: safeDisplay.header_color || '#ffffff', textAlign: 'center' }}>
       {headerItems.join(' | ')}
     </Text>
   ) : null;
 
   const footer = footerItems.length > 0 ? (
-    <Text size="lg" style={{ fontFamily: display.footer_font_family || 'Roboto Mono', color: display.footer_color || '#ffffff', textAlign: 'center' }}>
+    <Text size="lg" style={{ fontFamily: safeDisplay.footer_font_family || 'Roboto Mono', color: safeDisplay.footer_color || '#ffffff', textAlign: 'center' }}>
       {footerItems.join(' | ')}
     </Text>
   ) : null;
 
   const message = safeTimer.show_notes && safeTimer.notes ? safeTimer.notes : '';
   const messageComponent = message ? (
-    <Text size="md" style={{ fontFamily: display.message_font_family || 'Roboto Mono', color: display.message_color || '#ffffff', textAlign: 'center' }}>
+    <Text size="md" style={{ fontFamily: safeDisplay.message_font_family || 'Roboto Mono', color: safeDisplay.message_color || '#ffffff', textAlign: 'center' }}>
       {message}
     </Text>
   ) : null;
 
-  const [ratioWidth, ratioHeight] = (display.display_ratio || '16:9').split(':').map(Number);
+  const [ratioWidth, ratioHeight] = (safeDisplay.display_ratio || '16:9').split(':').map(Number);
   const aspectRatio = ratioWidth / ratioHeight;
 
   const borderColor = getCurrentProgressColor();
@@ -390,7 +429,7 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
             </Box>
           )}
 
-          {display.clock_visible && !showOnlyClock && (
+          {safeDisplay.clock_visible && !showOnlyClock && (
             <Box style={{ maxWidth: '100%', overflow: 'hidden' }}>
               <Text style={{
                 ...clockStyle,
@@ -424,8 +463,8 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
         </Box>
       )}
 
-      {display.logo_image && (
-        <Image src={`data:image/png;base64,${display.logo_image}`} style={logoStyle} />
+      {safeDisplay.logo_image && (
+        <Image src={`data:image/png;base64,${safeDisplay.logo_image}`} style={logoStyle} />
       )}
 
       {progressStyle === 'ring' && progressComponent && (

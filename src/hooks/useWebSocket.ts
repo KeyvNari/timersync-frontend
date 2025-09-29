@@ -269,13 +269,17 @@ export function useWebSocket(roomId: number, options: UseWebSocketOptions = {}):
     wsServiceRef.current.requestRoomTimers();
   }, []);
 
-  const refreshConnections = useCallback(() => {
-    if (!wsServiceRef.current || !permissions.can_view_connections) {
-      console.warn('Cannot view connections: insufficient permissions');
-      return;
-    }
-    wsServiceRef.current.requestConnections();
-  }, [permissions.can_view_connections]);
+const refreshConnections = useCallback(() => {
+  if (!wsServiceRef.current) return;
+  
+  // Don't request connections if we don't have permission
+  if (!permissions.can_view_connections) {
+    console.debug('Skipping connection request - insufficient permissions');
+    return;
+  }
+  
+  wsServiceRef.current.requestConnections();
+}, [permissions.can_view_connections]);
 
   const sendIdentifyResponse = useCallback((data: any) => {
     if (!wsServiceRef.current) return;

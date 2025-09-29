@@ -1,11 +1,11 @@
 // src/pages/viewer/index.tsx
 import { useEffect, useState } from 'react';
 import { Box, Alert, Loader, Center, Text, Paper, PasswordInput, Button, Stack, Title } from '@mantine/core';
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { IconAlertCircle, IconLock } from '@tabler/icons-react';
 import { useForm } from '@mantine/form';
 import TimerDisplay from '@/components/timer-display';
-import { SimpleWebSocketService, createSimpleWebSocketService } from '@/services/websocket';
+import { useWebSocketContext, useTimerContext } from '@/providers/websocket-provider';
 
 type Display = {
   name: string;
@@ -87,19 +87,36 @@ const defaultDisplay: Display = {
 export default function ViewerPage() {
   const { roomId: roomIdParam, token } = useParams<{ roomId: string; token: string }>();
   const location = useLocation();
-  
+  const navigate = useNavigate();
+
+  // Use WebSocket context instead of direct service
+  const {
+    connected,
+    connect,
+    disconnect,
+    lastError,
+    lastSuccess,
+    refreshTimers,
+    requestConnections,
+    displays
+  } = useWebSocketContext();
+
+  const {
+    getSelectedTimer,
+    selectedTimerId,
+    timers,
+    roomInfo
+  } = useTimerContext();
+
   // Check if password is required (URL ends with /psw)
   const requiresPassword = location.pathname.endsWith('/pwd');
-  
-  // State management
+
+  // Local state for UI
   const [connectionState, setConnectionState] = useState<'connecting' | 'connected' | 'error' | 'disconnected' | 'password_required'>('password_required');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [wsService, setWsService] = useState<SimpleWebSocketService | null>(null);
-  const [display, setDisplay] = useState<Display>(defaultDisplay);
-  const [selectedTimer, setSelectedTimer] = useState<any>(null);
-  const [timers, setTimers] = useState<any[]>([]);
   const [roomPassword, setRoomPassword] = useState<string>('');
   const [isAuthenticated, setIsAuthenticated] = useState(!requiresPassword);
+  const [roomId, setRoomId] = useState<number | null>(null);
 
   // Password form
   const passwordForm = useForm({
@@ -111,123 +128,86 @@ export default function ViewerPage() {
     },
   });
 
-  // Handle password submission
-  const handlePasswordSubmit = (values: { password: string }) => {
-    setRoomPassword(values.password);
-    setIsAuthenticated(true);
-    setConnectionState('connecting');
-  };
-
-  // WebSocket connection effect
+  // Parse room ID
   useEffect(() => {
-    // Don't connect if password is required but not provided
-    if (requiresPassword && !isAuthenticated) {
-      return;
+    if (roomIdParam) {
+      const parsed = parseInt(roomIdParam, 10);
+      setRoomId(isNaN(parsed) || parsed <= 0 ? null : parsed);
     }
+  }, [roomIdParam]);
 
-    if (!roomIdParam || !token) {
-      setConnectionState('error');
-      setErrorMessage('Missing room ID or token');
-      return;
-    }
-
-    const roomId = parseInt(roomIdParam, 10);
-    if (isNaN(roomId) || roomId <= 0) {
-      setConnectionState('error');
-      setErrorMessage('Invalid room ID');
-      return;
-    }
-
-    setConnectionState('connecting');
-
-    // Create WebSocket service with password if required
-    const wsOptions: any = {
-      roomId,
-      roomToken: token,
-      autoReconnect: true,
-      reconnectInterval: 3000,
-      maxReconnectAttempts: 5,
-    };
-
-    // Add room password if required
-    if (requiresPassword && roomPassword) {
-      wsOptions.tokenPassword = roomPassword;
-    }
-
-    const ws = createSimpleWebSocketService(wsOptions);
-
-    // Set up event handlers
-    ws.on('success', (message) => {
-      console.log('Connection successful:', message);
+  // Handle WebSocket connection state changes
+  useEffect(() => {
+    if (connected) {
       setConnectionState('connected');
       setErrorMessage(null);
-      
-      // Request room timers after connection
-      setTimeout(() => {
-        ws.requestRoomTimers();
-      }, 500);
-    });
+    } else if (!connected && isAuthenticated && roomId) {
+      setConnectionState('connecting');
+    } else {
+      setConnectionState('disconnected');
+    }
+  }, [connected, isAuthenticated, roomId]);
 
-    ws.on('error', (message) => {
-      console.error('WebSocket error:', message);
-      
+
+  useEffect(() => {
+  if (connected) {
+    // Add wildcard listener to see ALL messages
+    const wildcardHandler = (message: any) => {
+      console.log('🌟 Wildcard caught message:', message);
+    };
+    
+    addEventListener('*', wildcardHandler);
+    
+    return () => {
+      removeEventListener('*', wildcardHandler);
+    };
+  }
+}, [connected, addEventListener, removeEventListener]);
+  // Request initial data after successful connection
+useEffect(() => {
+  if (connected && lastSuccess) {
+    // Brief delay to ensure WebSocket is fully ready
+    setTimeout(() => {
+      refreshTimers();
+      // Don't request connections for viewers - they don't have permission
+      // Only request if we have permission (which viewers typically don't)
+      // requestConnections(); // Remove this line or make it conditional
+    }, 500);
+  }
+}, [connected, lastSuccess, refreshTimers]); 
+
+  // Handle connection errors
+  useEffect(() => {
+    if (lastError) {
       // Handle password-related errors
-      if (message.message && (
-        message.message.includes('Invalid password') ||
-        message.message.includes('Password required') ||
-        message.message.includes('Unauthorized')
-      )) {
+      if (lastError.includes('Invalid password') ||
+          lastError.includes('Password required') ||
+          lastError.includes('Unauthorized')) {
         setConnectionState('password_required');
         setIsAuthenticated(false);
         setErrorMessage('Invalid password. Please try again.');
         passwordForm.setFieldError('password', 'Invalid password');
       } else {
         setConnectionState('error');
-        setErrorMessage(message.message || 'Connection error occurred');
+        setErrorMessage(lastError);
       }
-    });
+    }
+  }, [lastError]);
 
-    ws.on('timer_update', (message) => {
-      console.log('Timer update:', message);
-      setTimers(prev => prev.map(timer => 
-        timer.id === message.timer_id 
-          ? { ...timer, ...message }
-          : timer
-      ));
-    });
-
-    ws.on('timer_selected', (message) => {
-      console.log('Timer selected:', message);
-      const timer = timers.find(t => t.id === message.timer_id);
-      if (timer) {
-        setSelectedTimer(timer);
-      }
-    });
-
-    ws.on('ROOM_TIMERS_STATUS', (message) => {
-      console.log('Room timers status:', message);
-      setTimers(message.timers || []);
-      if (message.selected_timer_id) {
-        const timer = message.timers?.find((t: any) => t.id === message.selected_timer_id);
-        setSelectedTimer(timer || null);
-      }
-    });
-
-    ws.on('INITIAL_ROOM_TIMERS', (message) => {
-      console.log('Initial room timers:', message);
-      setTimers(message.timers || []);
-      if (message.selected_timer_id) {
-        const timer = message.timers?.find((t: any) => t.id === message.selected_timer_id);
-        setSelectedTimer(timer || null);
-      }
-    });
-
-    // Connect to WebSocket
-    const connectWebSocket = async () => {
+  // Connect to WebSocket when authenticated and room ID is valid
+useEffect(() => {
+  // Only connect once when conditions are met
+  if (isAuthenticated && roomId && token && !connected) {
+    const connectToRoom = async () => {
       try {
-        await ws.connect();
-        console.log('WebSocket connected successfully');
-        setWsService(ws);
+        setConnectionState('connecting');
+        await connect(roomId, {
+          roomToken: token,
+          tokenPassword: requiresPassword ? roomPassword : undefined,
+          autoReconnect: true,
+          reconnectInterval: 3000,
+          maxReconnectAttempts: 5,
+        });
       } catch (error) {
         console.error('Failed to connect:', error);
         setConnectionState('error');
@@ -235,16 +215,28 @@ export default function ViewerPage() {
       }
     };
 
-    connectWebSocket();
+    connectToRoom();
+  }
+  
+  // Cleanup on unmount
+  return () => {
+    if (connected) {
+      disconnect();
+    }
+  };
+}, [isAuthenticated, roomId, token]);
 
-    // Cleanup
-    return () => {
-      ws.disconnect();
-    };
-  }, [roomIdParam, token, requiresPassword, isAuthenticated, roomPassword]);
+  // Handle password submission
+  const handlePasswordSubmit = (values: { password: string }) => {
+    setRoomPassword(values.password);
+    setIsAuthenticated(true);
+    setConnectionState('connecting');
+  };
 
-  // Get the timer to display
-  const displayTimer = selectedTimer || timers.find(t => t.is_active) || timers[0];
+  // Get the timer to display (selected timer or active timer or first timer)
+  const selectedTimer = getSelectedTimer();
+  const activeTimer = timers?.find(timer => timer.is_active);
+  const displayTimer = selectedTimer || activeTimer || timers?.[0];
 
   // Convert timer data to the format expected by TimerDisplay
   const convertedTimer = displayTimer ? {
@@ -262,12 +254,17 @@ export default function ViewerPage() {
     is_finished: displayTimer.is_finished || false,
     is_stopped: !displayTimer.is_active && !displayTimer.is_finished,
     started_at: displayTimer.started_at,
-    paused_at: displayTimer.paused_at,
-    accumulated_pause_time: displayTimer.accumulated_pause_time || 0,
+    paused_at: null, // Not available in TimerData interface
+    accumulated_pause_time: 0, // Not available in TimerData interface
     warning_time: displayTimer.warning_time,
     critical_time: displayTimer.critical_time,
-    server_time: new Date(),
-  } : null;
+    current_time_seconds: displayTimer.current_time_seconds,
+  } : undefined;
+  // Handle going back or disconnecting
+  const handleGoBack = () => {
+    disconnect(); // Clean up WebSocket connection
+    navigate(-1); // Go back to previous page
+  };
 
   // Show password form if required and not authenticated
   if (requiresPassword && !isAuthenticated) {
@@ -288,7 +285,7 @@ export default function ViewerPage() {
               <Center>
                 <IconLock size={48} color="var(--mantine-color-blue-6)" />
               </Center>
-              
+
               <div>
                 <Title order={2} ta="center" mb="xs">
                   Room Password Required
@@ -307,15 +304,16 @@ export default function ViewerPage() {
                     {...passwordForm.getInputProps('password')}
                     error={errorMessage && passwordForm.errors.password ? errorMessage : passwordForm.errors.password}
                   />
-                  
+
                   <Button type="submit" fullWidth size="md">
                     Connect to Room
                   </Button>
+
+                  <Button variant="light" onClick={handleGoBack}>
+                    Go Back
+                  </Button>
                 </Stack>
               </form>
-
-              <Text size="xs" c="dimmed" ta="center">
-              </Text>
             </Stack>
           </Paper>
         </Center>
@@ -340,7 +338,7 @@ export default function ViewerPage() {
           <Box ta="center">
             <Loader size="xl" color="blue" mb="md" />
             <Text c="white" size="lg">Connecting to room...</Text>
-            {/* <Text c="gray" size="sm" mt="xs">Room: {roomIdParam}</Text> */}
+            {roomId && <Text c="gray" size="sm" mt="xs">Room: {roomId}</Text>}
             {requiresPassword && <Text c="gray" size="xs" mt="xs">Password protected</Text>}
           </Box>
         </Center>
@@ -362,29 +360,44 @@ export default function ViewerPage() {
         }}
       >
         <Center h="100%">
-          <Alert 
-            icon={<IconAlertCircle size="1rem" />} 
-            title="Connection Error" 
+          <Alert
+            icon={<IconAlertCircle size="1rem" />}
+            title="Connection Error"
             color="red"
             maw={400}
           >
             {errorMessage || 'Unable to connect to the timer room'}
-            {/* <Text size="sm" mt="xs">Room: {roomIdParam}</Text> */}
-            {requiresPassword && (
-              <Button 
-                variant="light" 
-                size="xs" 
-                mt="md"
-                onClick={() => {
+            {roomId && <Text size="sm" mt="xs">Room: {roomId}</Text>}
+            <Button
+              variant="light"
+              size="xs"
+              mt="md"
+              onClick={() => {
+                if (requiresPassword) {
+                  // Auto-reset auth for password-protected rooms
                   setConnectionState('password_required');
                   setIsAuthenticated(false);
                   setErrorMessage(null);
                   passwordForm.reset();
-                }}
-              >
-                Try Different Password
-              </Button>
-            )}
+                } else {
+                  // Try reconnecting for non-password rooms
+                  disconnect();
+                  setConnectionState('connecting');
+                  setErrorMessage(null);
+                }
+              }}
+            >
+              {requiresPassword ? 'Try Different Password' : 'Try Again'}
+            </Button>
+            <Button
+              variant="subtle"
+              size="xs"
+              mt="xs"
+              color="gray"
+              onClick={handleGoBack}
+            >
+              Go Back
+            </Button>
           </Alert>
         </Center>
       </Box>
@@ -402,7 +415,27 @@ export default function ViewerPage() {
         overflow: 'hidden',
       }}
     >
-      <TimerDisplay display={display} timer={convertedTimer || undefined} />
+      {/* Debug info in development */}
+      {process.env.NODE_ENV === 'development' && (
+        <Box
+          style={{
+            position: 'absolute',
+            top: 10,
+            right: 10,
+            zIndex: 1000,
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            color: 'white',
+            padding: '8px',
+            borderRadius: '4px',
+            fontSize: '12px'
+          }}
+        >
+          Room: {roomId} | Connected: {connected ? 'Yes' : 'No'} |
+          Timers: {timers?.length || 0} | Selected: {selectedTimerId}
+        </Box>
+      )}
+
+      <TimerDisplay display={displays[0]} timer={convertedTimer} />
     </Box>
   );
 }
