@@ -238,14 +238,7 @@ useEffect(() => {
   const activeTimer = timers?.find(timer => timer.is_active);
   const displayTimer = selectedTimer || activeTimer || timers?.[0];
 
-  // Debug: Print timer data
-  console.log('📊 Debug Timer Data in viewer:');
-  console.log('  - connected:', connected);
-  console.log('  - timers array:', timers);
-  console.log('  - selectedTimer (via getSelectedTimer):', selectedTimer);
-  console.log('  - activeTimer (via find):', activeTimer);
-  console.log('  - timers[0] (first timer):', timers?.[0]);
-  console.log('  - final displayTimer:', displayTimer);
+
 
   // Convert timer data to the format expected by TimerDisplay
   // Use the real-time data from websocket updates including server-time calculated values

@@ -139,7 +139,7 @@ wsService.on('error', (message: any) => {
       setSelectedTimerId(message.timer_id);
     });
 
-   wsService.on('room_timers_status', (message: any) => {  
+   wsService.on('ROOM_TIMERS_STATUS', (message: any) => {
     setTimers(message.timers || []);
     if (message.selected_timer_id !== undefined) {
       setSelectedTimerId(message.selected_timer_id);
