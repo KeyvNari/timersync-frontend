@@ -241,13 +241,13 @@ async connect(): Promise<void> {
     this.send({ type: 'timer_update', timer_id: timerId, updates });
   }
 
-  selectTimer(timerId: number, timerData?: Partial<TimerData>): void {
-    this.send({
-      type: 'timer_selected',
-      timer_id: timerId,
-      timer_data: timerData || {},
-    });
-  }
+selectTimer(timerId: number, timerData?: Partial<TimerData>): void {
+  this.send({
+    type: 'select_timer',  // Changed from 'timer_selected'
+    timer_id: timerId,
+    timer_data: timerData || {},
+  });
+}
 
   // Room management
   joinRoom(): void {

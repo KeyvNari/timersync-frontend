@@ -152,6 +152,22 @@ wsService.on('error', (message: any) => {
       setSelectedTimerId(message.timer_id);
     });
 
+    wsService.on('select_timer', (message: any) => {
+      console.log('📍 SELECT_TIMER received:', {
+        timer_id: message.timer_id,
+        connection_id: message.connection_id,
+        timestamp: message.timestamp
+      });
+      
+      if (message.timer_id !== undefined) {
+        setSelectedTimerId(message.timer_id);
+      }
+    });
+
+    wsService.on('TIMER_SELECTED', (message: any) => {
+        setSelectedTimerId(message.timer_id);
+      });
+
    wsService.on('ROOM_TIMERS_STATUS', (message: any) => {
     console.log('Timers from ROOM_TIMERS_STATUS:', message.timers);
     setTimers(message.timers || []);

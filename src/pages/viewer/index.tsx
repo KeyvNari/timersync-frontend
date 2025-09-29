@@ -226,6 +226,15 @@ useEffect(() => {
   };
 }, [isAuthenticated, roomId, token]);
 
+
+useEffect(() => {
+  console.log('🎯 Viewer - Timer selection changed:', {
+    selectedTimerId,
+    selectedTimer: getSelectedTimer(),
+    totalTimers: timers?.length
+  });
+}, [selectedTimerId, timers]);
+
   // Handle password submission
   const handlePasswordSubmit = (values: { password: string }) => {
     setRoomPassword(values.password);
@@ -237,6 +246,7 @@ useEffect(() => {
   const selectedTimer = getSelectedTimer();
   const activeTimer = timers?.find(timer => timer.is_active);
   const displayTimer = selectedTimer || activeTimer || timers?.[0];
+  const matchedDisplay = displays.find(d => d.id === displayTimer.display_id);
 
 
 
@@ -438,7 +448,8 @@ return (
 
     <TimerDisplay
       key={`${displayTimer?.id}-${displayTimer?.current_time_seconds}`}
-      display={displays[displayTimer?.display_id]}
+        display={matchedDisplay || defaultDisplay}
+
       timer={convertedTimer}
       in_view_mode={true}
     />
