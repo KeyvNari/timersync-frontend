@@ -405,37 +405,42 @@ useEffect(() => {
   }
 
   // Show timer display when connected
-  return (
-    <Box
-      style={{
-        width: '100vw',
-        height: '100vh',
-        margin: 0,
-        padding: 0,
-        overflow: 'hidden',
-      }}
-    >
-      {/* Debug info in development */}
-      {process.env.NODE_ENV === 'development' && (
-        <Box
-          style={{
-            position: 'absolute',
-            top: 10,
-            right: 10,
-            zIndex: 1000,
-            backgroundColor: 'rgba(0,0,0,0.8)',
-            color: 'white',
-            padding: '8px',
-            borderRadius: '4px',
-            fontSize: '12px'
-          }}
-        >
-          Room: {roomId} | Connected: {connected ? 'Yes' : 'No'} |
-          Timers: {timers?.length || 0} | Selected: {selectedTimerId}
-        </Box>
-      )}
+return (
+  <Box
+    style={{
+      width: '100vw',
+      height: '100vh',
+      margin: 0,
+      padding: 0,
+      overflow: 'hidden',
+    }}
+  >
+    {/* Debug info in development */}
+    {process.env.NODE_ENV === 'development' && (
+      <Box
+        style={{
+          position: 'absolute',
+          top: 10,
+          right: 10,
+          zIndex: 1000,
+          backgroundColor: 'rgba(0,0,0,0.8)',
+          color: 'white',
+          padding: '8px',
+          borderRadius: '4px',
+          fontSize: '12px'
+        }}
+      >
+        Room: {roomId} | Connected: {connected ? 'Yes' : 'No'} |
+        Timers: {timers?.length || 0} | Selected: {selectedTimerId} |
+        Current: {displayTimer?.current_time_seconds}
+      </Box>
+    )}
 
-      <TimerDisplay display={displays[0]} timer={convertedTimer} />
-    </Box>
-  );
+    <TimerDisplay 
+      key={`${displayTimer?.id}-${displayTimer?.current_time_seconds}`}
+      display={displays[0]} 
+      timer={convertedTimer} 
+    />
+  </Box>
+);
 }

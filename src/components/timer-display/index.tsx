@@ -113,7 +113,12 @@ function TimerDisplay({ display, timer }: { display?: Display; timer?: Timer }) 
     is_stopped: false,
     current_time_seconds: 0,
   };
-
+useEffect(() => {
+  console.log('⏱️ TimerDisplay received update:', {
+    current_time: timer?.current_time_seconds,
+    is_active: timer?.is_active
+  });
+}, [timer?.current_time_seconds, timer?.is_active]);
   const safeDisplay = display ?? defaultDisplay;
   const safeTimer = timer ?? defaultTimer;
 

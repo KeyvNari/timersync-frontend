@@ -98,25 +98,38 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
   });
 
     // Timer events
-    wsService.on('timer_update', (message: any) => {
-      setTimers((prev) => {
-        const timerData = message.timer_data;
-        if (!timerData?.id) return prev;
+ wsService.on('timer_update', (message: any) => {
+  console.log('📍 TIMER_UPDATE received:', {
+    timer_id: message.timer_data?.id,
+    current_time: message.timer_data?.current_time_seconds,
+    is_active: message.timer_data?.is_active,
+    full_data: message.timer_data
+  });
+  
+  setTimers((prev) => {
+    const timerData = message.timer_data;
+    if (!timerData?.id) {
+      console.log('❌ No timer data or ID in update');
+      return prev;
+    }
 
-        const timerExists = prev.some(timer => timer.id === timerData.id);
-        if (timerExists) {
-          // Update existing timer
-          return prev.map((timer) =>
-            timer.id === timerData.id
-              ? { ...timer, ...timerData }
-              : timer
-          );
-        } else {
-          // Add new timer to array
-          return [...prev, timerData];
-        }
-      });
-    });
+    const existingTimerIndex = prev.findIndex(timer => timer.id === timerData.id);
+    let newTimers;
+    
+    if (existingTimerIndex !== -1) {
+      // Create a completely new array with the updated timer
+      newTimers = [...prev];
+      newTimers[existingTimerIndex] = { ...timerData };
+      console.log('✅ Timer updated at index', existingTimerIndex, 'New value:', timerData.current_time_seconds);
+    } else {
+      newTimers = [...prev, timerData];
+      console.log('➕ New timer added');
+    }
+    
+    return newTimers;
+  });
+});
+
 
 wsService.on('error', (message: any) => {
   const errorMessage = message.message || 'Unknown error';
@@ -140,6 +153,7 @@ wsService.on('error', (message: any) => {
     });
 
    wsService.on('ROOM_TIMERS_STATUS', (message: any) => {
+    console.log('Timers from ROOM_TIMERS_STATUS:', message.timers);
     setTimers(message.timers || []);
     if (message.selected_timer_id !== undefined) {
       setSelectedTimerId(message.selected_timer_id);
@@ -147,6 +161,7 @@ wsService.on('error', (message: any) => {
   });
 
     wsService.on('INITIAL_ROOM_TIMERS', (message: any) => {
+      console.log('Timers from INITIAL_ROOM_TIMERS:', message.timers);
       setTimers(message.timers || []);
       if (message.selected_timer_id !== undefined) {
         setSelectedTimerId(message.selected_timer_id);
