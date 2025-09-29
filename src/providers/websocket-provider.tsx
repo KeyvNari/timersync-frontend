@@ -1,51 +1,59 @@
 // src/providers/websocket-provider.tsx
-import React, { createContext, useContext, useRef, useEffect, useState } from 'react';
-import { notifications } from '@mantine/notifications';
-import { 
-  WebSocketService, 
-  WebSocketServiceOptions, 
-  TimerData, 
-  ConnectionInfo, 
-  RoomInfo,
-  createWebSocketService 
+import React, {
+  createContext,
+  useContext,
+  useRef,
+  useEffect,
+  useState,
+} from 'react';
+import {
+  SimpleWebSocketService,
+  WebSocketServiceOptions,
+  TimerData,
+  ConnectionInfo,
+  DisplayConfig,
+  createSimpleWebSocketService,
 } from '@/services/websocket';
 
 interface WebSocketContextValue {
-  // Connection state
   connected: boolean;
-  connectionId: string | null;
-  roomInfo: RoomInfo | null;
-  permissions: {
-    can_view: boolean;
-    can_control: boolean;
-    can_modify: boolean;
-    can_view_connections: boolean;
-  };
-  
+
   // Timer state
   timers: TimerData[];
   selectedTimerId: number | null;
-  
-  // Connection state
+
+  // Room state
+  roomInfo: Record<string, any> | null;
+  displays: DisplayConfig[];
   connections: ConnectionInfo[];
   connectionCount: number;
-  
+
+  // Error/success messages
+  lastError: string | null;
+  lastSuccess: string | null;
+
   // WebSocket service instance
-  wsService: WebSocketService | null;
-  
+  wsService: SimpleWebSocketService | null;
+
   // Connection management
   connect: (roomId: number, options?: Partial<WebSocketServiceOptions>) => Promise<void>;
   disconnect: () => void;
-  
+
   // Timer controls
   startTimer: (timerId: number) => void;
   pauseTimer: (timerId: number) => void;
   stopTimer: (timerId: number) => void;
+  resetTimer: (timerId: number) => void;
   selectTimer: (timerId: number, timerData?: Partial<TimerData>) => void;
-  
+
   // Room actions
   refreshTimers: () => void;
-  refreshConnections: () => void;
+  joinRoom: () => void;
+  leaveRoom: () => void;
+  updateRoom: (settings: Record<string, any>) => void;
+
+  // Connections
+  requestConnections: () => void;
 }
 
 const WebSocketContext = createContext<WebSocketContextValue | null>(null);
@@ -55,101 +63,53 @@ interface WebSocketProviderProps {
   defaultOptions?: Partial<WebSocketServiceOptions>;
 }
 
-export function WebSocketProvider({ children, defaultOptions = {} }: WebSocketProviderProps) {
-  const wsServiceRef = useRef<WebSocketService | null>(null);
-  
-  // Connection state
+export function WebSocketProvider({
+  children,
+  defaultOptions = {},
+}: WebSocketProviderProps) {
+  const wsServiceRef = useRef<SimpleWebSocketService | null>(null);
+
   const [connected, setConnected] = useState(false);
-  const [connectionId, setConnectionId] = useState<string | null>(null);
-  const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
-  const [permissions, setPermissions] = useState({
-    can_view: false,
-    can_control: false,
-    can_modify: false,
-    can_view_connections: false,
-  });
-  
-  // Timer state
   const [timers, setTimers] = useState<TimerData[]>([]);
   const [selectedTimerId, setSelectedTimerId] = useState<number | null>(null);
-  
-  // Connection state
+
+  const [roomInfo, setRoomInfo] = useState<Record<string, any> | null>(null);
+  const [displays, setDisplays] = useState<DisplayConfig[]>([]);
   const [connections, setConnections] = useState<ConnectionInfo[]>([]);
   const [connectionCount, setConnectionCount] = useState(0);
 
-  // Setup event handlers for WebSocket service
-  const setupEventHandlers = (wsService: WebSocketService) => {
-    // Connection events
-    wsService.on('success', (message: any) => {
-      if (message.connection_id) {
-        setConnected(true);
-        setConnectionId(message.connection_id);
-        setRoomInfo(message.room_info || null);
-        setPermissions(message.permissions || permissions);
-        setSelectedTimerId(message.room_info?.selected_timer_id || null);
-        
-        notifications.show({
-          title: 'Connected',
-          message: `Connected to room: ${message.room_info?.name || 'Unknown'}`,
-          color: 'green',
-        });
-      }
+  const [lastError, setLastError] = useState<string | null>(null);
+  const [lastSuccess, setLastSuccess] = useState<string | null>(null);
+
+  // Setup event handlers
+  const setupEventHandlers = (wsService: SimpleWebSocketService) => {
+    // Connection lifecycle
+    wsService.on('SUCCESS', (message: any) => {
+      setConnected(true);
+      setRoomInfo(message.room_info || null);
+      setSelectedTimerId(message.room_info?.selected_timer_id || null);
+      setLastSuccess(message.message || 'Connected successfully');
+    });
+
+    wsService.on('ERROR', (message: any) => {
+      setLastError(message.message || 'Unknown error');
     });
 
     // Timer events
     wsService.on('timer_update', (message: any) => {
-      setTimers(prev => prev.map(timer => 
-        timer.id === message.timer_id 
-          ? {
-              ...timer,
-              current_time_seconds: message.current_time_seconds,
-              is_active: message.is_active,
-              is_paused: message.is_paused,
-              is_finished: message.is_finished,
-              is_overtime: message.is_overtime,
-              overtime_seconds: message.overtime_seconds,
-            }
-          : timer
-      ));
+      setTimers((prev) =>
+        prev.map((timer) =>
+          timer.id === message.timer_data?.id
+            ? { ...timer, ...message.timer_data }
+            : timer
+        )
+      );
     });
 
-    wsService.on('timer_selected', (message: any) => {
+    wsService.on('TIMER_SELECTED', (message: any) => {
       setSelectedTimerId(message.timer_id);
-      
-      if (!message.auto_selected) {
-        notifications.show({
-          title: 'Timer Selected',
-          message: `${message.selected_by_name} selected a timer`,
-          color: 'blue',
-        });
-      }
     });
 
-    wsService.on('timer_start', (message: any) => {
-      notifications.show({
-        title: 'Timer Started',
-        message: message.timer_title || 'Timer started',
-        color: 'green',
-      });
-    });
-
-    wsService.on('timer_pause', (message: any) => {
-      notifications.show({
-        title: 'Timer Paused',
-        message: 'Timer has been paused',
-        color: 'orange',
-      });
-    });
-
-    wsService.on('timer_stop', (message: any) => {
-      notifications.show({
-        title: 'Timer Stopped',
-        message: 'Timer has been stopped',
-        color: 'red',
-      });
-    });
-
-    // Room timer data
     wsService.on('ROOM_TIMERS_STATUS', (message: any) => {
       setTimers(message.timers || []);
       if (message.selected_timer_id !== undefined) {
@@ -164,53 +124,40 @@ export function WebSocketProvider({ children, defaultOptions = {} }: WebSocketPr
       }
     });
 
+    // Room events
+    wsService.on('ROOM_UPDATE', (message: any) => {
+      setRoomInfo((prev) => ({ ...prev, ...message.room }));
+    });
+
     // Connection events
-    wsService.on('connection_count', (message: any) => {
-      setConnectionCount(message.count);
-      if (message.current_connections) {
-        setConnections(message.current_connections);
-      }
+    wsService.on('CONNECTION_COUNT', (message: any) => {
+      setConnectionCount(message.count || 0);
+    });
+
+    wsService.on('CONNECTION_UPDATE', (message: any) => {
+      setConnections(message.connections || []);
     });
 
     wsService.on('CONNECTIONS_LIST', (message: any) => {
       setConnections(message.connections || []);
-      setConnectionCount(message.total_count || 0);
     });
 
-    // Error handling
-    wsService.on('error', (message: any) => {
-      console.error('WebSocket error:', message.message);
-      notifications.show({
-        title: 'Error',
-        message: message.message || 'An unknown error occurred',
-        color: 'red',
-      });
-    });
-
-    // Identify requests
-    wsService.on('identify_request', () => {
-      wsService.sendIdentifyResponse({
-        timestamp: Date.now(),
-        user_agent: navigator.userAgent,
-        screen_resolution: `${screen.width}x${screen.height}`,
-        connection_id: connectionId,
-        client_info: {
-          app_version: '1.0.0',
-          platform: 'web',
-        },
-      });
+    // Display events
+    wsService.on('display_info', (message: any) => {
+      setDisplays(message.displays || []);
     });
   };
 
   // Connection management
-  const connect = async (roomId: number, options: Partial<WebSocketServiceOptions> = {}) => {
-    // Disconnect existing connection
+  const connect = async (
+    roomId: number,
+    options: Partial<WebSocketServiceOptions> = {}
+  ) => {
     if (wsServiceRef.current) {
       wsServiceRef.current.disconnect();
     }
 
-    // Create new WebSocket service
-    const wsService = createWebSocketService({
+    const wsService = createSimpleWebSocketService({
       roomId,
       autoReconnect: true,
       ...defaultOptions,
@@ -224,11 +171,6 @@ export function WebSocketProvider({ children, defaultOptions = {} }: WebSocketPr
       await wsService.connect();
     } catch (error) {
       console.error('Failed to connect WebSocket:', error);
-      notifications.show({
-        title: 'Connection Failed',
-        message: 'Failed to connect to room. Please try again.',
-        color: 'red',
-      });
       throw error;
     }
   };
@@ -238,125 +180,36 @@ export function WebSocketProvider({ children, defaultOptions = {} }: WebSocketPr
       wsServiceRef.current.disconnect();
       wsServiceRef.current = null;
     }
-    
-    // Reset state
+
     setConnected(false);
-    setConnectionId(null);
-    setRoomInfo(null);
     setTimers([]);
+    setSelectedTimerId(null);
+    setRoomInfo(null);
+    setDisplays([]);
     setConnections([]);
     setConnectionCount(0);
-    setSelectedTimerId(null);
-    setPermissions({
-      can_view: false,
-      can_control: false,
-      can_modify: false,
-      can_view_connections: false,
-    });
+    setLastError(null);
+    setLastSuccess(null);
   };
 
-  // Timer controls with permission checks
-  const startTimer = (timerId: number) => {
-    if (!wsServiceRef.current) {
-      notifications.show({
-        title: 'Not Connected',
-        message: 'Please connect to a room first',
-        color: 'red',
-      });
-      return;
-    }
-
-    if (!permissions.can_control) {
-      notifications.show({
-        title: 'Permission Denied',
-        message: 'You do not have permission to control timers',
-        color: 'orange',
-      });
-      return;
-    }
-
-    wsServiceRef.current.startTimer(timerId);
-  };
-
-  const pauseTimer = (timerId: number) => {
-    if (!wsServiceRef.current) {
-      notifications.show({
-        title: 'Not Connected',
-        message: 'Please connect to a room first',
-        color: 'red',
-      });
-      return;
-    }
-
-    if (!permissions.can_control) {
-      notifications.show({
-        title: 'Permission Denied',
-        message: 'You do not have permission to control timers',
-        color: 'orange',
-      });
-      return;
-    }
-
-    wsServiceRef.current.pauseTimer(timerId);
-  };
-
-  const stopTimer = (timerId: number) => {
-    if (!wsServiceRef.current) {
-      notifications.show({
-        title: 'Not Connected',
-        message: 'Please connect to a room first',
-        color: 'red',
-      });
-      return;
-    }
-
-    if (!permissions.can_control) {
-      notifications.show({
-        title: 'Permission Denied',
-        message: 'You do not have permission to control timers',
-        color: 'orange',
-      });
-      return;
-    }
-
-    wsServiceRef.current.stopTimer(timerId);
-  };
-
-  const selectTimer = (timerId: number, timerData?: Partial<TimerData>) => {
-    if (!wsServiceRef.current) {
-      notifications.show({
-        title: 'Not Connected',
-        message: 'Please connect to a room first',
-        color: 'red',
-      });
-      return;
-    }
-
-    wsServiceRef.current.selectTimer(timerId, timerData);
-  };
+  // Timer controls
+  const startTimer = (timerId: number) => wsServiceRef.current?.startTimer(timerId);
+  const pauseTimer = (timerId: number) => wsServiceRef.current?.pauseTimer(timerId);
+  const stopTimer = (timerId: number) => wsServiceRef.current?.stopTimer(timerId);
+  const resetTimer = (timerId: number) => wsServiceRef.current?.resetTimer(timerId);
+  const selectTimer = (timerId: number, timerData?: Partial<TimerData>) =>
+    wsServiceRef.current?.selectTimer(timerId, timerData);
 
   // Room actions
-  const refreshTimers = () => {
-    if (!wsServiceRef.current) return;
-    wsServiceRef.current.requestRoomTimers();
-  };
+  const refreshTimers = () => wsServiceRef.current?.requestRoomTimers();
+  const joinRoom = () => wsServiceRef.current?.joinRoom();
+  const leaveRoom = () => wsServiceRef.current?.leaveRoom();
+  const updateRoom = (settings: Record<string, any>) =>
+    wsServiceRef.current?.updateRoom(settings);
 
-  const refreshConnections = () => {
-    if (!wsServiceRef.current) return;
-    
-    if (!permissions.can_view_connections) {
-      notifications.show({
-        title: 'Permission Denied',
-        message: 'You do not have permission to view connections',
-        color: 'orange',
-      });
-      return;
-    }
-    
-    wsServiceRef.current.requestConnections();
-  };
+  // Connections
+  const requestConnections = () => wsServiceRef.current?.requestConnections();
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (wsServiceRef.current) {
@@ -366,32 +219,28 @@ export function WebSocketProvider({ children, defaultOptions = {} }: WebSocketPr
   }, []);
 
   const value: WebSocketContextValue = {
-    // Connection state
     connected,
-    connectionId,
-    roomInfo,
-    permissions,
-    
-    // Timer state
     timers,
     selectedTimerId,
-    
-    // Connection state
+    roomInfo,
+    displays,
     connections,
     connectionCount,
-    
-    // WebSocket service
+    lastError,
+    lastSuccess,
     wsService: wsServiceRef.current,
-    
-    // Actions
     connect,
     disconnect,
     startTimer,
     pauseTimer,
     stopTimer,
+    resetTimer,
     selectTimer,
     refreshTimers,
-    refreshConnections,
+    joinRoom,
+    leaveRoom,
+    updateRoom,
+    requestConnections,
   };
 
   return (
@@ -401,7 +250,6 @@ export function WebSocketProvider({ children, defaultOptions = {} }: WebSocketPr
   );
 }
 
-// Hook to use WebSocket context
 export function useWebSocketContext(): WebSocketContextValue {
   const context = useContext(WebSocketContext);
   if (!context) {
@@ -410,47 +258,24 @@ export function useWebSocketContext(): WebSocketContextValue {
   return context;
 }
 
-// Hook for timer-specific functionality
 export function useTimerContext() {
   const context = useWebSocketContext();
-  
-  const getTimerById = (timerId: number): TimerData | undefined => {
-    return context.timers.find(timer => timer.id === timerId);
-  };
-  
-  const getActiveTimer = (): TimerData | undefined => {
-    return context.timers.find(timer => timer.is_active);
-  };
-  
-  const getSelectedTimer = (): TimerData | undefined => {
-    return context.selectedTimerId 
-      ? context.timers.find(timer => timer.id === context.selectedTimerId) 
+
+  const getTimerById = (timerId: number): TimerData | undefined =>
+    context.timers.find((timer) => timer.id === timerId);
+
+  const getActiveTimer = (): TimerData | undefined =>
+    context.timers.find((timer) => timer.is_active);
+
+  const getSelectedTimer = (): TimerData | undefined =>
+    context.selectedTimerId
+      ? context.timers.find((timer) => timer.id === context.selectedTimerId)
       : undefined;
-  };
 
   return {
     ...context,
     getTimerById,
     getActiveTimer,
     getSelectedTimer,
-  };
-}
-
-// Hook for connection-specific functionality
-export function useConnectionContext() {
-  const context = useWebSocketContext();
-  
-  const getCurrentConnection = (): ConnectionInfo | undefined => {
-    return context.connections.find(conn => conn.connection_id === context.connectionId);
-  };
-  
-  const getConnectionById = (connectionId: string): ConnectionInfo | undefined => {
-    return context.connections.find(conn => conn.connection_id === connectionId);
-  };
-
-  return {
-    ...context,
-    getCurrentConnection,
-    getConnectionById,
   };
 }

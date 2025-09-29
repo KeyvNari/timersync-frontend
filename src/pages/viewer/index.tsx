@@ -5,7 +5,7 @@ import { useParams, useLocation } from 'react-router-dom';
 import { IconAlertCircle, IconLock } from '@tabler/icons-react';
 import { useForm } from '@mantine/form';
 import TimerDisplay from '@/components/timer-display';
-import { SimpleWebSocketService, createSimpleWebSocketService } from '@/services/websocket-simple';
+import { SimpleWebSocketService, createSimpleWebSocketService } from '@/services/websocket';
 
 type Display = {
   name: string;
@@ -89,7 +89,7 @@ export default function ViewerPage() {
   const location = useLocation();
   
   // Check if password is required (URL ends with /psw)
-  const requiresPassword = location.pathname.endsWith('/psw');
+  const requiresPassword = location.pathname.endsWith('/pwd');
   
   // State management
   const [connectionState, setConnectionState] = useState<'connecting' | 'connected' | 'error' | 'disconnected' | 'password_required'>('password_required');
@@ -231,7 +231,7 @@ export default function ViewerPage() {
       } catch (error) {
         console.error('Failed to connect:', error);
         setConnectionState('error');
-        setErrorMessage('Failed to connect to room');
+        setErrorMessage('Failed to connect to room... Check your link.');
       }
     };
 
@@ -340,7 +340,7 @@ export default function ViewerPage() {
           <Box ta="center">
             <Loader size="xl" color="blue" mb="md" />
             <Text c="white" size="lg">Connecting to room...</Text>
-            <Text c="gray" size="sm" mt="xs">Room: {roomIdParam}</Text>
+            {/* <Text c="gray" size="sm" mt="xs">Room: {roomIdParam}</Text> */}
             {requiresPassword && <Text c="gray" size="xs" mt="xs">Password protected</Text>}
           </Box>
         </Center>
@@ -369,7 +369,7 @@ export default function ViewerPage() {
             maw={400}
           >
             {errorMessage || 'Unable to connect to the timer room'}
-            <Text size="sm" mt="xs">Room: {roomIdParam}</Text>
+            {/* <Text size="sm" mt="xs">Room: {roomIdParam}</Text> */}
             {requiresPassword && (
               <Button 
                 variant="light" 

@@ -5,7 +5,7 @@ export const paths = {
   docs,
   viewer: {
     detail: (roomId: number | string, token: string) => `/viewer/${roomId}/${token}`,
-    passwordProtected: (roomId: number | string, token: string) => `/viewer/${roomId}/${token}/psw`,
+    passwordProtected: (roomId: number | string, token: string) => `/viewer/${roomId}/${token}/pwd`,
   },
   auth: {
     root: '/auth',

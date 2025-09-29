@@ -96,15 +96,20 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
   }, [safeTimer]);
 
   const formatTime = (seconds: number, formatStr: string) => {
-    const absSeconds = Math.max(0, Math.floor(seconds));
+    const isOvertime = seconds < 0;
+    const absSeconds = Math.floor(Math.abs(seconds));
     const h = Math.floor(absSeconds / 3600);
     const m = Math.floor((absSeconds % 3600) / 60);
     const s = absSeconds % 60;
 
+    let timeStr = '';
     if (formatStr.includes('h')) {
-      return [h, m, s].map(n => n.toString().padStart(2, '0')).join(':');
+      timeStr = [h, m, s].map(n => n.toString().padStart(2, '0')).join(':');
+    } else {
+      timeStr = [m, s].map(n => n.toString().padStart(2, '0')).join(':');
     }
-    return [m, s].map(n => n.toString().padStart(2, '0')).join(':');
+    
+    return isOvertime ? `+${timeStr}` : timeStr;
   };
 
   const formatClock = () => {
@@ -119,7 +124,10 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
       const warningTime = safeTimer.warning_time || safeTimer.duration_seconds * 0.3;
       const criticalTime = safeTimer.critical_time || safeTimer.duration_seconds * 0.1;
 
-      if (displayState.currentTime <= criticalTime) {
+      // Check for overtime (negative time)
+      if (displayState.currentTime < 0) {
+        return display.progress_color_tertiary || 'red';
+      } else if (displayState.currentTime <= criticalTime) {
         return display.progress_color_tertiary || 'red';
       } else if (displayState.currentTime <= warningTime) {
         return display.progress_color_secondary || 'yellow';
@@ -139,7 +147,15 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
   };
 
   const getTimerColor = () => {
-    return display.timer_color || '#ffffff';
+    const progressColor = getCurrentProgressColor();
+    
+    // For normal state (green), keep white. For warning/critical/overtime, use the progress color
+    if (progressColor === (display.progress_color_main || 'green')) {
+      return display.timer_color || '#ffffff';
+    }
+    
+    // Return the actual color value for warning, critical, and overtime states
+    return progressColor;
   };
 
   const timerText = formatTime(displayState.currentTime, display.timer_format || 'mm:ss');
@@ -173,8 +189,12 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
   if (safeTimer.duration_seconds && safeTimer.duration_seconds > 0) {
     if (safeTimer.timer_type === 'countdown') {
       let remaining = displayState.currentTime;
-      if (remaining < 0) remaining = 0;
-      mainSection = (remaining / safeTimer.duration_seconds) * 100;
+      // For overtime, show progress bar at 0%
+      if (remaining < 0) {
+        mainSection = 0;
+      } else {
+        mainSection = (remaining / safeTimer.duration_seconds) * 100;
+      }
       progressColor = getCurrentProgressColor();
     } else {
       let progressValue = (displayState.currentTime / safeTimer.duration_seconds) * 100;
@@ -418,4 +438,3 @@ function TimerDisplay({ display, timer }: { display: Display; timer?: Timer }) {
 }
 
 export default TimerDisplay;
-
