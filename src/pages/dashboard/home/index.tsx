@@ -166,9 +166,7 @@ export default function HomePage() {
     'idle' | 'connecting' | 'connected' | 'error'
   >('idle');
 
-  // Connect to WebSocket when roomId is present
-// Connect to WebSocket when roomId is present
-// In src/pages/dashboard/home/index.tsx
+  // Connect to WebSocket when roomId is present and stays connected
 useEffect(() => {
   if (!roomId) {
     setConnectionState('idle');
@@ -221,7 +219,7 @@ useEffect(() => {
   return () => {
     disconnect();
   };
-}, [roomId, connected]);
+}, [roomId]);
 
   // Update connection state based on WebSocket status
   useEffect(() => {
