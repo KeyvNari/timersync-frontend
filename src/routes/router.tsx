@@ -11,6 +11,14 @@ import { paths } from './paths';
 const router = createBrowserRouter([
   ...docsRoutes,
   {
+  path: paths.dashboard.rooms,
+  element: LazyPage(() => import('@/pages/dashboard/rooms')),
+},
+{
+  path: '/dashboard/room/:roomId',
+  element: LazyPage(() => import('@/pages/dashboard/room')),
+},
+  {
     path: '/viewer/:roomId/:token',
     element: LazyPage(() => import('@/pages/viewer')),
   },
@@ -61,11 +69,11 @@ const router = createBrowserRouter([
       </AuthGuard>
     ),
     children: [
-      {
-        index: true,
-        path: paths.dashboard.root,
-        element: <Navigate to={paths.dashboard.home} replace />,
-      },
+    {
+  index: true,
+  path: paths.dashboard.root,
+  element: <Navigate to={paths.dashboard.rooms} replace />,
+},
       {
         path: paths.dashboard.home,
         element: LazyPage(() => import('@/pages/dashboard/home')),

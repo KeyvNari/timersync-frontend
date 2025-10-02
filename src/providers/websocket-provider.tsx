@@ -148,25 +148,17 @@ wsService.on('error', (message: any) => {
 });
 
 
-    wsService.on('TIMER_SELECTED', (message: any) => {
-      setSelectedTimerId(message.timer_id);
-    });
-
-    wsService.on('select_timer', (message: any) => {
-      console.log('📍 SELECT_TIMER received:', {
+    wsService.on('timer_selected', (message: any) => {
+      console.log('📍 TIMER_SELECTED received:', {
         timer_id: message.timer_id,
         connection_id: message.connection_id,
         timestamp: message.timestamp
       });
-      
+
       if (message.timer_id !== undefined) {
         setSelectedTimerId(message.timer_id);
       }
     });
-
-    wsService.on('TIMER_SELECTED', (message: any) => {
-        setSelectedTimerId(message.timer_id);
-      });
 
    wsService.on('ROOM_TIMERS_STATUS', (message: any) => {
     console.log('Timers from ROOM_TIMERS_STATUS:', message.timers);
@@ -209,6 +201,10 @@ wsService.on('error', (message: any) => {
   };
 
   // Connection management
+// In src/providers/websocket-provider.tsx
+
+// Update the connect function (around line 208-240):
+
 const connect = useCallback(async (
   roomId: number,
   options: Partial<WebSocketServiceOptions> = {}
@@ -217,12 +213,46 @@ const connect = useCallback(async (
     wsServiceRef.current.disconnect();
   }
 
-  const wsService = createSimpleWebSocketService({
+  // Get the access token from localStorage for authenticated users
+  const accessToken = localStorage.getItem('access_token');
+  
+  console.log('🔌 WebSocketProvider.connect called with:', {
+    roomId,
+    hasAccessToken: !!accessToken,
+    hasRoomToken: !!options.roomToken,
+    hasTokenPassword: !!options.tokenPassword,
+  });
+
+  // Determine which authentication to use:
+  // - If roomToken is provided, we're in viewer mode (use room token)
+  // - Otherwise, we're in dashboard mode (use access token)
+  const finalOptions = {
     roomId,
     autoReconnect: true,
     ...defaultOptions,
     ...options,
+  };
+
+  // Add the appropriate token
+  if (options.roomToken) {
+    // Viewer mode - use room token from URL
+    finalOptions.roomToken = options.roomToken;
+    if (options.tokenPassword) {
+      finalOptions.tokenPassword = options.tokenPassword;
+    }
+  } else if (accessToken) {
+    // Dashboard mode - use user's access token
+    finalOptions.token = accessToken;
+  }
+
+  console.log('🎯 Final options being passed to WebSocketService:', {
+    roomId: finalOptions.roomId,
+    hasToken: !!finalOptions.token,
+    hasRoomToken: !!finalOptions.roomToken,
+    hasTokenPassword: !!finalOptions.tokenPassword,
   });
+
+  const wsService = createSimpleWebSocketService(finalOptions);
 
   wsServiceRef.current = wsService;
   setupEventHandlers(wsService);
@@ -233,7 +263,7 @@ const connect = useCallback(async (
     console.error('Failed to connect WebSocket:', error);
     throw error;
   }
-}, [defaultOptions]); // Add dependencies here
+}, [defaultOptions]);
 
 const disconnect = useCallback(() => {
   if (wsServiceRef.current) {

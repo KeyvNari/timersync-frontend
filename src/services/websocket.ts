@@ -243,7 +243,7 @@ async connect(): Promise<void> {
 
 selectTimer(timerId: number, timerData?: Partial<TimerData>): void {
   this.send({
-    type: 'select_timer',  // Changed from 'timer_selected'
+    type: 'timer_selected',
     timer_id: timerId,
     timer_data: timerData || {},
   });
@@ -284,22 +284,31 @@ selectTimer(timerId: number, timerData?: Partial<TimerData>): void {
   // Helpers
   // ------------------------
 
-  private buildWebSocketUrl(): string {
-    const baseUrl = app.apiBaseUrl.replace(/^http/, 'ws');
-    const url = new URL(`${baseUrl}/api/v1/ws/room/${this.options.roomId}`);
+private buildWebSocketUrl(): string {
+  const baseUrl = app.apiBaseUrl.replace(/^http/, 'ws');
+  const url = new URL(`${baseUrl}/api/v1/ws/room/${this.options.roomId}`);
 
-    if (this.options.token) {
-      url.searchParams.set('token', this.options.token);
-    }
-    if (this.options.roomToken) {
-      url.searchParams.set('rt', this.options.roomToken);
-    }
+  console.log('🔧 Building WebSocket URL with options:', {
+    hasToken: !!this.options.token,
+    hasRoomToken: !!this.options.roomToken,
+    hasTokenPassword: !!this.options.tokenPassword,
+  });
+
+  // Priority: roomToken > token (for viewer vs dashboard modes)
+  if (this.options.roomToken) {
+    url.searchParams.set('rt', this.options.roomToken);
     if (this.options.tokenPassword) {
       url.searchParams.set('tp', this.options.tokenPassword);
     }
-
-    return url.toString();
+  } else if (this.options.token) {
+    url.searchParams.set('token', this.options.token);
+  } else {
+    console.warn('⚠️ No token provided to WebSocket connection!');
   }
+
+  console.log('🔗 Final WebSocket URL:', url.toString());
+  return url.toString();
+}
 
 private handleMessage(data: string): void {
   try {

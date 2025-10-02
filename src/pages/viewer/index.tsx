@@ -6,6 +6,7 @@ import { IconAlertCircle, IconLock } from '@tabler/icons-react';
 import { useForm } from '@mantine/form';
 import TimerDisplay from '@/components/timer-display';
 import { useWebSocketContext, useTimerContext } from '@/providers/websocket-provider';
+import { LoadingOverlay } from '@mantine/core';
 
 type Display = {
   name: string;
@@ -332,29 +333,28 @@ useEffect(() => {
   }
 
   // Show loading state while connecting
-  if (connectionState === 'connecting') {
-    return (
-      <Box
-        style={{
-          width: '100vw',
-          height: '100vh',
-          backgroundColor: '#000000',
-          margin: 0,
-          padding: 0,
-          overflow: 'hidden',
-        }}
-      >
-        <Center h="100%">
-          <Box ta="center">
-            <Loader size="xl" color="blue" mb="md" />
-            <Text c="white" size="lg">Connecting to room...</Text>
-            {roomId && <Text c="gray" size="sm" mt="xs">Room: {roomId}</Text>}
-            {requiresPassword && <Text c="gray" size="xs" mt="xs">Password protected</Text>}
-          </Box>
-        </Center>
-      </Box>
-    );
-  }
+if (connectionState === 'connecting') {
+  return (
+    <Box
+      pos="relative"
+      style={{
+        width: '100vw',
+        height: '100vh',
+        backgroundColor: '#000000',
+        margin: 0,
+        padding: 0,
+        overflow: 'hidden',
+      }}
+    >
+      <LoadingOverlay
+        visible={true}
+        zIndex={1000}
+        overlayProps={{ radius: 'sm', blur: 2 }}
+        loaderProps={{ color: 'blue', type: 'bars' }}
+      />
+    </Box>
+  );
+}
 
   // Show error state
   if (connectionState === 'error') {
@@ -414,8 +414,55 @@ useEffect(() => {
     );
   }
 
+if (!connected || !displayTimer || !convertedTimer) {
+  return (
+    <Box
+      pos="relative"
+      style={{
+        width: '100vw',
+        height: '100vh',
+        backgroundColor: '#000000',
+        margin: 0,
+        padding: 0,
+        overflow: 'hidden',
+      }}
+    >
+      <LoadingOverlay
+        visible={true}
+        zIndex={1000}
+        overlayProps={{ radius: 'sm', blur: 2 }}
+        loaderProps={{ color: 'blue', type: 'bars' }}
+      />
+    </Box>
+  );
+}
+
+  // Show loading screen when connected but no timer data yet
+ if (connected && !displayTimer) {
+  return (
+    <Box
+      pos="relative"
+      style={{
+        width: '100vw',
+        height: '100vh',
+        backgroundColor: '#000000',
+        margin: 0,
+        padding: 0,
+        overflow: 'hidden',
+      }}
+    >
+      <LoadingOverlay
+        visible={true}
+        zIndex={1000}
+        overlayProps={{ radius: 'sm', blur: 2 }}
+        loaderProps={{ color: 'blue', type: 'bars' }}
+      />
+    </Box>
+  );
+}
+
   // Show timer display when connected
-return (
+return connected && displayTimer ? (
   <Box
     style={{
       width: '100vw',
@@ -425,33 +472,31 @@ return (
       overflow: 'hidden',
     }}
   >
-    {/* Debug info in development */}
-    {/* {process.env.NODE_ENV === 'development' && (
-      <Box
-        style={{
-          position: 'absolute',
-          top: 10,
-          right: 10,
-          zIndex: 1000,
-          backgroundColor: 'rgba(0,0,0,0.8)',
-          color: 'white',
-          padding: '8px',
-          borderRadius: '4px',
-          fontSize: '12px'
-        }}
-      >
-        Room: {roomId} | Connected: {connected ? 'Yes' : 'No'} |
-        Timers: {timers?.length || 0} | Selected: {selectedTimerId} |
-        Current: {displayTimer?.current_time_seconds}
-      </Box>
-    )} */}
-
     <TimerDisplay
-      key={`${displayTimer?.id}-${displayTimer?.current_time_seconds}`}
-        display={matchedDisplay || defaultDisplay}
-
+      key={`${displayTimer.id}-${displayTimer.current_time_seconds}`}
+      display={matchedDisplay || defaultDisplay}
       timer={convertedTimer}
       in_view_mode={true}
+    />
+  </Box>
+) : (
+  // Fallback loading state
+  <Box
+    pos="relative"
+    style={{
+      width: '100vw',
+      height: '100vh',
+      backgroundColor: '#000000',
+      margin: 0,
+      padding: 0,
+      overflow: 'hidden',
+    }}
+  >
+    <LoadingOverlay
+      visible={true}
+      zIndex={1000}
+      overlayProps={{ radius: 'sm', blur: 2 }}
+      loaderProps={{ color: 'blue', type: 'bars' }}
     />
   </Box>
 );

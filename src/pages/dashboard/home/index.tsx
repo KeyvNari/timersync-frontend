@@ -1,20 +1,17 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
-import { Grid, Paper, Box, useMantineTheme } from '@mantine/core';
+// src/pages/dashboard/home/index.tsx
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Paper, Group, Button, Box, Loader, Center, Alert, Stack, Text } from '@mantine/core';
 import { Page } from '@/components/page';
-import {Timers} from '@/components/timer-panel'
-import { ColorSchemeToggle } from './color-scheme-toggle';
-import { Welcome } from './welcome';
-import classes from './home.module.css';
-import { Button, Group } from '@mantine/core';
+import { Timers } from '@/components/timer-panel';
 import TimerDisplay from '@/components/timer-display';
 import { ConnectedDevices } from '@/components/connected-devices';
+import { ResizableDashboard } from '@/components/resizable-dashboard';
+import { useWebSocketContext, useTimerContext } from '@/providers/websocket-provider';
+import { app } from '@/config';
 
-export default function HomePage() {
-  const [leftWidth, setLeftWidth] = useState(66); // Initial 8/12 ratio as percentage
-  const theme = useMantineTheme();
-  const containerRef = useRef<HTMLDivElement>(null);
-  const isDraggingRef = useRef(false);
-  type Display = {
+// Mock data types
+type Display = {
   name: string;
   logo_image?: string | null;
   logo_size_percent?: number | null;
@@ -76,12 +73,12 @@ type Timer = {
   critical_time?: number | null;
   is_overtime: boolean;
   overtime_seconds: number;
-  last_calculated_at?: Date | null; 
-  accumulated_pause_time ?: number | null
-  server_time?: Date | null
+  last_calculated_at?: Date | null;
+  accumulated_pause_time?: number | null;
+  server_time?: Date | null;
 };
-// Mock data for testing
 
+// Mock data (fallback when not connected)
 const mockDisplay: Display = {
   name: 'Untitled Display',
   logo_image: null,
@@ -137,224 +134,257 @@ const mockTimer: Timer = {
   accumulated_seconds: 0,
   warning_time: 120,
   critical_time: 60,
-  started_at : new Date(),
-  paused_at: null, 
+  started_at: new Date(),
+  paused_at: null,
   accumulated_pause_time: 0,
   is_overtime: true,
   overtime_seconds: 5,
   last_calculated_at: new Date(),
   server_time: new Date(),
 };
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    isDraggingRef.current = true;
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-  }, []);
 
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isDraggingRef.current || !containerRef.current) return;
+export default function HomePage() {
+  const [searchParams] = useSearchParams();
+  const roomId = searchParams.get('roomId') ? parseInt(searchParams.get('roomId')!) : null;
 
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const newLeftWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100;
+  console.log('Room ID:', roomId);
 
-    // Constrain between 30% and 70%
-    const constrainedWidth = Math.min(Math.max(newLeftWidth, 30), 70);
-    setLeftWidth(constrainedWidth);
-  }, []);
+  const {
+    connected,
+    connect,
+    disconnect,
+    lastError,
+    displays,
+    connectionCount,
+    connections,
+    roomInfo,
+  } = useWebSocketContext();
 
-  const handleMouseUp = useCallback(() => {
-    isDraggingRef.current = false;
-    document.body.style.cursor = '';
-    document.body.style.userSelect = '';
-  }, []);
+  const { timers, selectedTimerId, getSelectedTimer } = useTimerContext();
 
-  // Add global mouse event listeners
+  const [connectionState, setConnectionState] = useState<
+    'idle' | 'connecting' | 'connected' | 'error'
+  >('idle');
+
+  // Connect to WebSocket when roomId is present
+// Connect to WebSocket when roomId is present
+// In src/pages/dashboard/home/index.tsx
+useEffect(() => {
+  if (!roomId) {
+    setConnectionState('idle');
+    disconnect();
+    return;
+  }
+
+  const connectToRoom = async () => {
+    try {
+      setConnectionState('connecting');
+      const userToken = localStorage.getItem(app.accessTokenStoreKey);
+
+      console.log('🔑 Step 1 - Token from localStorage:', {
+        exists: !!userToken,
+        length: userToken?.length,
+        preview: userToken ? `${userToken.substring(0, 20)}...` : 'NULL'
+      });
+
+      if (!userToken) {
+        console.error('❌ No authentication token found!');
+        setConnectionState('error');
+        return;
+      }
+
+      const connectOptions = {
+        token: userToken,
+        autoReconnect: true,
+        reconnectInterval: 3000,
+        maxReconnectAttempts: 5,
+      };
+
+      console.log('🔑 Step 2 - Options object before connect:', {
+        hasToken: !!connectOptions.token,
+        tokenPreview: connectOptions.token ? `${connectOptions.token.substring(0, 20)}...` : 'MISSING',
+        allKeys: Object.keys(connectOptions)
+      });
+
+      await connect(roomId, connectOptions);
+      setConnectionState('connected');
+    } catch (error) {
+      console.error('Failed to connect to room:', error);
+      setConnectionState('error');
+    }
+  };
+
+  if (!connected) {
+    connectToRoom();
+  }
+
+  return () => {
+    disconnect();
+  };
+}, [roomId, connected]);
+
+  // Update connection state based on WebSocket status
   useEffect(() => {
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    if (connected) {
+      setConnectionState('connected');
+    } else if (lastError) {
+      setConnectionState('error');
+    }
+  }, [connected, lastError]);
 
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [handleMouseMove, handleMouseUp]);
+  const handleLeftWidthChange = (width: number) => {
+    // Optional: Save to localStorage or state management
+    console.log('Left panel width changed to:', width);
+  };
+
+  // Get timer to display
+  const selectedTimer = getSelectedTimer();
+  const activeTimer = timers?.find((timer) => timer.is_active);
+  const displayTimer = selectedTimer || activeTimer || timers?.[0];
+
+  // Get matching display config
+  const matchedDisplay = displayTimer
+    ? displays.find((d) => d.id === displayTimer.display_id)
+    : undefined;
+
+  // Convert timer data for TimerDisplay component
+  const convertedTimer = displayTimer
+    ? {
+        title: displayTimer.title,
+        speaker: displayTimer.speaker,
+        notes: displayTimer.notes,
+        display_id: displayTimer.display_id,
+        show_title: displayTimer.show_title,
+        show_speaker: displayTimer.show_speaker,
+        show_notes: displayTimer.show_notes,
+        timer_type: displayTimer.timer_type || 'countdown',
+        duration_seconds: displayTimer.duration_seconds,
+        is_active: displayTimer.is_active || false,
+        is_paused: displayTimer.is_paused || false,
+        is_finished: displayTimer.is_finished || false,
+        is_stopped: displayTimer.is_stopped || false,
+        current_time_seconds: displayTimer.current_time_seconds,
+        warning_time: displayTimer.warning_time,
+        critical_time: displayTimer.critical_time,
+      }
+    : undefined;
+
+  // Loading state
+  if (connectionState === 'connecting') {
+    return (
+      <Page title="Loading Room">
+        <Center h="calc(100vh - 10rem)">
+          <Stack align="center" gap="md">
+            <Loader size="lg" />
+            <Text c="dimmed">Connecting to room...</Text>
+          </Stack>
+        </Center>
+      </Page>
+    );
+  }
+
+  // Error state
+  if (connectionState === 'error' && roomId) {
+    return (
+      <Page title="Connection Error">
+        <Center h="calc(100vh - 10rem)">
+          <Alert color="red" maw={500}>
+            <Stack gap="md">
+              <Text size="sm">
+                Failed to connect to room. {lastError}
+              </Text>
+            </Stack>
+          </Alert>
+        </Center>
+      </Page>
+    );
+  }
+
+  // Left Panel: Timer List with Action Buttons
+  const leftPanel = (
+    <Paper
+      withBorder
+      p="xl"
+      h="100%"
+      style={{ display: 'flex', flexDirection: 'column', overflow: 'auto' }}
+    >
+      <Group justify="space-between" mb="md">
+        <Text size="lg" fw={600}>
+          {roomInfo?.name || `Room ${roomId}`}
+        </Text>
+        <Group gap="xs">
+          <Button variant="default" size="sm">
+            + Add Timer
+          </Button>
+          <Button variant="default" size="sm">
+            Create with AI
+          </Button>
+        </Group>
+      </Group>
+
+      {roomInfo?.description && (
+        <Box mb="md">
+          <Text size="sm" c="dimmed">
+            {roomInfo.description}
+          </Text>
+        </Box>
+      )}
+
+      <Box style={{ flex: 1, overflow: 'auto' }}>
+        <Timers />
+      </Box>
+    </Paper>
+  );
+
+  // Top Right Panel: Timer Display
+  const topRightPanel = (
+    <Paper withBorder p="md" h="100%">
+      {convertedTimer && matchedDisplay ? (
+        <TimerDisplay
+          key={`${displayTimer?.id}-${displayTimer?.current_time_seconds}`}
+          display={matchedDisplay}
+          timer={convertedTimer}
+        />
+      ) : roomId ? (
+        <Center h="100%">
+          <Stack align="center" gap="md">
+            <Text c="dimmed" size="sm">
+              {connected ? 'No timer selected' : 'Connecting to room...'}
+            </Text>
+            <Text c="dimmed" size="xs">
+              {connected ? 'Create or select a timer to begin' : 'Please wait'}
+            </Text>
+          </Stack>
+        </Center>
+      ) : (
+        <TimerDisplay display={mockDisplay} timer={mockTimer} />
+      )}
+    </Paper>
+  );
+
+  // Bottom Right Panel: Connected Devices
+  const bottomRightPanel = (
+    <Paper withBorder p="md" h="100%">
+      <ConnectedDevices
+        connections={[]} // TODO: Update when WebSocket connection provides full connection data
+        currentUserAccess="full"
+        compactMode={false}
+      />
+    </Paper>
+  );
 
   return (
-    <Page title="Home">
-      <Box 
-        ref={containerRef}
-        style={{ 
-          display: 'flex', 
-          height: 'calc(97vh - 7rem)', // Subtract padding/margins
-          minHeight: '400px', // Ensure minimum usable height
-          maxHeight: '100vh', // Prevent overflow
-          padding: theme.spacing.md,
-          gap: 0,
-          overflow: 'hidden' // Prevent scrollbars
-        }}
-      >
-          {/* Left Panel */}
-        <Box 
-          style={{ 
-            width: `${leftWidth}%`,
-            minWidth: '200px',
-            maxWidth: '80%' // Prevent left panel from being too wide
-          }}
-        >
-          <Paper 
-            withBorder 
-            p="xl" 
-            h="100%" 
-            style={{ 
-              display: 'flex', 
-              flexDirection: 'column',
-              overflow: 'auto' // Allow content to scroll if needed
-            }}
-          >
-            {/* Top buttons */}
-            <Group justify="flex-start" mb="md">
-              <Button variant="default" size="sm">
-                + Add Timer
-              </Button>
-              <Button variant="default" size="sm">
-                Create with AI
-              </Button>
-            </Group>
-            
-            {/* Timers container */}
-            <Box style={{ flex: 1 }}>
-              <Timers />
-            </Box>
-          </Paper>
-        </Box>
-
-        {/* Resizer */}
-        <Box
-          onMouseDown={handleMouseDown}
-          style={{
-            width: '1px',
-            cursor: 'col-resize',
-            backgroundColor: 'transparent',
-            position: 'relative',
-            flexShrink: 0,
-            transition: 'all 0.2s ease'
-          }}
-          sx={{
-            '&:hover': {
-              width: '2px',
-              backgroundColor: theme.colorScheme === 'dark' ? theme.colors.gray[6] : theme.colors.gray[4],
-            },
-            '&:active': {
-              width: '3px',
-              backgroundColor: theme.colors.blue[5],
-            }
-          }}
-        >
-          {/* Invisible hit area for easier interaction */}
-          <Box
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: '-4px',
-              right: '-4px',
-              bottom: 0,
-              zIndex: 1
-            }}
-          />
-          
-          {/* Subtle visual indicator that appears on hover */}
-          <Box
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: '8px',
-              height: '24px',
-              backgroundColor: theme.colorScheme === 'dark' ? theme.colors.gray[7] : theme.colors.gray[3],
-              borderRadius: theme.radius.xs,
-              opacity: 0,
-              transition: 'opacity 0.2s ease',
-              pointerEvents: 'none'
-            }}
-            sx={{
-              [`${containerRef.current}:hover &`]: {
-                opacity: 0.6
-              }
-            }}
-          >
-            <Box
-              style={{
-                width: '100%',
-                height: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '6px',
-                color: theme.colorScheme === 'dark' ? theme.colors.gray[5] : theme.colors.gray[6],
-                lineHeight: 1
-              }}
-            >
-              ⋮
-            </Box>
-          </Box>
-        </Box>
-        
-        {/* Right Panel */}
-        <Box 
-          style={{ 
-            width: `${100 - leftWidth}%`,
-            minWidth: '200px',
-            maxWidth: '70%', // Prevent right panel from being too wide
-            paddingLeft: theme.spacing.xs
-          }}
-        >
-          <Box style={{ 
-            display: 'flex', 
-            flexDirection: 'column', 
-            height: '100%', 
-            gap: theme.spacing.xs 
-          }}>
-            {/* Top section */}
-            <Paper
-              withBorder
-              p="md"
-              style={{
-                aspectRatio: '16 / 9',
-                flex: 'none',
-                overflow: 'auto' // Allow content to scroll if needed
-              }}
-            >
-              <TimerDisplay display={mockDisplay} timer={mockTimer} />
-              {/* <Box> */}
-                {/* <h3>Top Section</h3>
-                <p>This takes up 8/12 (66.67%) of the right column height</p>
-                <p>Current left width: {leftWidth.toFixed(1)}%</p>
-                <p>Responsive height that adapts to screen size</p>
-              </Box> */}
-            </Paper>
-            
-            {/* Bottom section - 33.33% height */}
-            <Paper 
-              withBorder 
-              p="md" 
-              style={{ 
-                flex: '1 1 0', // Flexible with 1 part of 3
-                minHeight: '100px',
-                overflow: 'auto' // Allow content to scroll if needed
-              }}
-            >
-              <Box>
-             <ConnectedDevices 
-              currentUserAccess="full"
-             
-/>
-              </Box>
-            </Paper>
-          </Box>
-        </Box>
-      </Box>
+    <Page title={roomInfo?.name || `Room ${roomId}` || 'Home'}>
+      <ResizableDashboard
+        leftPanel={leftPanel}
+        topRightPanel={topRightPanel}
+        bottomRightPanel={bottomRightPanel}
+        initialLeftWidth={66}
+        minLeftWidth={30}
+        maxLeftWidth={70}
+        onLeftWidthChange={handleLeftWidthChange}
+        topRightAspectRatio="16:9"
+      />
     </Page>
   );
 }

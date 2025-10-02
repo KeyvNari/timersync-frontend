@@ -19,33 +19,40 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  useEffect(() => {
-    loadAccessToken();
+useEffect(() => {
+  loadAccessToken(); // This should load the token into axios and localStorage
 
-    // Check if user is authenticated
-    const checkAuth = async () => {
-      const token = localStorage.getItem(app.accessTokenStoreKey);
-      
-      if (!token) {
-        setIsAuthenticated(false);
-        setIsInitialized(true);
-        return;
-      }
+  // Debug: Check if token exists after loading
+  const token = localStorage.getItem(app.accessTokenStoreKey);
+  console.log('🔐 Auth Provider - Token loaded:', token ? 'Yes' : 'No');
 
-      try {
-        await getAccountInfo();
-        setIsAuthenticated(true);
-      } catch (error) {
-        // Token is invalid, remove it
-        localStorage.removeItem(app.accessTokenStoreKey);
-        setIsAuthenticated(false);
-      } finally {
-        setIsInitialized(true);
-      }
-    };
+  // Check if user is authenticated
+  const checkAuth = async () => {
+    const token = localStorage.getItem(app.accessTokenStoreKey);
+    
+    if (!token) {
+      console.log('❌ No token found in storage');
+      setIsAuthenticated(false);
+      setIsInitialized(true);
+      return;
+    }
 
-    checkAuth();
-  }, []);
+    try {
+      await getAccountInfo();
+      console.log('✅ Token valid, user authenticated');
+      setIsAuthenticated(true);
+    } catch (error) {
+      console.log('❌ Token invalid:', error);
+      // Token is invalid, remove it
+      localStorage.removeItem(app.accessTokenStoreKey);
+      setIsAuthenticated(false);
+    } finally {
+      setIsInitialized(true);
+    }
+  };
+
+  checkAuth();
+}, []);
 
   // Listen for storage changes (logout from another tab)
   useEffect(() => {

@@ -5,7 +5,8 @@ export const paths = {
   docs,
   viewer: {
     detail: (roomId: number | string, token: string) => `/viewer/${roomId}/${token}`,
-    passwordProtected: (roomId: number | string, token: string) => `/viewer/${roomId}/${token}/pwd`,
+    passwordProtected: (roomId: number | string, token: string) =>
+      `/viewer/${roomId}/${token}/pwd`,
   },
   auth: {
     root: '/auth',
@@ -21,6 +22,8 @@ export const paths = {
   dashboard: {
     root: '/dashboard',
     home: '/dashboard/home',
+    rooms: '/dashboard/rooms',
+    room: (roomId: number | string) => `/dashboard/room/${roomId}`,
     management: {
       root: '/dashboard/management',
       customers: {
