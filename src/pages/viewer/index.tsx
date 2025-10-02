@@ -246,7 +246,7 @@ useEffect(() => {
   const selectedTimer = getSelectedTimer();
   const activeTimer = timers?.find(timer => timer.is_active);
   const displayTimer = selectedTimer || activeTimer || timers?.[0];
-  const matchedDisplay = displays.find(d => d.id === displayTimer.display_id);
+  const matchedDisplay = displayTimer ? displays.find(d => d.id === displayTimer.display_id) : undefined;
 
 
 
