@@ -1,5 +1,5 @@
 // src/components/room/index.tsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Paper, Group, Button, Box, Loader, Center, Alert, Stack, Text } from '@mantine/core';
 import { IconShare, IconArrowLeft, IconPlus, IconSparkles } from '@tabler/icons-react';
@@ -22,8 +22,9 @@ export interface RoomComponentProps {
   connectionCount: number;
   selectedTimerId?: number;
   isAuthenticated: boolean;
-  userAccessLevel?: string;
+  userAccessLevel?: "full" | "viewer";
   user: any;
+  timerEvents?: any;
   onRoomNameSave: (name: string) => void;
   onShare: () => void;
   onAddTimer: () => void;
@@ -46,6 +47,7 @@ export default function RoomComponent({
   isAuthenticated,
   userAccessLevel = 'full',
   user,
+  timerEvents,
   onRoomNameSave,
   onShare,
   onAddTimer,
@@ -73,26 +75,28 @@ export default function RoomComponent({
     : undefined;
 
   // Convert timer data for TimerDisplay component
-  const convertedTimer = displayTimer
-    ? {
-        title: displayTimer.title,
-        speaker: displayTimer.speaker,
-        notes: displayTimer.notes,
-        display_id: displayTimer.display_id,
-        show_title: displayTimer.show_title,
-        show_speaker: displayTimer.show_speaker,
-        show_notes: displayTimer.show_notes,
-        timer_type: displayTimer.timer_type || 'countdown',
-        duration_seconds: displayTimer.duration_seconds,
-        is_active: displayTimer.is_active || false,
-        is_paused: displayTimer.is_paused || false,
-        is_finished: displayTimer.is_finished || false,
-        is_stopped: displayTimer.is_stopped || false,
-        current_time_seconds: displayTimer.current_time_seconds,
-        warning_time: displayTimer.warning_time,
-        critical_time: displayTimer.critical_time,
-      }
-    : undefined;
+  const convertedTimer = useMemo(() => {
+    return displayTimer
+      ? {
+          title: displayTimer.title,
+          speaker: displayTimer.speaker,
+          notes: displayTimer.notes,
+          display_id: displayTimer.display_id,
+          show_title: displayTimer.show_title,
+          show_speaker: displayTimer.show_speaker,
+          show_notes: displayTimer.show_notes,
+          timer_type: displayTimer.timer_type || 'countdown',
+          duration_seconds: displayTimer.duration_seconds,
+          is_active: displayTimer.is_active || false,
+          is_paused: displayTimer.is_paused || false,
+          is_finished: displayTimer.is_finished || false,
+          is_stopped: displayTimer.is_stopped || false,
+          current_time_seconds: displayTimer.current_time_seconds,
+          warning_time: displayTimer.warning_time,
+          critical_time: displayTimer.critical_time,
+        }
+      : undefined;
+  }, [displayTimer]);
 
   // Header component
   const header = showHeader ? (
@@ -153,7 +157,7 @@ export default function RoomComponent({
       )}
 
       <Box style={{ flex: 1, overflow: 'auto' }}>
-        <Timers />
+        <Timers timers={timers} events={timerEvents} />
       </Box>
     </Paper>
   );
@@ -163,7 +167,7 @@ export default function RoomComponent({
     <Paper withBorder p="md" h="100%">
       {convertedTimer && matchedDisplay ? (
         <TimerDisplay
-          key={`${displayTimer?.id}-${displayTimer?.current_time_seconds}`}
+          key={`${displayTimer?.id}`}
           display={matchedDisplay}
           timer={convertedTimer}
         />

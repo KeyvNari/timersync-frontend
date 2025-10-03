@@ -95,6 +95,11 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
     setRoomInfo(message.room_info || null);
     setSelectedTimerId(message.room_info?.selected_timer_id || null);
     setLastSuccess(message.message || 'Connected successfully');
+
+    // Request initial timers after successful connection
+    setTimeout(() => {
+      wsService.requestRoomTimers();
+    }, 100);
   });
 
     // Timer events

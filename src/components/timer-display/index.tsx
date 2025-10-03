@@ -146,12 +146,12 @@ function TimerDisplay({
     const interval = setInterval(() => {
       setCurrentDate(new Date());
       setDisplayState({
-        currentTime: safeTimer.current_time_seconds,
+        currentTime: timer?.current_time_seconds ?? 0,
       });
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [safeTimer]);
+  }, [timer?.current_time_seconds]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {

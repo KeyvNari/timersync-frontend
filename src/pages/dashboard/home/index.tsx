@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Page } from '@/components/page';
+import { LoadingScreen } from '@/components/loading-screen';
 import RoomComponent from '@/components/room';
 import { useWebSocketContext, useTimerContext } from '@/providers/websocket-provider';
 import { useAuth, useGetAccountInfo } from '@/hooks';
@@ -157,8 +158,57 @@ export default function HomePage() {
     roomInfo,
   } = useWebSocketContext();
 
-  const { timers, selectedTimerId } = useTimerContext();
+  const {
+    timers,
+    selectedTimerId,
+    startTimer,
+    pauseTimer,
+    stopTimer,
+    resetTimer,
+    selectTimer,
+    refreshTimers
+  } = useTimerContext();
+  console.log('timers:', timers);
 
+  // Event handlers for Timers component
+  const handleTimerStart = useCallback((timer: any) => {
+    console.log('Starting timer:', timer.id);
+    if (isAuthenticated) {
+      startTimer(timer.id);
+    }
+  }, [isAuthenticated, startTimer]);
+
+  const handleTimerPause = useCallback((timer: any) => {
+    console.log('Pausing timer:', timer.id);
+    if (isAuthenticated) {
+      pauseTimer(timer.id);
+    }
+  }, [isAuthenticated, pauseTimer]);
+
+  const handleTimerStop = useCallback((timer: any) => {
+    console.log('Stopping timer:', timer.id);
+    if (isAuthenticated) {
+      stopTimer(timer.id);
+    }
+  }, [isAuthenticated, stopTimer]);
+
+  const handleTimerSelect = useCallback((timer: any) => {
+    console.log('Selecting timer:', timer.id);
+    if (isAuthenticated) {
+      selectTimer(timer.id);
+    }
+  }, [isAuthenticated, selectTimer]);
+
+  const timerEvents = useMemo(() => ({
+    onTimerStart: handleTimerStart,
+    onTimerPause: handleTimerPause,
+    onTimerStop: handleTimerStop,
+    onTimerSelect: handleTimerSelect,
+  }), [handleTimerStart, handleTimerPause, handleTimerStop, handleTimerSelect]);
+
+
+
+  
   // Connect to WebSocket when roomId is present and stays connected
   useEffect(() => {
     if (!roomId) {
@@ -216,10 +266,16 @@ export default function HomePage() {
 
 
 
+  // Show loading if roomId is present but roomInfo not loaded yet
+  const isLoading = roomId && !roomInfo;
+
   return (
-    <Page title={roomInfo?.name || `Room ${roomId}` || 'Home'}>
+    <Page title={roomInfo?.name || 'Loading Room...' || 'Home'}>
       {roomId ? (
-        <RoomComponent
+        isLoading ? (
+          <LoadingScreen />
+        ) : (
+          <RoomComponent
             roomId={roomId}
             roomName={roomInfo?.name || `Room ${roomId}`}
             roomDescription={roomInfo?.description}
@@ -231,6 +287,7 @@ export default function HomePage() {
             isAuthenticated={isAuthenticated}
             userAccessLevel="full"
             user={user}
+            timerEvents={timerEvents}
             onRoomNameSave={handleRoomNameSave}
             onShare={handleShare}
             onAddTimer={handleAddTimer}
@@ -240,6 +297,7 @@ export default function HomePage() {
             showActionButtons={true}
             showHeader={true}
           />
+        )
       ) : (
         // TODO: Show home/dashboard when no roomId (rooms list, etc.)
         <div>Home/Dashboard content goes here</div>

@@ -543,7 +543,7 @@ export function Timers({
     if (timers) {
       handlers.setState([...timers].sort((a, b) => a.room_sequence_order - b.room_sequence_order));
     }
-  }, [timers, handlers]);
+  }, [timers]);
 
   const overlaps = checkForOverlaps(state);
   const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor));
@@ -670,6 +670,7 @@ export function Timers({
         linked_timer_id: values.linked_timer_id ? parseInt(values.linked_timer_id, 10) : null,
       };
       // Remove the Date field and add the string fields
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { scheduled_start_time: dateValue, ...finalValues } = transformedValues;
 
       handleUpdateTimer(editingTimer.id, finalValues as Partial<Timer>);
