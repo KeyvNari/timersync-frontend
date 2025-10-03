@@ -1,13 +1,9 @@
-// src/pages/dashboard/home/index.tsx
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Paper, Group, Button, Box, Loader, Center, Alert, Stack, Text } from '@mantine/core';
 import { Page } from '@/components/page';
-import { Timers } from '@/components/timer-panel';
-import TimerDisplay from '@/components/timer-display';
-import { ConnectedDevices } from '@/components/connected-devices';
-import { ResizableDashboard } from '@/components/resizable-dashboard';
+import RoomComponent from '@/components/room';
 import { useWebSocketContext, useTimerContext } from '@/providers/websocket-provider';
+import { useAuth, useGetAccountInfo } from '@/hooks';
 import { app } from '@/config';
 
 // Mock data types
@@ -147,7 +143,8 @@ export default function HomePage() {
   const [searchParams] = useSearchParams();
   const roomId = searchParams.get('roomId') ? parseInt(searchParams.get('roomId')!) : null;
 
-  console.log('Room ID:', roomId);
+  const { isAuthenticated } = useAuth();
+  const { data: user } = useGetAccountInfo();
 
   const {
     connected,
@@ -160,221 +157,93 @@ export default function HomePage() {
     roomInfo,
   } = useWebSocketContext();
 
-  const { timers, selectedTimerId, getSelectedTimer } = useTimerContext();
-
-  const [connectionState, setConnectionState] = useState<
-    'idle' | 'connecting' | 'connected' | 'error'
-  >('idle');
+  const { timers, selectedTimerId } = useTimerContext();
 
   // Connect to WebSocket when roomId is present and stays connected
-useEffect(() => {
-  if (!roomId) {
-    setConnectionState('idle');
-    disconnect();
-    return;
-  }
-
-  const connectToRoom = async () => {
-    try {
-      setConnectionState('connecting');
-      const userToken = localStorage.getItem(app.accessTokenStoreKey);
-
-      console.log('🔑 Step 1 - Token from localStorage:', {
-        exists: !!userToken,
-        length: userToken?.length,
-        preview: userToken ? `${userToken.substring(0, 20)}...` : 'NULL'
-      });
-
-      if (!userToken) {
-        console.error('❌ No authentication token found!');
-        setConnectionState('error');
-        return;
-      }
-
-      const connectOptions = {
-        token: userToken,
-        autoReconnect: true,
-        reconnectInterval: 3000,
-        maxReconnectAttempts: 5,
-      };
-
-      console.log('🔑 Step 2 - Options object before connect:', {
-        hasToken: !!connectOptions.token,
-        tokenPreview: connectOptions.token ? `${connectOptions.token.substring(0, 20)}...` : 'MISSING',
-        allKeys: Object.keys(connectOptions)
-      });
-
-      await connect(roomId, connectOptions);
-      setConnectionState('connected');
-    } catch (error) {
-      console.error('Failed to connect to room:', error);
-      setConnectionState('error');
-    }
-  };
-
-  if (!connected) {
-    connectToRoom();
-  }
-
-  return () => {
-    disconnect();
-  };
-}, [roomId]);
-
-  // Update connection state based on WebSocket status
   useEffect(() => {
-    if (connected) {
-      setConnectionState('connected');
-    } else if (lastError) {
-      setConnectionState('error');
+    if (!roomId) {
+      disconnect();
+      return;
     }
-  }, [connected, lastError]);
 
-  const handleLeftWidthChange = (width: number) => {
-    // Optional: Save to localStorage or state management
-    console.log('Left panel width changed to:', width);
+    const connectToRoom = async () => {
+      try {
+        const userToken = localStorage.getItem(app.accessTokenStoreKey);
+
+        if (!userToken) {
+          console.error('❌ No authentication token found!');
+          return;
+        }
+
+        const connectOptions = {
+          token: userToken,
+          autoReconnect: true,
+          reconnectInterval: 3000,
+          maxReconnectAttempts: 5,
+        };
+
+        await connect(roomId, connectOptions);
+      } catch (error) {
+        console.error('Failed to connect to room:', error);
+      }
+    };
+
+    if (!connected) {
+      connectToRoom();
+    }
+
+    return () => {
+      disconnect();
+    };
+  }, [roomId]);
+
+  const handleRoomNameSave = (newName: string) => {
+    // TODO: Implement API call to update room name
+    console.log('Saving room name:', newName);
   };
 
-  // Get timer to display
-  const selectedTimer = getSelectedTimer();
-  const activeTimer = timers?.find((timer) => timer.is_active);
-  const displayTimer = selectedTimer || activeTimer || timers?.[0];
+  const handleShare = () => {
+    console.log('Share room:', roomId);
+  };
 
-  // Get matching display config
-  const matchedDisplay = displayTimer
-    ? displays.find((d) => d.id === displayTimer.display_id)
-    : undefined;
+  const handleAddTimer = () => {
+    console.log('Add timer to room:', roomId);
+  };
 
-  // Convert timer data for TimerDisplay component
-  const convertedTimer = displayTimer
-    ? {
-        title: displayTimer.title,
-        speaker: displayTimer.speaker,
-        notes: displayTimer.notes,
-        display_id: displayTimer.display_id,
-        show_title: displayTimer.show_title,
-        show_speaker: displayTimer.show_speaker,
-        show_notes: displayTimer.show_notes,
-        timer_type: displayTimer.timer_type || 'countdown',
-        duration_seconds: displayTimer.duration_seconds,
-        is_active: displayTimer.is_active || false,
-        is_paused: displayTimer.is_paused || false,
-        is_finished: displayTimer.is_finished || false,
-        is_stopped: displayTimer.is_stopped || false,
-        current_time_seconds: displayTimer.current_time_seconds,
-        warning_time: displayTimer.warning_time,
-        critical_time: displayTimer.critical_time,
-      }
-    : undefined;
+  const handleCreateWithAI = () => {
+    console.log('Create timer with AI for room:', roomId);
+  };
 
-  // Loading state
-  if (connectionState === 'connecting') {
-    return (
-      <Page title="Loading Room">
-        <Center h="calc(100vh - 10rem)">
-          <Stack align="center" gap="md">
-            <Loader size="lg" />
-            <Text c="dimmed">Connecting to room...</Text>
-          </Stack>
-        </Center>
-      </Page>
-    );
-  }
 
-  // Error state
-  if (connectionState === 'error' && roomId) {
-    return (
-      <Page title="Connection Error">
-        <Center h="calc(100vh - 10rem)">
-          <Alert color="red" maw={500}>
-            <Stack gap="md">
-              <Text size="sm">
-                Failed to connect to room. {lastError}
-              </Text>
-            </Stack>
-          </Alert>
-        </Center>
-      </Page>
-    );
-  }
-
-  // Left Panel: Timer List with Action Buttons
-  const leftPanel = (
-    <Paper
-      withBorder
-      p="xl"
-      h="100%"
-      style={{ display: 'flex', flexDirection: 'column', overflow: 'auto' }}
-    >
-      <Group justify="space-between" mb="md">
-       
-        <Group gap="xs">
-          <Button variant="default" size="sm">
-            + Add Timer
-          </Button>
-          <Button variant="default" size="sm">
-            Create with AI
-          </Button>
-        </Group>
-      </Group>
-
-  
-
-      <Box style={{ flex: 1, overflow: 'auto' }}>
-        <Timers />
-      </Box>
-    </Paper>
-  );
-
-  // Top Right Panel: Timer Display
-  const topRightPanel = (
-    <Paper withBorder p="md" h="100%">
-      {convertedTimer && matchedDisplay ? (
-        <TimerDisplay
-          key={`${displayTimer?.id}-${displayTimer?.current_time_seconds}`}
-          display={matchedDisplay}
-          timer={convertedTimer}
-        />
-      ) : roomId ? (
-        <Center h="100%">
-          <Stack align="center" gap="md">
-            <Text c="dimmed" size="sm">
-              {connected ? 'No timer selected' : 'Connecting to room...'}
-            </Text>
-            <Text c="dimmed" size="xs">
-              {connected ? 'Create or select a timer to begin' : 'Please wait'}
-            </Text>
-          </Stack>
-        </Center>
-      ) : (
-        <TimerDisplay display={mockDisplay} timer={mockTimer} />
-      )}
-    </Paper>
-  );
-
-  // Bottom Right Panel: Connected Devices
-  const bottomRightPanel = (
-    <Paper withBorder p="md" h="100%">
-      <ConnectedDevices
-        connections={[]} // TODO: Update when WebSocket connection provides full connection data
-        currentUserAccess="full"
-        compactMode={false}
-      />
-    </Paper>
-  );
 
   return (
     <Page title={roomInfo?.name || `Room ${roomId}` || 'Home'}>
-      <ResizableDashboard
-        leftPanel={leftPanel}
-        topRightPanel={topRightPanel}
-        bottomRightPanel={bottomRightPanel}
-        initialLeftWidth={66}
-        minLeftWidth={30}
-        maxLeftWidth={70}
-        onLeftWidthChange={handleLeftWidthChange}
-        topRightAspectRatio="16:9"
-      />
+      {roomId ? (
+        <RoomComponent
+            roomId={roomId}
+            roomName={roomInfo?.name || `Room ${roomId}`}
+            roomDescription={roomInfo?.description}
+            timers={timers || []}
+            displays={displays || []}
+            connections={connections || []}
+            connectionCount={connectionCount || 0}
+            selectedTimerId={selectedTimerId || undefined}
+            isAuthenticated={isAuthenticated}
+            userAccessLevel="full"
+            user={user}
+            onRoomNameSave={handleRoomNameSave}
+            onShare={handleShare}
+            onAddTimer={handleAddTimer}
+            onCreateWithAI={handleCreateWithAI}
+            showBackButton={false}
+            showShareButton={true}
+            showActionButtons={true}
+            showHeader={true}
+          />
+      ) : (
+        // TODO: Show home/dashboard when no roomId (rooms list, etc.)
+        <div>Home/Dashboard content goes here</div>
+      )}
     </Page>
   );
 }

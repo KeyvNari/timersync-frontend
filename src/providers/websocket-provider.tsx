@@ -89,7 +89,7 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
     console.log('🔍 PROVIDER received message:', message.type, message);
   });
 
-  // Use lowercase to match what backend actually sends
+    // Use lowercase to match what backend actually sends
   wsService.on('success', (message: any) => {  // Changed from 'SUCCESS'
     setConnected(true);
     setRoomInfo(message.room_info || null);

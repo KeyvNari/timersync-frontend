@@ -1,0 +1,20 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.header {
+  /* Custom styling for the sticky header within room component */
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  padding: var(--mantine-spacing-md);
+  background-color: var(--mantine-color-body);
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
+.content {
+  flex: 1;
+  overflow: hidden;
+}

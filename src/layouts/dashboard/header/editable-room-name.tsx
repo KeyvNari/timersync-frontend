@@ -25,6 +25,18 @@ export function EditableRoomName({
     }
   }, [isEditing]);
 
+  // Update the roomName state when initialName prop changes
+  useEffect(() => {
+    setRoomName(initialName);
+  }, [initialName]);
+
+  // Sync tempName with roomName when not editing
+  useEffect(() => {
+    if (!isEditing) {
+      setTempName(roomName);
+    }
+  }, [roomName, isEditing]);
+
   const handleStartEdit = () => {
     setTempName(roomName);
     setIsEditing(true);
