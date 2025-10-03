@@ -307,9 +307,7 @@ useEffect(() => {
       style={{ display: 'flex', flexDirection: 'column', overflow: 'auto' }}
     >
       <Group justify="space-between" mb="md">
-        <Text size="lg" fw={600}>
-          {roomInfo?.name || `Room ${roomId}`}
-        </Text>
+       
         <Group gap="xs">
           <Button variant="default" size="sm">
             + Add Timer
@@ -320,13 +318,7 @@ useEffect(() => {
         </Group>
       </Group>
 
-      {roomInfo?.description && (
-        <Box mb="md">
-          <Text size="sm" c="dimmed">
-            {roomInfo.description}
-          </Text>
-        </Box>
-      )}
+  
 
       <Box style={{ flex: 1, overflow: 'auto' }}>
         <Timers />
