@@ -166,6 +166,7 @@ export default function HomePage() {
     stopTimer,
     resetTimer,
     selectTimer,
+    updateTimer,
     refreshTimers
   } = useTimerContext();
   console.log('timers:', timers);
@@ -199,12 +200,20 @@ export default function HomePage() {
     }
   }, [isAuthenticated, selectTimer]);
 
+  const handleTimerUpdate = useCallback((timer: any, field: string, value: any) => {
+    console.log('Updating timer:', timer.id, field, value);
+    if (isAuthenticated) {
+      updateTimer(timer.id, { [field]: value });
+    }
+  }, [isAuthenticated, updateTimer]);
+
   const timerEvents = useMemo(() => ({
     onTimerStart: handleTimerStart,
     onTimerPause: handleTimerPause,
     onTimerStop: handleTimerStop,
     onTimerSelect: handleTimerSelect,
-  }), [handleTimerStart, handleTimerPause, handleTimerStop, handleTimerSelect]);
+    onTimerEdit: handleTimerUpdate,
+  }), [handleTimerStart, handleTimerPause, handleTimerStop, handleTimerSelect, handleTimerUpdate]);
 
 
 

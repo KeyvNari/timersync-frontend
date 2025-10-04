@@ -45,6 +45,7 @@ interface WebSocketContextValue {
   pauseTimer: (timerId: number) => void;
   stopTimer: (timerId: number) => void;
   resetTimer: (timerId: number) => void;
+  updateTimer: (timerId: number, updates: Partial<TimerData>) => void;
   selectTimer: (timerId: number, timerData?: Partial<TimerData>) => void;
 
   // Room actions
@@ -304,6 +305,10 @@ const resetTimer = useCallback((timerId: number) => {
   wsServiceRef.current?.resetTimer(timerId);
 }, []);
 
+const updateTimer = useCallback((timerId: number, updates: Partial<TimerData>) => {
+  wsServiceRef.current?.updateTimer(timerId, updates);
+}, []);
+
 const selectTimer = useCallback((timerId: number, timerData?: Partial<TimerData>) => {
   wsServiceRef.current?.selectTimer(timerId, timerData);
 }, []);
@@ -355,6 +360,7 @@ const requestConnections = useCallback(() => {
     pauseTimer,
     stopTimer,
     resetTimer,
+    updateTimer,
     selectTimer,
     refreshTimers,
     joinRoom,

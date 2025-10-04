@@ -20,6 +20,7 @@ import { Text, Button, Group, Alert, useMantineColorScheme, useMantineTheme, Hov
 import { DateTimePicker } from '@mantine/dates';
 import { useListState } from '@mantine/hooks';
 import { useState, useRef, useEffect } from 'react';
+import { useWebSocketContext } from '@/providers/websocket-provider';
 import dayjs from 'dayjs';
 import { Tooltip } from '@mantine/core';
 import { IconAlertTriangle } from '@tabler/icons-react';
@@ -318,6 +319,8 @@ function SortableItem({ item, onUpdateTimer, onSelectTimer, onOpenSettings, even
     onSelectTimer(item.id);
   };
 
+  const { updateTimer: wsUpdateTimer } = useWebSocketContext();
+
   // Inline editing functions
   const startEditing = (field: string, currentValue: string) => {
     setEditingField(field);
@@ -326,15 +329,20 @@ function SortableItem({ item, onUpdateTimer, onSelectTimer, onOpenSettings, even
 
   const saveEdit = () => {
     if (editingField && editValue !== '') {
+      let updates: Partial<Timer> = {};
       if (editingField === 'duration_seconds') {
         const seconds = parseDuration(editValue);
         if (seconds > 0) {
-          onUpdateTimer(item.id, { [editingField]: seconds });
+          updates = { [editingField]: seconds };
+          onUpdateTimer(item.id, updates);
           events?.onTimerEdit?.(item, editingField, seconds);
+          wsUpdateTimer(item.id, updates as any);
         }
       } else {
-        onUpdateTimer(item.id, { [editingField]: editValue });
+        updates = { [editingField]: editValue };
+        onUpdateTimer(item.id, updates);
         events?.onTimerEdit?.(item, editingField, editValue);
+        wsUpdateTimer(item.id, updates as any);
       }
     }
     setEditingField(null);
@@ -534,6 +542,8 @@ export function Timers({
   className,
   showConflictAlerts = true
 }: TimersProps) {
+  const { updateTimer: wsUpdateTimer } = useWebSocketContext();
+
   // Use provided timers or fall back to mock data
   const initialTimers = timers || [...mockTimers].sort((a, b) => a.room_sequence_order - b.room_sequence_order);
   const [state, handlers] = useListState<Timer>(initialTimers);
@@ -675,6 +685,7 @@ export function Timers({
 
       handleUpdateTimer(editingTimer.id, finalValues as Partial<Timer>);
       events?.onTimerEdit?.(editingTimer, 'advanced_settings', finalValues);
+      wsUpdateTimer(editingTimer.id, finalValues as any);
     }
     close();
   };

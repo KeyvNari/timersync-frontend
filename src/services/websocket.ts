@@ -238,7 +238,7 @@ async connect(): Promise<void> {
   }
 
   updateTimer(timerId: number, updates: Partial<TimerData>): void {
-    this.send({ type: 'timer_update', timer_id: timerId, updates });
+    this.send({ type: 'timer_update', timer_id: timerId, ...updates });
   }
 
 selectTimer(timerId: number, timerData?: Partial<TimerData>): void {
