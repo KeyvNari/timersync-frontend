@@ -37,24 +37,15 @@ import { useDisclosure } from '@mantine/hooks';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, useGetAccountInfo, useLogout, useGetRooms } from '@/hooks';
 import { paths } from '@/routes/paths';
-
-export interface Room {
-  id: number;
-  created_by_user_id: number;
-  time_zone: string;
-  name: string;
-  description: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string | null;
-  deleted_at: string | null;
-  is_deleted: boolean;
-  connection_count: number;
-  timer_count: number;
-  messages: any[];
-}
+import { Room } from '@/api/entities/rooms';
 
 export interface RoomsComponentProps {
+  /** Array of rooms to display */
+  rooms?: Room[];
+  /** Loading state */
+  isLoading?: boolean;
+  /** Error state */
+  error?: any;
   /** Callback when a room is selected */
   onRoomSelect: (roomId: number) => void;
   /** Optional: Custom fetch function for rooms */
@@ -68,6 +59,9 @@ export interface RoomsComponentProps {
 }
 
 export function RoomsComponent({
+  rooms = [], // Use passed rooms instead of fetching internally
+  isLoading = false,
+  error = null,
   onRoomSelect,
   fetchRooms,
   showCreateButton = true,
@@ -81,10 +75,8 @@ export function RoomsComponent({
   const { mutate: logout } = useLogout();
   const { setIsAuthenticated } = useAuth();
   const { data: user } = useGetAccountInfo();
-  const { data: roomsResponse, isLoading: loading, error } = useGetRooms();
 
   // Use API data if available, otherwise fall back to custom fetch or mock
-  const rooms: Room[] = roomsResponse?.data || [];
 
   const filteredRooms = rooms.filter(
     (room) =>
@@ -126,7 +118,7 @@ export function RoomsComponent({
     });
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Center h="calc(100vh - 10rem)">
         <Stack align="center" gap="md">

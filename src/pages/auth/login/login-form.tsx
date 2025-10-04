@@ -32,19 +32,20 @@ export function LoginForm({ onSuccess, ...props }: LoginFormProps) {
     },
   });
 
-  const handleSubmit = form.onSubmit((variables) => {
-    login(
-      { variables },
-      {
-        onSuccess: () => {
-          setIsAuthenticated(true);
-          onSuccess?.();
-          navigate(paths.dashboard.home, { replace: true });
-        },
-        onError: (error) => handleFormErrors(form, error),
-      }
-    );
-  });
+const handleSubmit = form.onSubmit((variables) => {
+  login(
+    { variables },
+    {
+      onSuccess: () => {
+        setIsAuthenticated(true);
+        onSuccess?.();
+        // Change this line:
+        navigate(paths.dashboard.rooms, { replace: true }); // was: paths.dashboard.home
+      },
+      onError: (error) => handleFormErrors(form, error),
+    }
+  );
+});
 
   return (
     <FormProvider form={form} onSubmit={handleSubmit}>
