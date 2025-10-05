@@ -156,6 +156,7 @@ export default function HomePage() {
     connectionCount,
     connections,
     roomInfo,
+    createTimer,
   } = useWebSocketContext();
 
   const {
@@ -167,6 +168,7 @@ export default function HomePage() {
     resetTimer,
     selectTimer,
     updateTimer,
+    deleteTimer,
     refreshTimers
   } = useTimerContext();
   console.log('timers:', timers);
@@ -207,13 +209,21 @@ export default function HomePage() {
     }
   }, [isAuthenticated, updateTimer]);
 
+  const handleTimerDelete = useCallback((timer: any) => {
+    console.log('Deleting timer:', timer.id);
+    if (isAuthenticated) {
+      deleteTimer(timer.id);
+    }
+  }, [isAuthenticated, deleteTimer]);
+
   const timerEvents = useMemo(() => ({
     onTimerStart: handleTimerStart,
     onTimerPause: handleTimerPause,
     onTimerStop: handleTimerStop,
     onTimerSelect: handleTimerSelect,
     onTimerEdit: handleTimerUpdate,
-  }), [handleTimerStart, handleTimerPause, handleTimerStop, handleTimerSelect, handleTimerUpdate]);
+    onTimerDelete: handleTimerDelete,
+  }), [handleTimerStart, handleTimerPause, handleTimerStop, handleTimerSelect, handleTimerUpdate, handleTimerDelete]);
 
 
 
@@ -265,9 +275,45 @@ export default function HomePage() {
     console.log('Share room:', roomId);
   };
 
-  const handleAddTimer = () => {
-    console.log('Add timer to room:', roomId);
-  };
+const handleAddTimer = useCallback(() => {
+  if (!isAuthenticated || !roomId) {
+    console.warn('Cannot create timer: not authenticated or no room ID');
+    return;
+  }
+
+  // Generate next available "Unnamed Timer X" name
+  const unnamedTimers = timers.filter(t => 
+    t.title.match(/^Unnamed Timer \d+$/)
+  );
+  
+  const existingNumbers = unnamedTimers.map(t => {
+    const match = t.title.match(/^Unnamed Timer (\d+)$/);
+    return match ? parseInt(match[1], 10) : 0;
+  });
+  
+  const nextNumber = existingNumbers.length > 0 
+    ? Math.max(...existingNumbers) + 1 
+    : 1;
+
+  createTimer({
+    room_id: roomId,
+    title: `Unnamed Timer ${nextNumber}`,
+    timer_type: 'countdown',
+    duration_seconds: 300,
+    is_manual_start: true,
+    show_title: true,
+    show_speaker: false,
+    show_notes: false,
+  });
+  
+  console.log(`Creating timer: Unnamed Timer ${nextNumber}`);
+  
+  // Manually request refresh after a brief delay
+  setTimeout(() => {
+    console.log('Requesting timer refresh...');
+    refreshTimers();
+  }, 500);
+}, [isAuthenticated, roomId, timers, createTimer, refreshTimers]);
 
   const handleCreateWithAI = () => {
     console.log('Create timer with AI for room:', roomId);

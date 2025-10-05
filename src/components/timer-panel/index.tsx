@@ -14,9 +14,9 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { IconPlayerPlay, IconPlayerPause, IconRestore, IconGripVertical, IconSettings, IconNotes } from '@tabler/icons-react';
+import { IconPlayerPlay, IconPlayerPause, IconRestore, IconGripVertical, IconSettings, IconNotes, IconTrash } from '@tabler/icons-react';
 import cx from 'clsx';
-import { Text, Button, Group, Alert, useMantineColorScheme, useMantineTheme, HoverCard, TextInput } from '@mantine/core';
+import { Text, Button, Group, Alert, useMantineColorScheme, useMantineTheme, HoverCard, TextInput, Modal } from '@mantine/core';
 import { DateTimePicker } from '@mantine/dates';
 import { useListState } from '@mantine/hooks';
 import { useState, useRef, useEffect } from 'react';
@@ -76,6 +76,7 @@ interface TimerEvents {
   onTimerSelect?: (timer: Timer) => void;
   onTimerReorder?: (timers: Timer[]) => void;
   onTimerEdit?: (timer: Timer, field: string, value: any) => void;
+  onTimerDelete?: (timer: Timer) => void;
   onScheduleConflict?: (conflicts: Array<{timer1: string, timer2: string, overlapMinutes: number}>) => void;
 }
 
@@ -85,6 +86,7 @@ interface TimersProps {
   events?: TimerEvents;
   className?: string;
   showConflictAlerts?: boolean;
+  selectedTimerId?: number;
 }
 
 const mockTimers: Timer[] = [
@@ -298,6 +300,9 @@ function SortableItem({ item, onUpdateTimer, onSelectTimer, onOpenSettings, even
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
 
+  // State for delete confirmation modal
+  const [deleteModalOpened, setDeleteModalOpened] = useState(false);
+
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -315,7 +320,22 @@ function SortableItem({ item, onUpdateTimer, onSelectTimer, onOpenSettings, even
     events?.onTimerStop?.(item);
   };
 
-  const handleDoubleClick = () => {
+  const handleDelete = () => {
+    setDeleteModalOpened(true);
+  };
+
+  const handleConfirmDelete = () => {
+    setDeleteModalOpened(false);
+    events?.onTimerDelete?.(item);
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteModalOpened(false);
+  };
+
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     onSelectTimer(item.id);
   };
 
@@ -411,9 +431,9 @@ function SortableItem({ item, onUpdateTimer, onSelectTimer, onOpenSettings, even
             
             {/* Status indicator */}
             {getItemStatus() && (
-              <div className={cx(classes.statusBadge, classes[getItemStatus()])}>
-                {getItemStatus()}
-              </div>
+            <div className={cx(classes.statusBadge, getItemStatus() && classes[getItemStatus()!])}>
+              {getItemStatus()}
+            </div>
             )}
 
             {/* Notes indicator */}
@@ -494,37 +514,46 @@ function SortableItem({ item, onUpdateTimer, onSelectTimer, onOpenSettings, even
 
         <div className={classes.controls}>
           <Tooltip label="Start timer" position="top" withArrow>
-            <button 
+            <button
               className={cx(classes.controlButton, classes.play)}
-              onClick={handlePlay} 
+              onClick={handlePlay}
               disabled={item.is_active && !item.is_paused}
             >
               <IconPlayerPlay size={14} />
             </button>
           </Tooltip>
-          
+
           <Tooltip label="Pause timer" position="top" withArrow>
-            <button 
+            <button
               className={cx(classes.controlButton, classes.pause)}
-              onClick={handlePause} 
+              onClick={handlePause}
               disabled={!item.is_active || item.is_paused}
             >
               <IconPlayerPause size={14} />
             </button>
           </Tooltip>
-          
+
           <Tooltip label="Stop/Reset timer" position="top" withArrow>
-            <button 
+            <button
               className={cx(classes.controlButton, classes.stop)}
-              onClick={handleStop} 
+              onClick={handleStop}
               disabled={item.is_stopped}
             >
               <IconRestore size={14} />
             </button>
           </Tooltip>
-          
+
+          <Tooltip label="Delete timer" position="top" withArrow>
+            <button
+              className={cx(classes.controlButton, classes.delete)}
+              onClick={handleDelete}
+            >
+              <IconTrash size={14} />
+            </button>
+          </Tooltip>
+
           <Tooltip label="Advanced settings" position="top" withArrow>
-            <button 
+            <button
               className={classes.controlButton}
               onClick={() => onOpenSettings(item)}
             >
@@ -532,6 +561,26 @@ function SortableItem({ item, onUpdateTimer, onSelectTimer, onOpenSettings, even
             </button>
           </Tooltip>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        opened={deleteModalOpened}
+        onClose={handleCancelDelete}
+        title={`Delete Timer "${item.title}"`}
+        centered
+      >
+        <Text mb="lg">
+          Are you sure you want to delete the timer "{item.title}"? This action cannot be undone.
+        </Text>
+        <Group justify="flex-end" gap="md">
+          <Button variant="light" onClick={handleCancelDelete}>
+            Cancel
+          </Button>
+          <Button color="red" onClick={handleConfirmDelete}>
+            Delete Timer
+          </Button>
+        </Group>
+      </Modal>
     </div>
   );
 }
@@ -540,7 +589,8 @@ export function Timers({
   timers,
   events,
   className,
-  showConflictAlerts = true
+  showConflictAlerts = true,
+  selectedTimerId
 }: TimersProps) {
   const { updateTimer: wsUpdateTimer } = useWebSocketContext();
 
@@ -551,9 +601,16 @@ export function Timers({
   // Update state when props change
   useEffect(() => {
     if (timers) {
-      handlers.setState([...timers].sort((a, b) => a.room_sequence_order - b.room_sequence_order));
+      handlers.setState(
+        [...timers]
+          .sort((a, b) => a.room_sequence_order - b.room_sequence_order)
+          .map(timer => ({
+            ...timer,
+            is_selected: timer.id === selectedTimerId,
+          }))
+      );
     }
-  }, [timers]);
+  }, [timers, selectedTimerId]);
 
   const overlaps = checkForOverlaps(state);
   const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor));
@@ -598,13 +655,7 @@ export function Timers({
 
   // New function to handle single timer selection
   const handleSelectTimer = (id: number) => {
-    const updatedState = state.map(timer => ({
-      ...timer,
-      is_selected: timer.id === id ? !timer.is_selected : false
-    }));
-    handlers.setState(updatedState);
-    
-    const selectedTimer = updatedState.find(timer => timer.id === id);
+    const selectedTimer = state.find(timer => timer.id === id);
     if (selectedTimer) {
       events?.onTimerSelect?.(selectedTimer);
     }

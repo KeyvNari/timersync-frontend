@@ -241,6 +241,17 @@ async connect(): Promise<void> {
     this.send({ type: 'timer_update', timer_id: timerId, ...updates });
   }
 
+  deleteTimer(timerId: number): void {
+    this.send({ type: 'timer_delete', timer_id: timerId });
+  }
+
+  createTimer(timerData: Partial<TimerData>): void {
+  this.send({
+    type: 'timer_create',
+    timer_data: timerData,
+  });
+}
+
 selectTimer(timerId: number, timerData?: Partial<TimerData>): void {
   this.send({
     type: 'timer_selected',

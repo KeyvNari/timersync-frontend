@@ -46,7 +46,9 @@ interface WebSocketContextValue {
   stopTimer: (timerId: number) => void;
   resetTimer: (timerId: number) => void;
   updateTimer: (timerId: number, updates: Partial<TimerData>) => void;
+  deleteTimer: (timerId: number) => void;
   selectTimer: (timerId: number, timerData?: Partial<TimerData>) => void;
+  createTimer: (timerData: Partial<TimerData>) => void;
 
   // Room actions
   refreshTimers: () => void;
@@ -92,6 +94,22 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
 
     // Use lowercase to match what backend actually sends
   wsService.on('success', (message: any) => {  // Changed from 'SUCCESS'
+    console.log('Received success message:', message);
+
+    // Check if this is a timer operation success
+    if (message.timer_id && message.message && message.message.includes('Timer deleted successfully')) {
+      console.log('Timer deleted successfully, removing from local state:', message.timer_id);
+      setTimers((prev) => prev.filter(timer => timer.id !== message.timer_id));
+
+      // If the deleted timer was selected, clear selection
+      setSelectedTimerId(prev => prev === message.timer_id ? null : prev);
+
+      // Set success message for timer operations
+      setLastSuccess(message.message);
+      return; // Don't process as connection success
+    }
+
+    // Handle connection success messages
     setConnected(true);
     setRoomInfo(message.room_info || null);
     setSelectedTimerId(message.room_info?.selected_timer_id || null);
@@ -211,6 +229,9 @@ wsService.on('error', (message: any) => {
 
 // Update the connect function (around line 208-240):
 
+
+
+
 const connect = useCallback(async (
   roomId: number,
   options: Partial<WebSocketServiceOptions> = {}
@@ -271,6 +292,8 @@ const connect = useCallback(async (
   }
 }, [defaultOptions]);
 
+
+
 const disconnect = useCallback(() => {
   if (wsServiceRef.current) {
     wsServiceRef.current.disconnect();
@@ -309,8 +332,14 @@ const updateTimer = useCallback((timerId: number, updates: Partial<TimerData>) =
   wsServiceRef.current?.updateTimer(timerId, updates);
 }, []);
 
+const deleteTimer = useCallback((timerId: number) => {
+  wsServiceRef.current?.deleteTimer(timerId);
+}, []);
+
 const selectTimer = useCallback((timerId: number, timerData?: Partial<TimerData>) => {
   wsServiceRef.current?.selectTimer(timerId, timerData);
+  // Ensure timers are updated after selection to include the selected timer data
+  setTimeout(() => wsServiceRef.current?.requestRoomTimers(), 50);
 }, []);
 
   // Room actions
@@ -328,6 +357,11 @@ const leaveRoom = useCallback(() => {
 
 const updateRoom = useCallback((settings: Record<string, any>) => {
   wsServiceRef.current?.updateRoom(settings);
+}, []);
+
+
+const createTimer = useCallback((timerData: Partial<TimerData>) => {
+  wsServiceRef.current?.createTimer(timerData);
 }, []);
 
 // Connections
@@ -361,7 +395,9 @@ const requestConnections = useCallback(() => {
     stopTimer,
     resetTimer,
     updateTimer,
+    deleteTimer,
     selectTimer,
+    createTimer,
     refreshTimers,
     joinRoom,
     leaveRoom,

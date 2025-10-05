@@ -218,7 +218,16 @@
 }
 
 .controlButton.stop:hover:not(:disabled) {
-  background-color: light-light(var(--mantine-color-red-0), var(--mantine-color-red-9));
+  background-color: light-dark(var(--mantine-color-red-0), var(--mantine-color-red-9));
+  color: var(--mantine-color-red-7);
+}
+
+.controlButton.delete:not(:disabled) {
+  color: var(--mantine-color-red-6);
+}
+
+.controlButton.delete:hover:not(:disabled) {
+  background-color: light-dark(var(--mantine-color-red-0), var(--mantine-color-red-9));
   color: var(--mantine-color-red-7);
 }
 

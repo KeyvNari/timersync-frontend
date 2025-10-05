@@ -66,8 +66,10 @@ export default function RoomComponent({
 
   // Get timer to display
   const selectedTimer = selectedTimerId ? timers?.find((timer) => timer.id === selectedTimerId) : undefined;
+  console.log('selected timer from websocket - selectedTimerId:', selectedTimerId, 'timers ids:', timers?.map(t => t.id), 'selectedTimer:', selectedTimer);
   const activeTimer = timers?.find((timer) => timer.is_active);
   const displayTimer = selectedTimer || activeTimer || timers?.[0];
+  console.log('RoomComponent display timer selection - selectedTimerId:', selectedTimerId, 'selectedTimer duration:', selectedTimer?.duration_seconds, 'activeTimer duration:', activeTimer?.duration_seconds, 'displayTimer duration:', displayTimer?.duration_seconds);
 
   // Get matching display config
   const matchedDisplay = displayTimer
@@ -157,7 +159,7 @@ export default function RoomComponent({
       )}
 
       <Box style={{ flex: 1, overflow: 'auto' }}>
-        <Timers timers={timers} events={timerEvents} />
+        <Timers timers={timers} events={timerEvents} selectedTimerId={selectedTimerId} />
       </Box>
     </Paper>
   );
