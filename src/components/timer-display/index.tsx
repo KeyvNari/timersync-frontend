@@ -60,6 +60,8 @@ type Timer = {
   critical_time?: number | null;
 };
 
+
+
 function TimerDisplay({ 
   display, 
   timer, 
@@ -142,6 +144,15 @@ function TimerDisplay({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hideTimeout, setHideTimeout] = useState<NodeJS.Timeout | null>(null);
 
+const getMaxFontSize = () => {
+  const format = safeDisplay.timer_format || 'mm:ss';
+  // Adjust max width based on format complexity
+  if (format.includes('h')) {
+    return '18vw'; // hh:mm:ss needs more space
+  }
+  return '20vw'; // mm:ss can be larger
+};
+  
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentDate(new Date());
@@ -512,21 +523,22 @@ function TimerDisplay({
 
         <Stack align="center" justify="center" gap="md" style={{ flex: 1, minHeight: 0 }}>
           {showTimer && (
-            <Box style={{
-              maxWidth: '100%',
-              maxHeight: '100%',
-              overflow: 'hidden',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-              <Text style={{
-                ...timerStyle,
-                fontSize: `min(${timerStyle.fontSize}, 15vw, 15vh)`,
-              }}>
-                {timerText}
-              </Text>
-            </Box>
+        <Box style={{
+  maxWidth: '100%',
+  maxHeight: '100%',
+  overflow: 'visible', // Changed from 'hidden' to 'visible'
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+}}>
+  <Text style={{
+    ...timerStyle,
+    fontSize: `min(${timerStyle.fontSize}, 18vw, 12vh)`, // Adjusted constraints
+    whiteSpace: 'nowrap',
+  }}>
+    {timerText}
+  </Text>
+</Box>
           )}
 
           {safeDisplay.clock_visible && !showOnlyClock && (

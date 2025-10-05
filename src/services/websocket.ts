@@ -66,6 +66,28 @@ export interface WebSocketMessage {
   [key: string]: any;
 }
 
+export interface RoomInfo {
+  id: number;
+  name: string;
+  description?: string;
+  selected_timer_id?: number;
+  [key: string]: any;
+}
+
+export interface TimerUpdateMessage extends WebSocketMessage {
+  timer_data: TimerData;
+}
+
+export interface TimerSelectedMessage extends WebSocketMessage {
+  timer_id: number;
+  timer_data?: Partial<TimerData>;
+}
+
+export interface ConnectionUpdateMessage extends WebSocketMessage {
+  count: number;
+  current_connections?: ConnectionInfo[];
+}
+
 export interface WebSocketServiceOptions {
   roomId: number;
   token?: string;
@@ -287,6 +309,10 @@ selectTimer(timerId: number, timerData?: Partial<TimerData>): void {
   // System
   identify(clientInfo: Record<string, any>): void {
     this.send({ type: 'identify_response', ...clientInfo });
+  }
+
+  sendIdentifyResponse(clientInfo: Record<string, any>): void {
+    this.identify(clientInfo);
   }
 
   ping(): void {

@@ -81,12 +81,24 @@ interface TimerEvents {
 }
 
 // Component props interface
+interface DisplayConfig {
+  id: number;
+  name: string;
+  timer_format: string;
+  timer_font_family: string;
+  timer_size_percent: number;
+  timer_position: string;
+  theme_name: string;
+  [key: string]: any;
+}
+
 interface TimersProps {
   timers?: Timer[];
   events?: TimerEvents;
   className?: string;
   showConflictAlerts?: boolean;
   selectedTimerId?: number;
+  displays?: DisplayConfig[];
 }
 
 const mockTimers: Timer[] = [
@@ -591,7 +603,8 @@ export function Timers({
   events,
   className,
   showConflictAlerts = true,
-  selectedTimerId
+  selectedTimerId,
+  displays = []
 }: TimersProps) {
   const { updateTimer: wsUpdateTimer } = useWebSocketContext();
 
@@ -678,6 +691,7 @@ export function Timers({
       scheduled_start_time: null as Date | null,
       is_manual_start: true,
       linked_timer_id: null as string | null,
+      display_id: null as string | null,
       notes: '',
       warning_time: 60,
       critical_time: 30,
@@ -707,6 +721,7 @@ export function Timers({
           : null,
         is_manual_start: editingTimer.is_manual_start,
         linked_timer_id: editingTimer.linked_timer_id ? editingTimer.linked_timer_id.toString() : null,
+        display_id: editingTimer.display_id ? editingTimer.display_id.toString() : null,
         notes: editingTimer.notes || '',
         warning_time: editingTimer.warning_time || 60,
         critical_time: editingTimer.critical_time || 30,
@@ -730,6 +745,7 @@ export function Timers({
           ? dayjs(values.scheduled_start_time).format('HH:mm:ss')
           : null,
         linked_timer_id: values.linked_timer_id ? parseInt(values.linked_timer_id, 10) : null,
+        display_id: values.display_id ? parseInt(values.display_id, 10) : null,
       };
       // Remove the Date field and add the string fields
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -824,6 +840,17 @@ export function Timers({
                         label: timer.title
                       }))}
                     {...form.getInputProps('linked_timer_id')}
+                  />
+
+                  <Select
+                    label="Display Configuration"
+                    placeholder="Select display configuration for this timer"
+                    clearable
+                    data={displays.map(display => ({
+                      value: display.id.toString(),
+                      label: display.name
+                    }))}
+                    {...form.getInputProps('display_id')}
                   />
                 </Stack>
               </Paper>

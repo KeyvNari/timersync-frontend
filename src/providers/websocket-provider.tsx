@@ -247,7 +247,18 @@ wsService.on('error', (message: any) => {
 
     // Display events
     wsService.on('display_info', (message: any) => {
-      setDisplays(message.displays || []);
+      // Accumulate displays instead of replacing - merge with existing displays
+      setDisplays(prevDisplays => {
+        const newDisplays = message.displays || [];
+        // Create a map of existing displays for quick lookup
+        const existingMap = new Map(prevDisplays.map(d => [d.id, d]));
+        // Add or update displays
+        newDisplays.forEach((display: any) => {
+          existingMap.set(display.id, display);
+        });
+        // Return array of all displays
+        return Array.from(existingMap.values());
+      });
     });
   };
 

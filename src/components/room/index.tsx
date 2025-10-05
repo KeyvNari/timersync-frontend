@@ -159,7 +159,7 @@ export default function RoomComponent({
       )}
 
       <Box style={{ flex: 1, overflow: 'auto' }}>
-        <Timers timers={timers} events={timerEvents} selectedTimerId={selectedTimerId} />
+        <Timers timers={timers} events={timerEvents} selectedTimerId={selectedTimerId} displays={displays} />
       </Box>
     </Paper>
   );

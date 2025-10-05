@@ -1,16 +1,12 @@
 // src/hooks/useWebSocket.ts
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { 
-  WebSocketService, 
-  WebSocketServiceOptions, 
-  WebSocketMessage, 
-  TimerData, 
-  ConnectionInfo, 
-  RoomInfo,
-  TimerUpdateMessage,
-  TimerSelectedMessage,
-  ConnectionUpdateMessage,
-  createWebSocketService 
+import {
+  SimpleWebSocketService as WebSocketService,
+  WebSocketServiceOptions,
+  WebSocketMessage,
+  TimerData,
+  ConnectionInfo,
+  createSimpleWebSocketService as createWebSocketService
 } from '@/services/websocket';
 
 export interface UseWebSocketOptions extends Omit<WebSocketServiceOptions, 'roomId'> {
@@ -34,6 +30,7 @@ export interface UseWebSocketReturn {
   // Timer state
   timers: TimerData[];
   selectedTimerId: number | null;
+  displays: any[];
   
   // Connection state
   connections: ConnectionInfo[];
@@ -80,6 +77,9 @@ export function useWebSocket(roomId: number, options: UseWebSocketOptions = {}):
   const [timers, setTimers] = useState<TimerData[]>([]);
   const [selectedTimerId, setSelectedTimerId] = useState<number | null>(null);
   
+  // Display state
+  const [displays, setDisplays] = useState<any[]>([]);
+
   // Connection state
   const [connections, setConnections] = useState<ConnectionInfo[]>([]);
   const [connectionCount, setConnectionCount] = useState(0);
@@ -157,6 +157,23 @@ export function useWebSocket(roomId: number, options: UseWebSocketOptions = {}):
       }
     };
 
+    const handleDisplayInfo = (message: WebSocketMessage) => {
+      if (message.type === 'display_info' && message.displays) {
+        // Accumulate displays instead of replacing - merge with existing displays
+        setDisplays(prevDisplays => {
+          const newDisplays = message.displays;
+          // Create a map of existing displays for quick lookup
+          const existingMap = new Map(prevDisplays.map(d => [d.id, d]));
+          // Add or update displays
+          newDisplays.forEach((display: any) => {
+            existingMap.set(display.id, display);
+          });
+          // Return array of all displays
+          return Array.from(existingMap.values());
+        });
+      }
+    };
+
     const handleIdentifyRequest = (message: WebSocketMessage) => {
       if (message.type === 'identify_request') {
         // Auto-respond to identify requests
@@ -175,6 +192,7 @@ export function useWebSocket(roomId: number, options: UseWebSocketOptions = {}):
     wsService.on('timer_selected', handleTimerSelected);
     wsService.on('ROOM_TIMERS_STATUS', handleRoomTimers);
     wsService.on('INITIAL_ROOM_TIMERS', handleRoomTimers);
+    wsService.on('display_info', handleDisplayInfo);
     wsService.on('connection_count', handleConnectionUpdate);
     wsService.on('CONNECTIONS_LIST', handleConnectionsList);
     wsService.on('error', handleError);
@@ -296,30 +314,31 @@ const refreshConnections = useCallback(() => {
     connectionId,
     roomInfo,
     permissions,
-    
+
     // Timer state
     timers,
     selectedTimerId,
-    
+    displays,
+
     // Connection state
     connections,
     connectionCount,
-    
+
     // Actions
     connect,
     disconnect,
-    
+
     // Timer controls
     startTimer,
     pauseTimer,
     stopTimer,
     selectTimer,
-    
+
     // Room actions
     refreshTimers,
     refreshConnections,
     sendIdentifyResponse,
-    
+
     // Event handlers
     addEventListener,
     removeEventListener,
