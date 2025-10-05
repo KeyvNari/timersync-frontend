@@ -87,24 +87,24 @@ export function WebSocketProvider({
 
   // Setup event handlers
 const setupEventHandlers = (wsService: SimpleWebSocketService) => {
-  // Add wildcard handler for debugging
-  // wsService.on('*', (message: any) => {
-  //   console.log('🔍 PROVIDER received message:', message.type, message);
-  // });
-
-    // Use lowercase to match what backend actually sends
- wsService.on('success', (message: any) => {  // Changed from 'SUCCESS'
-    // console.log('Received success message:', message);
+  // Use lowercase to match what backend actually sends
+  wsService.on('success', (message: any) => {
+    console.log('Received success message:', message);
 
     // Check if this is a timer operation success
-    if (message.timer_id && message.message && message.message.includes('Timer deleted successfully')) {
-      // console.log('Timer deleted successfully, removing from local state:', message.timer_id);
-      setTimers((prev) => prev.filter(timer => timer.id !== message.timer_id));
-
-      // If the deleted timer was selected, clear selection
-      setSelectedTimerId(prev => prev === message.timer_id ? null : prev);
-
-      // Set success message for timer operations
+    if (message.timer_id && message.message) {
+      // Handle timer-specific success messages
+      if (message.message.includes('Timer deleted successfully')) {
+        setTimers((prev) => prev.filter(timer => timer.id !== message.timer_id));
+        setSelectedTimerId(prev => prev === message.timer_id ? null : prev);
+      } else if (message.message.includes('Timer created successfully')) {
+        // Timer was created successfully, request updated timer list
+        console.log('Timer created successfully, refreshing timers...');
+        setTimeout(() => {
+          wsService.requestRoomTimers();
+        }, 100);
+      }
+      
       setLastSuccess(message.message);
       return; // Don't process as connection success
     }
@@ -121,11 +121,33 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
         wsService.requestRoomTimers();
       }, 100);
     } else {
-      // This is likely a successful operation response (like timer selection, start, stop, etc.)
+      // This is likely a successful operation response
       setLastSuccess(message.message);
+      
+      // If it's a generic success message that might be from timer creation,
+      // request timer refresh just in case
+      if (message.message && (
+        message.message.toLowerCase().includes('timer') ||
+        message.message.toLowerCase().includes('created')
+      )) {
+        setTimeout(() => {
+          wsService.requestRoomTimers();
+        }, 200);
+      }
     }
   });
 
+
+   wsService.on('timer_created', (message: any) => {
+    console.log('Timer created event received:', message);
+    if (message.timer_data) {
+      setTimers((prev) => [...prev, message.timer_data]);
+    }
+    // Also refresh the full timer list to ensure consistency
+    setTimeout(() => {
+      wsService.requestRoomTimers();
+    }, 100);
+  });
     // Timer events
  wsService.on('timer_update', (message: any) => {
   // console.log('📍 TIMER_UPDATE received:', {

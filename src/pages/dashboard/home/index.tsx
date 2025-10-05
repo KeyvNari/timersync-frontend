@@ -281,13 +281,13 @@ const handleAddTimer = useCallback(() => {
     return;
   }
 
-  // Generate next available "Unnamed Timer X" name
+  // Generate next available "Timer X" name
   const unnamedTimers = timers.filter(t => 
-    t.title.match(/^Unnamed Timer \d+$/)
+    t.title.match(/^Timer \d+$/)
   );
   
   const existingNumbers = unnamedTimers.map(t => {
-    const match = t.title.match(/^Unnamed Timer (\d+)$/);
+    const match = t.title.match(/^Timer (\d+)$/);
     return match ? parseInt(match[1], 10) : 0;
   });
   
@@ -297,7 +297,7 @@ const handleAddTimer = useCallback(() => {
 
   createTimer({
     room_id: roomId,
-    title: `Unnamed Timer ${nextNumber}`,
+    title: `Timer ${nextNumber}`,
     timer_type: 'countdown',
     duration_seconds: 300,
     is_manual_start: true,
@@ -305,14 +305,19 @@ const handleAddTimer = useCallback(() => {
     show_speaker: false,
     show_notes: false,
   });
-  
-  console.log(`Creating timer: Unnamed Timer ${nextNumber}`);
-  
-  // Manually request refresh after a brief delay
-  setTimeout(() => {
-    console.log('Requesting timer refresh...');
-    refreshTimers();
-  }, 500);
+
+  console.log(`Creating timer: Timer ${nextNumber}`);
+
+  // Wait longer and refresh multiple times to ensure we catch the update
+  // setTimeout(() => {
+  //   console.log('Requesting timer refresh (1st attempt)...');
+  //   refreshTimers();
+  // }, 500);
+
+  // setTimeout(() => {
+  //   console.log('Requesting timer refresh (2nd attempt)...');
+  //   refreshTimers();
+  // }, 1500);
 }, [isAuthenticated, roomId, timers, createTimer, refreshTimers]);
 
   const handleCreateWithAI = () => {
