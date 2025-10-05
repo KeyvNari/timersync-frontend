@@ -95,8 +95,41 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
     if (message.timer_id && message.message) {
       // Handle timer-specific success messages
       if (message.message.includes('Timer deleted successfully')) {
-        setTimers((prev) => prev.filter(timer => timer.id !== message.timer_id));
-        setSelectedTimerId(prev => prev === message.timer_id ? null : prev);
+        setTimers((prev) => {
+          const remainingTimers = prev.filter(timer => timer.id !== message.timer_id);
+          // If the deleted timer was selected, select the previous timer
+          setSelectedTimerId(currentSelected => {
+            if (currentSelected === message.timer_id) {
+              // Sort timers by room_sequence_order to match UI display order
+              const sortedPrev = [...prev].sort((a: TimerData, b: TimerData) => a.room_sequence_order - b.room_sequence_order);
+              const deletedIndex = sortedPrev.findIndex(timer => timer.id === message.timer_id);
+              let newSelectedId: number | null = null;
+
+              // Select the previous timer (one before the deleted one in display order)
+              if (deletedIndex > 0) {
+                newSelectedId = sortedPrev[deletedIndex - 1].id;
+              } else if (remainingTimers.length > 0) {
+                // If deleted timer was first, select the new first timer
+                const sortedRemaining = remainingTimers.sort((a: TimerData, b: TimerData) => a.room_sequence_order - b.room_sequence_order);
+                newSelectedId = sortedRemaining[0].id;
+              } else {
+                // No timers left
+                newSelectedId = null;
+              }
+
+              // Send WebSocket message to notify backend and other clients about the new selection
+              if (newSelectedId !== null && wsServiceRef.current) {
+                setTimeout(() => {
+                  wsServiceRef.current?.selectTimer(newSelectedId!);
+                }, 100);
+              }
+
+              return newSelectedId;
+            }
+            return currentSelected;
+          });
+          return remainingTimers;
+        });
       } else if (message.message.includes('Timer created successfully')) {
         // Timer was created successfully, request updated timer list
         console.log('Timer created successfully, refreshing timers...');
@@ -141,7 +174,21 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
    wsService.on('timer_created', (message: any) => {
     console.log('Timer created event received:', message);
     if (message.timer_data) {
-      setTimers((prev) => [...prev, message.timer_data]);
+      setTimers((prev) => {
+        const newTimers = [...prev, message.timer_data];
+        // If this is the only timer or no timer is selected, select it
+        setSelectedTimerId(currentSelected => {
+          if (currentSelected === null && newTimers.length === 1) {
+            // First timer created, auto-select it
+            setTimeout(() => {
+              wsServiceRef.current?.selectTimer(message.timer_data.id);
+            }, 100);
+            return message.timer_data.id;
+          }
+          return currentSelected;
+        });
+        return newTimers;
+      });
     }
     // Also refresh the full timer list to ensure consistency
     setTimeout(() => {
@@ -207,23 +254,47 @@ wsService.on('error', (message: any) => {
       // });
 
       if (message.timer_id !== undefined) {
-        setSelectedTimerId(message.timer_id);
+        // Only update if it's not from our own auto-selection
+        // Auto-selections are sent with a 100ms delay, so if we just set it locally, we can skip the WebSocket confirm
+        setSelectedTimerId(current => {
+          if (current === message.timer_id) {
+            // Already set, no need to update
+            return current;
+          }
+          return message.timer_id;
+        });
       }
     });
 
    wsService.on('ROOM_TIMERS_STATUS', (message: any) => {
     // console.log('Timers from ROOM_TIMERS_STATUS:', message.timers);
-    setTimers(message.timers || []);
+    const newTimers = message.timers || [];
+    setTimers(newTimers);
     if (message.selected_timer_id !== undefined) {
       setSelectedTimerId(message.selected_timer_id);
+    } else if (newTimers.length > 0) {
+      // Auto-select the first timer (in display order) if none is selected
+      const sortedTimers = newTimers.sort((a: TimerData, b: TimerData) => a.room_sequence_order - b.room_sequence_order);
+      setSelectedTimerId(sortedTimers[0].id);
+      setTimeout(() => {
+        wsServiceRef.current?.selectTimer(sortedTimers[0].id);
+      }, 100);
     }
   });
 
     wsService.on('INITIAL_ROOM_TIMERS', (message: any) => {
       // console.log('Timers from INITIAL_ROOM_TIMERS:', message.timers);
-      setTimers(message.timers || []);
+      const newTimers = message.timers || [];
+      setTimers(newTimers);
       if (message.selected_timer_id !== undefined) {
         setSelectedTimerId(message.selected_timer_id);
+      } else if (newTimers.length > 0) {
+        // Auto-select the first timer (in display order) if none is selected
+        const sortedTimers = newTimers.sort((a: TimerData, b: TimerData) => a.room_sequence_order - b.room_sequence_order);
+        setSelectedTimerId(sortedTimers[0].id);
+        setTimeout(() => {
+          wsServiceRef.current?.selectTimer(sortedTimers[0].id);
+        }, 100);
       }
     });
 
