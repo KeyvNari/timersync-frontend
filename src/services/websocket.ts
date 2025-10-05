@@ -192,6 +192,8 @@ async connect(): Promise<void> {
       return;
     }
 
+    console.log('mydebug OUTGOING WS:', message);
+
     try {
       this.ws.send(JSON.stringify(message));
     } catch (error) {
@@ -324,7 +326,9 @@ private buildWebSocketUrl(): string {
 private handleMessage(data: string): void {
   try {
     const message: WebSocketMessage = JSON.parse(data);
-    
+
+    console.log('mydebug INCOMING WS:', message);
+
     // Process handlers immediately without console.log in production
     const handlers = this.eventHandlers.get(message.type);
     if (handlers) {

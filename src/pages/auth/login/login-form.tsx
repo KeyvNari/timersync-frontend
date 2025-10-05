@@ -39,8 +39,8 @@ const handleSubmit = form.onSubmit((variables) => {
       onSuccess: () => {
         setIsAuthenticated(true);
         onSuccess?.();
-        // Change this line:
-        navigate(paths.dashboard.rooms, { replace: true }); // was: paths.dashboard.home
+        // Always navigate to dashboard/rooms after login
+        navigate(paths.dashboard.rooms, { replace: true });
       },
       onError: (error) => handleFormErrors(form, error),
     }
@@ -52,11 +52,11 @@ const handleSubmit = form.onSubmit((variables) => {
       <Stack {...props}>
         <TextInput name="username" label="Email" type="email" required />
         <PasswordInput name="password" label="Password" required />
-        
+
         <Anchor size="sm" component={NavLink} to={paths.auth.forgotPassword}>
           Forgot your password?
         </Anchor>
-        
+
         <Button type="submit" loading={isPending}>
           Login
         </Button>
