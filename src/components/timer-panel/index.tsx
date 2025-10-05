@@ -784,51 +784,51 @@ export function Timers({
         </SortableContext>
       </DndContext>
 
-      {/* Updated Drawer with wider size and organized categories */}
-      <Drawer 
-        opened={opened} 
-        onClose={close} 
+      {/* Updated Drawer with compact layout */}
+      <Drawer
+        opened={opened}
+        onClose={close}
         title="Timer Settings"
-        size="lg" 
+        size="lg"
         position="right"
       >
         {editingTimer && (
           <form onSubmit={form.onSubmit(handleAdvancedSubmit)}>
-            <Stack gap="lg">
+            <Stack gap="sm">
               {/* Basic Information Category */}
-              <Paper p="md" withBorder>
-                <Title order={4} mb="md">Basic Information</Title>
-                <Stack gap="md">
-                  <TextInput 
-                    label="Title" 
+              <Paper p="sm" withBorder>
+                <Title order={4} mb="sm">Basic Information</Title>
+                <Stack gap="sm">
+                  <TextInput
+                    label="Title"
                     placeholder="Enter timer title"
-                    {...form.getInputProps('title')} 
+                    {...form.getInputProps('title')}
                   />
-                  <TextInput 
-                    label="Speaker" 
+                  <TextInput
+                    label="Speaker"
                     placeholder="Enter speaker name (optional)"
-                    {...form.getInputProps('speaker')} 
+                    {...form.getInputProps('speaker')}
                   />
-                  <Textarea 
-                    label="Notes" 
+                  <Textarea
+                    label="Notes"
                     placeholder="Add any additional notes"
                     rows={3}
-                    {...form.getInputProps('notes')} 
+                    {...form.getInputProps('notes')}
                   />
                 </Stack>
               </Paper>
 
               {/* Timer Configuration Category */}
-              <Paper p="md" withBorder>
-                <Title order={4} mb="md">Timer Configuration</Title>
-                <Stack gap="md">
-                  <NumberInput 
-                    label="Duration (seconds)" 
+              <Paper p="sm" withBorder>
+                <Title order={4} mb="sm">Timer Configuration</Title>
+                <Stack gap="sm">
+                  <NumberInput
+                    label="Duration (seconds)"
                     placeholder="Enter duration in seconds"
-                    min={1} 
-                    {...form.getInputProps('duration_seconds')} 
+                    min={1}
+                    {...form.getInputProps('duration_seconds')}
                   />
-                 
+
                   <Select
                     label="Linked Timer"
                     placeholder="Select a timer to link"
@@ -856,9 +856,9 @@ export function Timers({
               </Paper>
 
               {/* Scheduling Category */}
-              <Paper p="md" withBorder>
-                <Title order={4} mb="md">Scheduling</Title>
-                <Stack gap="md">
+              <Paper p="sm" withBorder>
+                <Title order={4} mb="sm">Scheduling</Title>
+                <Stack gap="sm">
                   <DateTimePicker
                     label="Scheduled Start Time"
                     placeholder="Pick date and time"
@@ -866,51 +866,51 @@ export function Timers({
                     withSeconds={false}
                     {...form.getInputProps('scheduled_start_time')}
                   />
-                  <Checkbox 
-                    label="Manual Start" 
+                  <Checkbox
+                    label="Manual Start"
                     description="Require manual start instead of automatic scheduling"
-                    {...form.getInputProps('is_manual_start', { type: 'checkbox' })} 
+                    {...form.getInputProps('is_manual_start', { type: 'checkbox' })}
                   />
                 </Stack>
               </Paper>
 
               {/* Alerts & Warnings Category */}
-              <Paper p="md" withBorder>
-                <Title order={4} mb="md">Alerts & Warnings</Title>
-                <Stack gap="md">
-                  <NumberInput 
-                    label="Warning Time (seconds)" 
+              <Paper p="sm" withBorder>
+                <Title order={4} mb="sm">Alerts & Warnings</Title>
+                <Stack gap="sm">
+                  <NumberInput
+                    label="Warning Time (seconds)"
                     placeholder="Time before warning appears"
-                    min={0} 
-                    {...form.getInputProps('warning_time')} 
+                    min={0}
+                    {...form.getInputProps('warning_time')}
                   />
-                  <NumberInput 
-                    label="Critical Time (seconds)" 
+                  <NumberInput
+                    label="Critical Time (seconds)"
                     placeholder="Time before critical warning appears"
-                    min={0} 
-                    {...form.getInputProps('critical_time')} 
+                    min={0}
+                    {...form.getInputProps('critical_time')}
                   />
                 </Stack>
               </Paper>
 
               {/* Display Options Category */}
-              <Paper p="md" withBorder>
-                <Title order={4} mb="md">Display Options</Title>
-                <Stack gap="md">
-                  <Checkbox 
-                    label="Show Title" 
+              <Paper p="sm" withBorder>
+                <Title order={4} mb="sm">Display Options</Title>
+                <Stack gap="sm">
+                  <Checkbox
+                    label="Show Title"
                     description="Display timer title on screen"
-                    {...form.getInputProps('show_title', { type: 'checkbox' })} 
+                    {...form.getInputProps('show_title', { type: 'checkbox' })}
                   />
-                  <Checkbox 
-                    label="Show Speaker" 
+                  <Checkbox
+                    label="Show Speaker"
                     description="Display speaker name on screen"
-                    {...form.getInputProps('show_speaker', { type: 'checkbox' })} 
+                    {...form.getInputProps('show_speaker', { type: 'checkbox' })}
                   />
-                  <Checkbox 
-                    label="Show Notes" 
+                  <Checkbox
+                    label="Show Notes"
                     description="Display notes on screen"
-                    {...form.getInputProps('show_notes', { type: 'checkbox' })} 
+                    {...form.getInputProps('show_notes', { type: 'checkbox' })}
                   />
                 </Stack>
               </Paper>
