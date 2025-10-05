@@ -351,8 +351,19 @@ const disconnect = useCallback(() => {
 
   // Timer controls
 const startTimer = useCallback((timerId: number) => {
-  wsServiceRef.current?.startTimer(timerId);
-}, []);
+  if (!wsServiceRef.current) return;
+
+  // Pause all other active timers before starting the new one
+  const activeTimers = timers.filter(
+    timer => timer.is_active && !timer.is_paused && timer.id !== timerId
+  );
+  activeTimers.forEach(timer => {
+    wsServiceRef.current?.pauseTimer(timer.id);
+  });
+
+  // Then start the requested timer
+  wsServiceRef.current.startTimer(timerId);
+}, [timers]);
 
 const pauseTimer = useCallback((timerId: number) => {
   wsServiceRef.current?.pauseTimer(timerId);
@@ -375,10 +386,21 @@ const deleteTimer = useCallback((timerId: number) => {
 }, []);
 
 const selectTimer = useCallback((timerId: number, timerData?: Partial<TimerData>) => {
-  wsServiceRef.current?.selectTimer(timerId, timerData);
+  if (!wsServiceRef.current) return;
+
+  // Pause all other active timers before selecting the new one
+  const activeTimers = timers.filter(
+    timer => timer.is_active && !timer.is_paused && timer.id !== timerId
+  );
+  activeTimers.forEach(timer => {
+    wsServiceRef.current?.pauseTimer(timer.id);
+  });
+
+  // Then select the requested timer
+  wsServiceRef.current.selectTimer(timerId, timerData);
   // Ensure timers are updated after selection to include the selected timer data
   // setTimeout(() => wsServiceRef.current?.requestRoomTimers(), 50);
-}, []);
+}, [timers]);
 
   // Room actions
 const refreshTimers = useCallback(() => {

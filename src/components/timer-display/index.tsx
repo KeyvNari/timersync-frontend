@@ -135,9 +135,7 @@ function TimerDisplay({
   const safeDisplay = display ?? defaultDisplay;
   const safeTimer = timer ?? defaultTimer;
 
-  const [displayState, setDisplayState] = useState(() => ({
-    currentTime: safeTimer.current_time_seconds,
-  }));
+  const currentTimeSeconds = safeTimer.current_time_seconds;
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showControls, setShowControls] = useState(false);
@@ -152,17 +150,15 @@ const getMaxFontSize = () => {
   }
   return '20vw'; // mm:ss can be larger
 };
-  
+
+  // Separate interval only for date/clock updates
   useEffect(() => {
-    const interval = setInterval(() => {
+    const clockInterval = setInterval(() => {
       setCurrentDate(new Date());
-      setDisplayState({
-        currentTime: timer?.current_time_seconds ?? 0,
-      });
     }, 1000);
 
-    return () => clearInterval(interval);
-  }, [timer?.current_time_seconds]);
+    return () => clearInterval(clockInterval);
+  }, []);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -247,19 +243,19 @@ const getMaxFontSize = () => {
       const warningTime = safeTimer.warning_time || safeTimer.duration_seconds * 0.3;
       const criticalTime = safeTimer.critical_time || safeTimer.duration_seconds * 0.1;
 
-      if (displayState.currentTime < 0) {
+      if (currentTimeSeconds < 0) {
         return safeDisplay.progress_color_tertiary || 'red';
-      } else if (displayState.currentTime <= criticalTime) {
+      } else if (currentTimeSeconds <= criticalTime) {
         return safeDisplay.progress_color_tertiary || 'red';
-      } else if (displayState.currentTime <= warningTime) {
+      } else if (currentTimeSeconds <= warningTime) {
         return safeDisplay.progress_color_secondary || 'yellow';
       } else {
         return safeDisplay.progress_color_main || 'green';
       }
     } else if (safeTimer.timer_type === 'countup' && safeTimer.duration_seconds) {
-      if (safeTimer.critical_time && displayState.currentTime >= safeTimer.critical_time) {
+      if (safeTimer.critical_time && currentTimeSeconds >= safeTimer.critical_time) {
         return safeDisplay.progress_color_tertiary || 'red';
-      } else if (safeTimer.warning_time && displayState.currentTime >= safeTimer.warning_time) {
+      } else if (safeTimer.warning_time && currentTimeSeconds >= safeTimer.warning_time) {
         return safeDisplay.progress_color_secondary || 'yellow';
       } else {
         return safeDisplay.progress_color_main || 'green';
@@ -278,7 +274,7 @@ const getMaxFontSize = () => {
     return progressColor;
   };
 
-  const timerText = formatTime(displayState.currentTime, safeDisplay.timer_format || 'mm:ss');
+  const timerText = formatTime(currentTimeSeconds, safeDisplay.timer_format || 'mm:ss');
   const clockText = formatClock();
   const showTimer = !(safeDisplay.auto_hide_completed && safeTimer.is_finished);
   const showOnlyClock = !showTimer && safeDisplay.clock_visible;
@@ -308,7 +304,7 @@ const getMaxFontSize = () => {
 
   if (safeTimer.duration_seconds && safeTimer.duration_seconds > 0) {
     if (safeTimer.timer_type === 'countdown') {
-      let remaining = displayState.currentTime;
+      let remaining = currentTimeSeconds;
       if (remaining < 0) {
         mainSection = 0;
       } else {
@@ -316,7 +312,7 @@ const getMaxFontSize = () => {
       }
       progressColor = getCurrentProgressColor();
     } else {
-      let progressValue = (displayState.currentTime / safeTimer.duration_seconds) * 100;
+      let progressValue = (currentTimeSeconds / safeTimer.duration_seconds) * 100;
       if (progressValue > 100) progressValue = 100;
       mainSection = progressValue;
       progressColor = getCurrentProgressColor();
