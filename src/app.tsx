@@ -32,7 +32,7 @@ export function App() {
           <WebSocketProvider >
           <MantineProvider theme={theme}>
             <Notifications position="bottom-center" />
-            <NavigationProgress />
+            {/* <NavigationProgress /> */}
             <ModalsProvider>
               <Router />
             </ModalsProvider>

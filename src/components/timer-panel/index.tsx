@@ -333,11 +333,12 @@ function SortableItem({ item, onUpdateTimer, onSelectTimer, onOpenSettings, even
     setDeleteModalOpened(false);
   };
 
-  const handleDoubleClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    onSelectTimer(item.id);
-  };
+const handleDoubleClick = (e: React.MouseEvent) => {
+  e.preventDefault();
+  e.stopPropagation();
+  // Don't navigate - just select the timer
+  onSelectTimer(item.id);
+};
 
   const { updateTimer: wsUpdateTimer } = useWebSocketContext();
 

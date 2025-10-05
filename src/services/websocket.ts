@@ -325,37 +325,19 @@ private handleMessage(data: string): void {
   try {
     const message: WebSocketMessage = JSON.parse(data);
     
-    // Add this debug logging
-    console.log('📨 Received WebSocket message:', message.type, message);
-
-    // Emit to registered handlers
+    // Process handlers immediately without console.log in production
     const handlers = this.eventHandlers.get(message.type);
     if (handlers) {
-      console.log(`✅ Found ${handlers.size} handler(s) for type: ${message.type}`);
-      handlers.forEach((handler) => {
-        try {
-          handler(message);
-        } catch (error) {
-          console.error('Error in message handler:', error);
-        }
-      });
-    } else {
-      console.warn(`⚠️ No handlers registered for message type: ${message.type}`);
+      handlers.forEach((handler) => handler(message));
     }
 
-    // Emit to wildcard handlers
     const wildcardHandlers = this.eventHandlers.get('*');
     if (wildcardHandlers) {
-      wildcardHandlers.forEach((handler) => {
-        try {
-          handler(message);
-        } catch (error) {
-          console.error('Error in wildcard message handler:', error);
-        }
-      });
+      wildcardHandlers.forEach((handler) => handler(message));
     }
   } catch (error) {
-    console.error('Error parsing WebSocket message:', error, data);
+    // Only log errors, not every message
+    console.error('Error parsing WebSocket message:', error);
   }
 }
 

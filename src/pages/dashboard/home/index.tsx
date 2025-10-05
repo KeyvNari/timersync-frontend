@@ -195,12 +195,12 @@ export default function HomePage() {
     }
   }, [isAuthenticated, stopTimer]);
 
-  const handleTimerSelect = useCallback((timer: any) => {
-    console.log('Selecting timer:', timer.id);
-    if (isAuthenticated) {
-      selectTimer(timer.id);
-    }
-  }, [isAuthenticated, selectTimer]);
+const handleTimerSelect = useCallback((timer: any) => {
+  console.log('Selecting timer:', timer.id);
+  if (isAuthenticated) {
+    selectTimer(timer.id); // This should only update WebSocket state, not navigate
+  }
+}, [isAuthenticated, selectTimer]);
 
   const handleTimerUpdate = useCallback((timer: any, field: string, value: any) => {
     console.log('Updating timer:', timer.id, field, value);
@@ -325,7 +325,7 @@ const handleAddTimer = useCallback(() => {
   const isLoading = roomId && !roomInfo;
 
   return (
-    <Page title={roomInfo?.name || 'Loading Room...' || 'Home'}>
+    <Page title={roomInfo?.name || 'Loading Room...' || 'Home'} disableProgress={true}>
       {roomId ? (
         isLoading ? (
           <LoadingScreen />

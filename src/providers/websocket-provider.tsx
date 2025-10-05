@@ -88,17 +88,17 @@ export function WebSocketProvider({
   // Setup event handlers
 const setupEventHandlers = (wsService: SimpleWebSocketService) => {
   // Add wildcard handler for debugging
-  wsService.on('*', (message: any) => {
-    console.log('🔍 PROVIDER received message:', message.type, message);
-  });
+  // wsService.on('*', (message: any) => {
+  //   console.log('🔍 PROVIDER received message:', message.type, message);
+  // });
 
     // Use lowercase to match what backend actually sends
-  wsService.on('success', (message: any) => {  // Changed from 'SUCCESS'
-    console.log('Received success message:', message);
+ wsService.on('success', (message: any) => {  // Changed from 'SUCCESS'
+    // console.log('Received success message:', message);
 
     // Check if this is a timer operation success
     if (message.timer_id && message.message && message.message.includes('Timer deleted successfully')) {
-      console.log('Timer deleted successfully, removing from local state:', message.timer_id);
+      // console.log('Timer deleted successfully, removing from local state:', message.timer_id);
       setTimers((prev) => prev.filter(timer => timer.id !== message.timer_id));
 
       // If the deleted timer was selected, clear selection
@@ -109,31 +109,36 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
       return; // Don't process as connection success
     }
 
-    // Handle connection success messages
-    setConnected(true);
-    setRoomInfo(message.room_info || null);
-    setSelectedTimerId(message.room_info?.selected_timer_id || null);
-    setLastSuccess(message.message || 'Connected successfully');
+    // Handle connection success messages (only if it contains authentication/room info)
+    if (message.room_info) {
+      setConnected(true);
+      setRoomInfo(message.room_info);
+      setSelectedTimerId(message.room_info?.selected_timer_id || null);
+      setLastSuccess(message.message || 'Connected successfully');
 
-    // Request initial timers after successful connection
-    setTimeout(() => {
-      wsService.requestRoomTimers();
-    }, 100);
+      // Request initial timers after successful connection
+      setTimeout(() => {
+        wsService.requestRoomTimers();
+      }, 100);
+    } else {
+      // This is likely a successful operation response (like timer selection, start, stop, etc.)
+      setLastSuccess(message.message);
+    }
   });
 
     // Timer events
  wsService.on('timer_update', (message: any) => {
-  console.log('📍 TIMER_UPDATE received:', {
-    timer_id: message.timer_data?.id,
-    current_time: message.timer_data?.current_time_seconds,
-    is_active: message.timer_data?.is_active,
-    full_data: message.timer_data
-  });
+  // console.log('📍 TIMER_UPDATE received:', {
+  //   timer_id: message.timer_data?.id,
+  //   current_time: message.timer_data?.current_time_seconds,
+  //   is_active: message.timer_data?.is_active,
+  //   full_data: message.timer_data
+  // });
   
   setTimers((prev) => {
     const timerData = message.timer_data;
     if (!timerData?.id) {
-      console.log('❌ No timer data or ID in update');
+      // console.log('❌ No timer data or ID in update');
       return prev;
     }
 
@@ -144,10 +149,10 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
       // Create a completely new array with the updated timer
       newTimers = [...prev];
       newTimers[existingTimerIndex] = { ...timerData };
-      console.log('✅ Timer updated at index', existingTimerIndex, 'New value:', timerData.current_time_seconds);
+      // console.log('✅ Timer updated at index', existingTimerIndex, 'New value:', timerData.current_time_seconds);
     } else {
       newTimers = [...prev, timerData];
-      console.log('➕ New timer added');
+      // console.log('➕ New timer added');
     }
     
     return newTimers;
@@ -162,7 +167,7 @@ wsService.on('error', (message: any) => {
   if (errorMessage.includes('permission') || 
       errorMessage.includes('unauthorized') || 
       errorMessage.includes('forbidden')) {
-    console.debug('Permission denied:', errorMessage);
+    // console.debug('Permission denied:', errorMessage);
     // Don't set as a critical error - just log it
     return;
   }
@@ -173,11 +178,11 @@ wsService.on('error', (message: any) => {
 
 
     wsService.on('timer_selected', (message: any) => {
-      console.log('📍 TIMER_SELECTED received:', {
-        timer_id: message.timer_id,
-        connection_id: message.connection_id,
-        timestamp: message.timestamp
-      });
+      // console.log('📍 TIMER_SELECTED received:', {
+      //   timer_id: message.timer_id,
+      //   connection_id: message.connection_id,
+      //   timestamp: message.timestamp
+      // });
 
       if (message.timer_id !== undefined) {
         setSelectedTimerId(message.timer_id);
@@ -185,7 +190,7 @@ wsService.on('error', (message: any) => {
     });
 
    wsService.on('ROOM_TIMERS_STATUS', (message: any) => {
-    console.log('Timers from ROOM_TIMERS_STATUS:', message.timers);
+    // console.log('Timers from ROOM_TIMERS_STATUS:', message.timers);
     setTimers(message.timers || []);
     if (message.selected_timer_id !== undefined) {
       setSelectedTimerId(message.selected_timer_id);
@@ -193,7 +198,7 @@ wsService.on('error', (message: any) => {
   });
 
     wsService.on('INITIAL_ROOM_TIMERS', (message: any) => {
-      console.log('Timers from INITIAL_ROOM_TIMERS:', message.timers);
+      // console.log('Timers from INITIAL_ROOM_TIMERS:', message.timers);
       setTimers(message.timers || []);
       if (message.selected_timer_id !== undefined) {
         setSelectedTimerId(message.selected_timer_id);
@@ -243,12 +248,12 @@ const connect = useCallback(async (
   // Get the access token from localStorage for authenticated users
   const accessToken = localStorage.getItem('access_token');
   
-  console.log('🔌 WebSocketProvider.connect called with:', {
-    roomId,
-    hasAccessToken: !!accessToken,
-    hasRoomToken: !!options.roomToken,
-    hasTokenPassword: !!options.tokenPassword,
-  });
+  // console.log('🔌 WebSocketProvider.connect called with:', {
+  //   roomId,
+  //   hasAccessToken: !!accessToken,
+  //   hasRoomToken: !!options.roomToken,
+  //   hasTokenPassword: !!options.tokenPassword,
+  // });
 
   // Determine which authentication to use:
   // - If roomToken is provided, we're in viewer mode (use room token)
@@ -272,12 +277,12 @@ const connect = useCallback(async (
     finalOptions.token = accessToken;
   }
 
-  console.log('🎯 Final options being passed to WebSocketService:', {
-    roomId: finalOptions.roomId,
-    hasToken: !!finalOptions.token,
-    hasRoomToken: !!finalOptions.roomToken,
-    hasTokenPassword: !!finalOptions.tokenPassword,
-  });
+  // console.log('🎯 Final options being passed to WebSocketService:', {
+  //   roomId: finalOptions.roomId,
+  //   hasToken: !!finalOptions.token,
+  //   hasRoomToken: !!finalOptions.roomToken,
+  //   hasTokenPassword: !!finalOptions.tokenPassword,
+  // });
 
   const wsService = createSimpleWebSocketService(finalOptions);
 
@@ -287,7 +292,7 @@ const connect = useCallback(async (
   try {
     await wsService.connect();
   } catch (error) {
-    console.error('Failed to connect WebSocket:', error);
+    // console.error('Failed to connect WebSocket:', error);
     throw error;
   }
 }, [defaultOptions]);
@@ -339,7 +344,7 @@ const deleteTimer = useCallback((timerId: number) => {
 const selectTimer = useCallback((timerId: number, timerData?: Partial<TimerData>) => {
   wsServiceRef.current?.selectTimer(timerId, timerData);
   // Ensure timers are updated after selection to include the selected timer data
-  setTimeout(() => wsServiceRef.current?.requestRoomTimers(), 50);
+  // setTimeout(() => wsServiceRef.current?.requestRoomTimers(), 50);
 }, []);
 
   // Room actions

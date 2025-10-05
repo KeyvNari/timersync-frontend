@@ -1,7 +1,9 @@
-import { forwardRef, ReactNode, useEffect } from 'react';
+// src/components/page.tsx
+import { forwardRef, ReactNode } from 'react'; // Remove useEffect
 import { Helmet } from 'react-helmet-async';
 import { Box, BoxProps } from '@mantine/core';
-import { nprogress } from '@mantine/nprogress';
+// Remove this import:
+// import { nprogress } from '@mantine/nprogress';
 import { app } from '@/config';
 
 interface PageProps extends BoxProps {
@@ -9,12 +11,14 @@ interface PageProps extends BoxProps {
   meta?: ReactNode;
   title: string;
 }
+
 export const Page = forwardRef<HTMLDivElement, PageProps>(
   ({ children, title = '', meta, ...other }, ref) => {
-    useEffect(() => {
-      nprogress.complete();
-      return () => nprogress.start();
-    }, []);
+    // Remove this entire useEffect block:
+    // useEffect(() => {
+    //   nprogress.complete();
+    //   return () => nprogress.start();
+    // }, []);
 
     return (
       <>
