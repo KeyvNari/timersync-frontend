@@ -731,7 +731,7 @@ export function Timers({
         show_notes: editingTimer.show_notes ?? false,
       });
     }
-  }, [editingTimer]);
+  }, [editingTimer, state]);
 
   const handleAdvancedSubmit = (values: typeof form.values) => {
     if (editingTimer) {
@@ -747,13 +747,10 @@ export function Timers({
         linked_timer_id: values.linked_timer_id ? parseInt(values.linked_timer_id, 10) : null,
         display_id: values.display_id ? parseInt(values.display_id, 10) : null,
       };
-      // Remove the Date field and add the string fields
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { scheduled_start_time: dateValue, ...finalValues } = transformedValues;
 
-      handleUpdateTimer(editingTimer.id, finalValues as Partial<Timer>);
-      events?.onTimerEdit?.(editingTimer, 'advanced_settings', finalValues);
-      wsUpdateTimer(editingTimer.id, finalValues as any);
+      handleUpdateTimer(editingTimer.id, transformedValues as Partial<Timer>);
+      events?.onTimerEdit?.(editingTimer, 'advanced_settings', transformedValues);
+      wsUpdateTimer(editingTimer.id, transformedValues as any);
     }
     close();
   };
