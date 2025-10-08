@@ -275,9 +275,9 @@ function getBackgroundColor(timer: Timer, theme: any, colorScheme: string): stri
 
 // Helper function to check for overlapping scheduled times
 function checkForOverlaps(timers: Timer[]) {
-  const scheduledTimers = timers.filter(timer => 
-    !timer.is_manual_start && 
-    timer.scheduled_start_date && 
+  const scheduledTimers = timers.filter(timer =>
+    !timer.is_manual_start &&
+    timer.scheduled_start_date &&
     timer.scheduled_start_time &&
     timer.duration_seconds
   );
@@ -298,16 +298,23 @@ function checkForOverlaps(timers: Timer[]) {
         const overlapStart = new Date(Math.max(start1.getTime(), start2.getTime()));
         const overlapEnd = new Date(Math.min(end1.getTime(), end2.getTime()));
         const overlapMinutes = Math.round((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60));
-        overlaps.push({ 
-          timer1: timer1.title, 
-          timer2: timer2.title, 
-          overlapMinutes 
+        overlaps.push({
+          timer1: timer1.title,
+          timer2: timer2.title,
+          overlapMinutes
         });
       }
     }
   }
 
   return overlaps;
+}
+
+// Helper function to check if scheduled time is in the past
+function isScheduledTimeInPast(scheduledDate: string | null, scheduledTime: string | null): boolean {
+  if (!scheduledDate || !scheduledTime) return false;
+  const scheduled = new Date(`${scheduledDate}T${scheduledTime}`);
+  return scheduled.getTime() < Date.now();
 }
 
 interface ItemProps {
@@ -333,6 +340,14 @@ function SortableItem({ item, onUpdateTimer, onSelectTimer, onOpenSettings, even
 
   // State for delete confirmation modal
   const [deleteModalOpened, setDeleteModalOpened] = useState(false);
+
+  // State for dismissed schedule warnings
+  const [scheduleWarningDismissed, setScheduleWarningDismissed] = useState(false);
+
+  // Reset dismissal when schedule changes
+  useEffect(() => {
+    setScheduleWarningDismissed(false);
+  }, [item.scheduled_start_date, item.scheduled_start_time]);
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -433,6 +448,13 @@ const handleDoubleClick = (e: React.MouseEvent) => {
     return null;
   };
 
+  // Check if schedule warning should be shown
+  const showScheduleWarning = !scheduleWarningDismissed && isScheduledTimeInPast(item.scheduled_start_date, item.scheduled_start_time);
+
+  const handleDismissScheduleWarning = () => {
+    setScheduleWarningDismissed(true);
+  };
+
   return (
     <div
       className={cx(classes.item, {
@@ -446,133 +468,136 @@ const handleDoubleClick = (e: React.MouseEvent) => {
       title="Double-click to select timer"
       {...attributes}
     >
-        <Tooltip label="Drag to reorder" position="top" withArrow>
-          <div className={classes.dragHandle} {...listeners}>
-            <IconGripVertical size={16} stroke={1.5} />
-          </div>
-        </Tooltip>
-
-        <div className={classes.timerContent}>
-          <div className={classes.timerHeader}>
-            {editingField === 'title' ? (
-              <TextInput
-                value={editValue}
-                onChange={(e) => setEditValue(e.currentTarget.value)}
-                onBlur={saveEdit}
-                onKeyDown={handleKeyPress}
-                size="xs"
-                style={{ minWidth: '150px' }}
-                autoFocus
-              />
-            ) : (
-              <div className={classes.timerTitle} onClick={() => startEditing('title', item.title)}>
-                {item.title}
-              </div>
-            )}
-            
-            {/* Status indicator */}
-            {getItemStatus() && (
-            <div className={cx(classes.statusBadge, getItemStatus() && classes[getItemStatus()!])}>
-              {getItemStatus()}
+      <div className={classes.timerContent}>
+        <div className={classes.timerHeader}>
+          {editingField === 'title' ? (
+            <TextInput
+              value={editValue}
+              onChange={(e) => setEditValue(e.currentTarget.value)}
+              onBlur={saveEdit}
+              onKeyDown={handleKeyPress}
+              size="xs"
+              style={{ minWidth: '150px' }}
+              autoFocus
+            />
+          ) : (
+            <div className={classes.timerTitle} onClick={() => startEditing('title', item.title)}>
+              {item.title}
             </div>
-            )}
+          )}
 
-            {/* Notes indicator */}
-            {item.notes && (
-              <HoverCard width={320} shadow="md" withArrow>
-                <HoverCard.Target>
-                  <div className={classes.notesIndicator}>
-                    <IconNotes size="10" />
-                  </div>
-                </HoverCard.Target>
-                <HoverCard.Dropdown>
-                  <Text size="sm">{item.notes}</Text>
-                </HoverCard.Dropdown>
-              </HoverCard>
-            )}
-
-            {!item.is_manual_start && (
-              <Text size="xs" c="teal" fw={500}>Auto Start</Text>
-            )}
+          {/* Status indicator */}
+          {getItemStatus() && (
+          <div className={cx(classes.statusBadge, getItemStatus() && classes[getItemStatus()!])}>
+            {getItemStatus()}
           </div>
+          )}
 
-          <div className={classes.timerMeta}>
-            <span className={classes.editableField}>
-              Duration: {editingField === 'duration_seconds' ? (
-                <div
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}
-                  onBlur={(e) => {
-                    // Only save if focus is leaving the entire duration editing area
-                    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                      saveEdit();
-                    }
-                  }}
-                >
-                  <span style={{ fontSize: '10px', marginRight: '2px' }}>Min:</span>
-                  <NumberInput
-                    value={editMinutes}
-                    onChange={(value) => setEditMinutes(typeof value === 'number' ? value : Number(value) || 0)}
-                    onKeyDown={handleKeyPress}
-                    size="xs"
-                    min={0}
-                    max={59}
-                    style={{ width: '50px' }}
-                    autoFocus
-                  />
-                  <span style={{ fontSize: '10px', margin: '0 2px' }}>Sec:</span>
-                  <NumberInput
-                    value={editSeconds}
-                    onChange={(value) => setEditSeconds(typeof value === 'number' ? value : Number(value) || 0)}
-                    onKeyDown={handleKeyPress}
-                    size="xs"
-                    min={0}
-                    max={59}
-                    style={{ width: '50px' }}
-                  />
+          {/* Notes indicator */}
+          {item.notes && (
+            <HoverCard width={320} shadow="md" withArrow>
+              <HoverCard.Target>
+                <div className={classes.notesIndicator}>
+                  <IconNotes size="10" />
                 </div>
+              </HoverCard.Target>
+              <HoverCard.Dropdown>
+                <Text size="sm">{item.notes}</Text>
+              </HoverCard.Dropdown>
+            </HoverCard>
+          )}
+
+          {!item.is_manual_start && (
+            <Text size="xs" c="teal" fw={500}>Auto Start</Text>
+          )}
+        </div>
+
+        <div className={classes.timerMeta}>
+          <span className={classes.editableField}>
+            Duration: {editingField === 'duration_seconds' ? (
+              <div
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}
+                onBlur={(e) => {
+                  // Only save if focus is leaving the entire duration editing area
+                  if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                    saveEdit();
+                  }
+                }}
+              >
+                <span style={{ fontSize: '10px', marginRight: '2px' }}>Min:</span>
+                <NumberInput
+                  value={editMinutes}
+                  onChange={(value) => setEditMinutes(typeof value === 'number' ? value : Number(value) || 0)}
+                  onKeyDown={handleKeyPress}
+                  size="xs"
+                  min={0}
+                  max={59}
+                  style={{ width: '50px' }}
+                  autoFocus
+                />
+                <span style={{ fontSize: '10px', margin: '0 2px' }}>Sec:</span>
+                <NumberInput
+                  value={editSeconds}
+                  onChange={(value) => setEditSeconds(typeof value === 'number' ? value : Number(value) || 0)}
+                  onKeyDown={handleKeyPress}
+                  size="xs"
+                  min={0}
+                  max={59}
+                  style={{ width: '50px' }}
+                />
+              </div>
+            ) : (
+              <span onClick={() => startEditing('duration_seconds', formatDuration(item.duration_seconds))}>
+                {formatDuration(item.duration_seconds)}
+              </span>
+            )}
+          </span>
+
+          {item.is_active && (
+            <span className={cx(classes.remainingTime, {
+              [classes.warning]: timerState === 'warning',
+              [classes.critical]: timerState === 'critical',
+            })}>
+              {item.current_time_seconds < 0 ? 'Overtime:' : 'Remaining:'} {item.current_time_seconds < 0 ? '+' : ''}{formatDuration(item.current_time_seconds)}
+            </span>
+          )}
+
+          {item.speaker && (
+            <span className={classes.editableField}>
+              Speaker: {editingField === 'speaker' ? (
+                <TextInput
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.currentTarget.value)}
+                  onBlur={saveEdit}
+                  onKeyDown={handleKeyPress}
+                  size="xs"
+                  style={{ minWidth: '100px', display: 'inline-block' }}
+                  autoFocus
+                />
               ) : (
-                <span onClick={() => startEditing('duration_seconds', formatDuration(item.duration_seconds))}>
-                  {formatDuration(item.duration_seconds)}
+                <span onClick={() => startEditing('speaker', item.speaker || '')}>
+                  {item.speaker}
                 </span>
               )}
             </span>
+          )}
 
-            {item.is_active && (
-              <span className={cx(classes.remainingTime, {
-                [classes.warning]: timerState === 'warning',
-                [classes.critical]: timerState === 'critical',
-              })}>
-                {item.current_time_seconds < 0 ? 'Overtime:' : 'Remaining:'} {item.current_time_seconds < 0 ? '+' : ''}{formatDuration(item.current_time_seconds)}
-              </span>
-            )}
-
-            {item.speaker && (
-              <span className={classes.editableField}>
-                Speaker: {editingField === 'speaker' ? (
-                  <TextInput
-                    value={editValue}
-                    onChange={(e) => setEditValue(e.currentTarget.value)}
-                    onBlur={saveEdit}
-                    onKeyDown={handleKeyPress}
-                    size="xs"
-                    style={{ minWidth: '100px', display: 'inline-block' }}
-                    autoFocus
+          {item.scheduled_start_time && item.scheduled_start_date && (
+            <span>
+              Scheduled: {item.scheduled_start_date} {item.scheduled_start_time}
+              {showScheduleWarning && (
+                <Tooltip label="Scheduled time is in the past" position="top" withArrow>
+                  <IconAlertTriangle
+                    size={12}
+                    color="orange"
+                    style={{ marginLeft: '4px', verticalAlign: 'middle' }}
                   />
-                ) : (
-                  <span onClick={() => startEditing('speaker', item.speaker || '')}>
-                    {item.speaker}
-                  </span>
-                )}
-              </span>
-            )}
-
-            {item.scheduled_start_time && item.scheduled_start_date && (
-              <span>
-                Scheduled: {item.scheduled_start_date} {item.scheduled_start_time}
-              </span>
-            )}
-          </div>
+                </Tooltip>
+              )}
+            </span>
+          )}
         </div>
+      </div>
 
         <div className={classes.controls}>
           <Tooltip label="Start timer" position="top" withArrow>
@@ -660,7 +685,7 @@ export function Timers({
   // Use provided timers or fall back to mock data
   const initialTimers = timers || [...mockTimers].sort((a, b) => a.room_sequence_order - b.room_sequence_order);
   const [state, handlers] = useListState<Timer>(initialTimers);
-  
+
   // Update state when props change
   useEffect(() => {
     if (timers) {
@@ -764,7 +789,7 @@ export function Timers({
       form.setValues({
         title: editingTimer.title,
         speaker: editingTimer.speaker || '',
-        duration_seconds: editingTimer.duration_seconds,
+        duration_seconds: editingTimer.duration_seconds || 0,
         scheduled_start_time: editingTimer.scheduled_start_date && editingTimer.scheduled_start_time
           ? new Date(`${editingTimer.scheduled_start_date}T${editingTimer.scheduled_start_time}`)
           : null,
@@ -820,10 +845,10 @@ export function Timers({
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={state.map((i) => i.room_sequence_order)} strategy={verticalListSortingStrategy}>
           {state.map((item) => (
-            <SortableItem 
-              key={item.id} 
-              item={item} 
-              onUpdateTimer={handleUpdateTimer} 
+            <SortableItem
+              key={item.id}
+              item={item}
+              onUpdateTimer={handleUpdateTimer}
               onSelectTimer={handleSelectTimer}
               onOpenSettings={handleOpenSettings}
               events={events}
@@ -964,7 +989,7 @@ export function Timers({
               </Paper>
 
               <Divider />
-              
+
               {/* Action Buttons */}
               <Group justify="flex-end" gap="md">
                 <Button variant="light" onClick={close}>

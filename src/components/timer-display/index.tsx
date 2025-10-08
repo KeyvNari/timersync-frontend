@@ -99,7 +99,7 @@ function TimerDisplay({
     theme_name: 'default',
     text_style: 'default',
     display_ratio: '16:9',
-    background_type: 'color',
+    background_type: 'transparent',
     background_color: '#000000',
     background_image: null,
     background_preset: null,
@@ -293,6 +293,9 @@ const getMaxFontSize = () => {
       break;
     case 'transparent':
       backgroundStyle.backgroundColor = 'transparent';
+      backgroundStyle.backgroundImage = 'linear-gradient(45deg, rgba(255,255,255,0.1) 25%, transparent 25%), linear-gradient(-45deg, rgba(255,255,255,0.1) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.1) 75%), linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.1) 75%)';
+      backgroundStyle.backgroundSize = '20px 20px';
+      backgroundStyle.backgroundPosition = '0 0, 0 10px, 10px -10px, -10px 0px';
       break;
     case 'preset':
       backgroundStyle.backgroundColor = '#1a1b1e';
