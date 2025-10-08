@@ -279,28 +279,30 @@ const getMaxFontSize = () => {
   const showTimer = !(safeDisplay.auto_hide_completed && safeTimer.is_finished);
   const showOnlyClock = !showTimer && safeDisplay.clock_visible;
 
-  const backgroundStyle: React.CSSProperties = {};
-  switch (safeDisplay.background_type || 'color') {
-    case 'color':
-      backgroundStyle.backgroundColor = safeDisplay.background_color || '#000000';
-      break;
-    case 'image':
-      if (safeDisplay.background_image) {
-        backgroundStyle.backgroundImage = `url(data:image/png;base64,${safeDisplay.background_image})`;
-        backgroundStyle.backgroundSize = 'cover';
-        backgroundStyle.backgroundPosition = 'center';
-      }
-      break;
-    case 'transparent':
-      backgroundStyle.backgroundColor = 'transparent';
-      backgroundStyle.backgroundImage = 'linear-gradient(45deg, rgba(255,255,255,0.1) 25%, transparent 25%), linear-gradient(-45deg, rgba(255,255,255,0.1) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.1) 75%), linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.1) 75%)';
-      backgroundStyle.backgroundSize = '20px 20px';
-      backgroundStyle.backgroundPosition = '0 0, 0 10px, 10px -10px, -10px 0px';
-      break;
-    case 'preset':
-      backgroundStyle.backgroundColor = '#1a1b1e';
-      break;
-  }
+const backgroundStyle: React.CSSProperties = {};
+switch (safeDisplay.background_type || 'color') {
+  case 'color':
+    backgroundStyle.backgroundColor = safeDisplay.background_color || '#000000';
+    break;
+  case 'image':
+    if (safeDisplay.background_image) {
+      // Expect full data URL format: data:image/png;base64,iVBORw0KGgo...
+      backgroundStyle.backgroundImage = `url(${safeDisplay.background_image})`;
+      backgroundStyle.backgroundSize = 'cover';
+      backgroundStyle.backgroundPosition = 'center';
+    }
+    break;
+  case 'transparent':
+    backgroundStyle.backgroundColor = 'transparent';
+    backgroundStyle.backgroundImage = 'linear-gradient(45deg, rgba(255,255,255,0.1) 25%, transparent 25%), linear-gradient(-45deg, rgba(255,255,255,0.1) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.1) 75%), linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.1) 75%)';
+    backgroundStyle.backgroundSize = '20px 20px';
+    backgroundStyle.backgroundPosition = '0 0, 0 10px, 10px -10px, -10px 0px';
+    break;
+  case 'preset':
+    backgroundStyle.backgroundColor = '#1a1b1e';
+    break;
+}
+
 
   let mainSection = 0;
   let progressColor = safeDisplay.progress_color_main || 'green';
@@ -575,8 +577,12 @@ const getMaxFontSize = () => {
       )}
 
       {safeDisplay.logo_image && (
-        <Image src={`data:image/png;base64,${safeDisplay.logo_image}`} style={logoStyle} />
-      )}
+    <Image 
+      src={safeDisplay.logo_image}  // Expect full data URL format
+      style={logoStyle} 
+      alt="Logo"
+    />
+  )}
 
       {progressStyle === 'ring' && progressComponent && (
         <Box style={{ position: 'absolute', bottom: 20, right: 20, zIndex: 10 }}>

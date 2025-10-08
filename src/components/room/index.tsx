@@ -1,8 +1,9 @@
 // src/components/room/index.tsx
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Paper, Group, Button, Box, Loader, Center, Alert, Stack, Text } from '@mantine/core';
-import { IconShare, IconArrowLeft, IconPlus, IconSparkles } from '@tabler/icons-react';
+import { Paper, Group, Button, Box, Modal } from '@mantine/core';
+import { IconShare, IconArrowLeft, IconPlus, IconSparkles, IconSettings } from '@tabler/icons-react';
+import { useDisclosure } from '@mantine/hooks';
 import { StickyHeader } from '@/components/sticky-header';
 import { EditableRoomName } from '@/layouts/dashboard/header/editable-room-name';
 import { CurrentUser } from '@/layouts/dashboard/header/current-user';
@@ -10,6 +11,7 @@ import { Timers } from '@/components/timer-panel';
 import TimerDisplay from '@/components/timer-display';
 import { ConnectedDevices } from '@/components/connected-devices';
 import { ResizableDashboard } from '@/components/resizable-dashboard';
+import TimerDisplayEditor from '@/components/timer-display-editor';
 import classes from './room.module.css';
 
 export interface RoomComponentProps {
@@ -29,6 +31,7 @@ export interface RoomComponentProps {
   onShare: () => void;
   onAddTimer: () => void;
   onCreateWithAI: () => void;
+  onSaveDisplay?: (display: any) => void;
   showBackButton?: boolean;
   showShareButton?: boolean;
   showActionButtons?: boolean;
@@ -52,6 +55,7 @@ export default function RoomComponent({
   onShare,
   onAddTimer,
   onCreateWithAI,
+  onSaveDisplay,
   showBackButton = false,
   showShareButton = true,
   showActionButtons = true,
@@ -59,17 +63,34 @@ export default function RoomComponent({
 }: RoomComponentProps) {
   const navigate = useNavigate();
 
+  // Display Editor state
+  const [editorOpened, { open: openEditor, close: closeEditor }] = useDisclosure(false);
+  const [editingDisplay, setEditingDisplay] = useState<any>(null);
+
   const handleLeftWidthChange = (width: number) => {
-    // Optional: Save to localStorage or state management
     console.log('Left panel width changed to:', width);
+  };
+
+  // Display Editor handlers
+  const handleOpenDisplayEditor = () => {
+    // Open with the first display or create new
+    const currentDisplay = displays && displays.length > 0 ? displays[0] : null;
+    setEditingDisplay(currentDisplay);
+    openEditor();
+  };
+
+  const handleSaveDisplay = (displayData: any) => {
+    console.log('Saving display:', displayData);
+    if (onSaveDisplay) {
+      onSaveDisplay(displayData);
+    }
+    closeEditor();
   };
 
   // Get timer to display
   const selectedTimer = selectedTimerId ? timers?.find((timer) => timer.id === selectedTimerId) : undefined;
-  console.log('selected timer from websocket - selectedTimerId:', selectedTimerId, 'timers ids:', timers?.map(t => t.id), 'selectedTimer:', selectedTimer);
   const activeTimer = timers?.find((timer) => timer.is_active);
   const displayTimer = selectedTimer || activeTimer || timers?.[0];
-  console.log('RoomComponent display timer selection - selectedTimerId:', selectedTimerId, 'selectedTimer duration:', selectedTimer?.duration_seconds, 'activeTimer duration:', activeTimer?.duration_seconds, 'displayTimer duration:', displayTimer?.duration_seconds);
 
   // Get matching display config
   const matchedDisplay = displayTimer
@@ -146,7 +167,7 @@ export default function RoomComponent({
       style={{ display: 'flex', flexDirection: 'column', overflow: 'auto' }}
     >
       {showActionButtons && (
-        <Group justify="space-between" mb="md">
+        <Group justify="space-between" mb="md" wrap="wrap">
           <Group gap="xs">
             <Button variant="default" size="sm" leftSection={<IconPlus size={16} />} onClick={onAddTimer}>
               Add Timer
@@ -155,6 +176,14 @@ export default function RoomComponent({
               Create with AI
             </Button>
           </Group>
+          <Button 
+            variant="default" 
+            size="sm" 
+            leftSection={<IconSettings size={16} />}
+            onClick={handleOpenDisplayEditor}
+          >
+            Display Settings
+          </Button>
         </Group>
       )}
 
@@ -174,16 +203,16 @@ export default function RoomComponent({
           timer={convertedTimer}
         />
       ) : roomId ? (
-        <Center h="100%">
-          <Stack align="center" gap="md">
-            <Text c="dimmed" size="sm">
+        <Box style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+          <Group gap="md" style={{ flexDirection: 'column', textAlign: 'center' }}>
+            <span style={{ color: 'var(--mantine-color-dimmed)', fontSize: 'var(--mantine-font-size-sm)' }}>
               No timer selected
-            </Text>
-            <Text c="dimmed" size="xs">
+            </span>
+            <span style={{ color: 'var(--mantine-color-dimmed)', fontSize: 'var(--mantine-font-size-xs)' }}>
               Create or select a timer to begin
-            </Text>
-          </Stack>
-        </Center>
+            </span>
+          </Group>
+        </Box>
       ) : (
         <TimerDisplay display={matchedDisplay} timer={convertedTimer} />
       )}
@@ -216,6 +245,27 @@ export default function RoomComponent({
           topRightAspectRatio="16:9"
         />
       </Box>
+
+      {/* Display Editor Modal */}
+      <Modal
+        opened={editorOpened}
+        onClose={closeEditor}
+        size="100%"
+        title={editingDisplay ? "Edit Display Configuration" : "Create New Display"}
+        padding={0}
+        styles={{
+          body: { height: 'calc(100vh - 120px)' },
+          content: { height: '100vh' }
+        }}
+      >
+        <Box p="md" style={{ height: '100%', overflow: 'auto' }}>
+          <TimerDisplayEditor
+            initialDisplay={editingDisplay}
+            onSave={handleSaveDisplay}
+            onCancel={closeEditor}
+          />
+        </Box>
+      </Modal>
     </Box>
   );
 }
