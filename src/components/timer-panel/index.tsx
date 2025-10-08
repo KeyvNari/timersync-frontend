@@ -209,11 +209,18 @@ const mockTimers: Timer[] = [
   }
 ];
 
-// Helper function to format seconds as MM:SS
+// Helper function to format seconds as MM:SS or HH:MM:SS
 function formatDuration(seconds: number): string {
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
-  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  const absSeconds = Math.abs(seconds);
+  const hours = Math.floor(absSeconds / 3600);
+  const minutes = Math.floor((absSeconds % 3600) / 60);
+  const remainingSeconds = absSeconds % 60;
+
+  if (hours > 0) {
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+  } else {
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+  }
 }
 
 // Helper function to parse MM:SS format to seconds
@@ -224,12 +231,22 @@ function parseDuration(timeString: string): number {
   return minutes * 60 + seconds;
 }
 
+// Helper function to convert seconds to minutes and seconds
+function secondsToMinutesAndSeconds(seconds: number): { minutes: number; seconds: number } {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return { minutes, seconds: remainingSeconds };
+}
+
 // Helper function to get timer state
 function getTimerState(timer: Timer): 'normal' | 'warning' | 'critical' {
   if (!timer.is_active || timer.timer_type !== 'countdown') {
     return 'normal';
   }
   const remainingSeconds = timer.current_time_seconds;
+  if (remainingSeconds < 0) {
+    return 'critical';
+  }
   if (timer.critical_time && remainingSeconds <= timer.critical_time) {
     return 'critical';
   }
@@ -311,6 +328,8 @@ function SortableItem({ item, onUpdateTimer, onSelectTimer, onOpenSettings, even
   // State for inline editing
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
+  const [editMinutes, setEditMinutes] = useState<number>(0);
+  const [editSeconds, setEditSeconds] = useState<number>(0);
 
   // State for delete confirmation modal
   const [deleteModalOpened, setDeleteModalOpened] = useState(false);
@@ -357,22 +376,27 @@ const handleDoubleClick = (e: React.MouseEvent) => {
   // Inline editing functions
   const startEditing = (field: string, currentValue: string) => {
     setEditingField(field);
-    setEditValue(currentValue);
+    if (field === 'duration_seconds') {
+      const { minutes, seconds } = secondsToMinutesAndSeconds(item.duration_seconds);
+      setEditMinutes(minutes);
+      setEditSeconds(seconds);
+    } else {
+      setEditValue(currentValue);
+    }
   };
 
   const saveEdit = () => {
-    if (editingField && editValue !== '') {
-      let updates: Partial<Timer> = {};
+    if (editingField) {
       if (editingField === 'duration_seconds') {
-        const seconds = parseDuration(editValue);
-        if (seconds > 0) {
-          updates = { [editingField]: seconds };
+        const totalSeconds = editMinutes * 60 + editSeconds;
+        if (totalSeconds > 0) {
+          const updates = { [editingField]: totalSeconds };
           onUpdateTimer(item.id, updates);
-          events?.onTimerEdit?.(item, editingField, seconds);
+          events?.onTimerEdit?.(item, editingField, totalSeconds);
           wsUpdateTimer(item.id, updates as any);
         }
-      } else {
-        updates = { [editingField]: editValue };
+      } else if (editValue !== '') {
+        const updates = { [editingField]: editValue };
         onUpdateTimer(item.id, updates);
         events?.onTimerEdit?.(item, editingField, editValue);
         wsUpdateTimer(item.id, updates as any);
@@ -380,11 +404,15 @@ const handleDoubleClick = (e: React.MouseEvent) => {
     }
     setEditingField(null);
     setEditValue('');
+    setEditMinutes(0);
+    setEditSeconds(0);
   };
 
   const cancelEdit = () => {
     setEditingField(null);
     setEditValue('');
+    setEditMinutes(0);
+    setEditSeconds(0);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -471,16 +499,37 @@ const handleDoubleClick = (e: React.MouseEvent) => {
           <div className={classes.timerMeta}>
             <span className={classes.editableField}>
               Duration: {editingField === 'duration_seconds' ? (
-                <TextInput
-                  value={editValue}
-                  onChange={(e) => setEditValue(e.currentTarget.value)}
-                  onBlur={saveEdit}
-                  onKeyDown={handleKeyPress}
-                  size="xs"
-                  placeholder="MM:SS"
-                  style={{ minWidth: '80px', display: 'inline-block' }}
-                  autoFocus
-                />
+                <div
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}
+                  onBlur={(e) => {
+                    // Only save if focus is leaving the entire duration editing area
+                    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                      saveEdit();
+                    }
+                  }}
+                >
+                  <span style={{ fontSize: '10px', marginRight: '2px' }}>Min:</span>
+                  <NumberInput
+                    value={editMinutes}
+                    onChange={(value) => setEditMinutes(typeof value === 'number' ? value : Number(value) || 0)}
+                    onKeyDown={handleKeyPress}
+                    size="xs"
+                    min={0}
+                    max={59}
+                    style={{ width: '50px' }}
+                    autoFocus
+                  />
+                  <span style={{ fontSize: '10px', margin: '0 2px' }}>Sec:</span>
+                  <NumberInput
+                    value={editSeconds}
+                    onChange={(value) => setEditSeconds(typeof value === 'number' ? value : Number(value) || 0)}
+                    onKeyDown={handleKeyPress}
+                    size="xs"
+                    min={0}
+                    max={59}
+                    style={{ width: '50px' }}
+                  />
+                </div>
               ) : (
                 <span onClick={() => startEditing('duration_seconds', formatDuration(item.duration_seconds))}>
                   {formatDuration(item.duration_seconds)}
@@ -493,7 +542,7 @@ const handleDoubleClick = (e: React.MouseEvent) => {
                 [classes.warning]: timerState === 'warning',
                 [classes.critical]: timerState === 'critical',
               })}>
-                Remaining: {formatDuration(item.current_time_seconds)}
+                {item.current_time_seconds < 0 ? 'Overtime:' : 'Remaining:'} {item.current_time_seconds < 0 ? '+' : ''}{formatDuration(item.current_time_seconds)}
               </span>
             )}
 
@@ -689,7 +738,7 @@ export function Timers({
       speaker: '',
       duration_seconds: 0,
       scheduled_start_time: null as Date | null,
-      is_manual_start: true,
+      is_manual_start: false,
       linked_timer_id: null as string | null,
       display_id: null as string | null,
       notes: '',
@@ -719,7 +768,7 @@ export function Timers({
         scheduled_start_time: editingTimer.scheduled_start_date && editingTimer.scheduled_start_time
           ? new Date(`${editingTimer.scheduled_start_date}T${editingTimer.scheduled_start_time}`)
           : null,
-        is_manual_start: editingTimer.is_manual_start,
+        is_manual_start: !editingTimer.is_manual_start,
         linked_timer_id: editingTimer.linked_timer_id ? editingTimer.linked_timer_id.toString() : null,
         display_id: editingTimer.display_id ? editingTimer.display_id.toString() : null,
         notes: editingTimer.notes || '',
@@ -744,6 +793,8 @@ export function Timers({
         scheduled_start_time: values.scheduled_start_time
           ? dayjs(values.scheduled_start_time).format('HH:mm:ss')
           : null,
+        // Invert the checkbox logic: checked means auto start (is_manual_start = false)
+        is_manual_start: !values.is_manual_start,
         linked_timer_id: values.linked_timer_id ? parseInt(values.linked_timer_id, 10) : null,
         display_id: values.display_id ? parseInt(values.display_id, 10) : null,
       };
@@ -864,8 +915,8 @@ export function Timers({
                     {...form.getInputProps('scheduled_start_time')}
                   />
                   <Checkbox
-                    label="Manual Start"
-                    description="Require manual start instead of automatic scheduling"
+                    label="Auto Start"
+                    description="Enable automatic start at scheduled time"
                     {...form.getInputProps('is_manual_start', { type: 'checkbox' })}
                   />
                 </Stack>
