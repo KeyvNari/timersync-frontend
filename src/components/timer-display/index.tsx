@@ -142,15 +142,6 @@ function TimerDisplay({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hideTimeout, setHideTimeout] = useState<NodeJS.Timeout | null>(null);
 
-const getMaxFontSize = () => {
-  const format = safeDisplay.timer_format || 'mm:ss';
-  // Adjust max width based on format complexity
-  if (format.includes('h')) {
-    return '18vw'; // hh:mm:ss needs more space
-  }
-  return '20vw'; // mm:ss can be larger
-};
-
   // Separate interval only for date/clock updates
   useEffect(() => {
     const clockInterval = setInterval(() => {
@@ -286,7 +277,6 @@ switch (safeDisplay.background_type || 'color') {
     break;
   case 'image':
     if (safeDisplay.background_image) {
-      // Expect full data URL format: data:image/png;base64,iVBORw0KGgo...
       backgroundStyle.backgroundImage = `url(${safeDisplay.background_image})`;
       backgroundStyle.backgroundSize = 'cover';
       backgroundStyle.backgroundPosition = 'center';
@@ -328,7 +318,7 @@ switch (safeDisplay.background_type || 'color') {
   const timerStyle: React.CSSProperties = {
     fontFamily: safeDisplay.timer_font_family || 'Roboto Mono',
     color: getTimerColor(),
-    fontSize: `${baseFontSize * 6 * 7}rem`,
+    fontSize: `${baseFontSize * 42}rem`,
     textAlign: 'center',
     margin: 0,
     lineHeight: 1,
@@ -386,40 +376,147 @@ switch (safeDisplay.background_type || 'color') {
 
   if (progressStyle !== 'hidden') {
     if (progressStyle === 'bottom_bar' || progressStyle === 'top_bar') {
+      let sections = [];
+      
+      if (safeTimer.duration_seconds && safeTimer.duration_seconds > 0) {
+        const warningTime = safeTimer.warning_time || safeTimer.duration_seconds * 0.3;
+        const criticalTime = safeTimer.critical_time || safeTimer.duration_seconds * 0.1;
+        
+        if (safeTimer.timer_type === 'countdown') {
+          const redPercent = (criticalTime / safeTimer.duration_seconds) * 100;
+          const yellowPercent = ((warningTime - criticalTime) / safeTimer.duration_seconds) * 100;
+          const greenPercent = ((safeTimer.duration_seconds - warningTime) / safeTimer.duration_seconds) * 100;
+          
+          const currentPercent = mainSection;
+          let redFilled = 0;
+          let yellowFilled = 0;
+          let greenFilled = 0;
+          
+          if (currentPercent > (redPercent + yellowPercent)) {
+            greenFilled = currentPercent - (redPercent + yellowPercent);
+            yellowFilled = yellowPercent;
+            redFilled = redPercent;
+          } else if (currentPercent > redPercent) {
+            yellowFilled = currentPercent - redPercent;
+            redFilled = redPercent;
+            greenFilled = 0;
+          } else {
+            redFilled = currentPercent;
+            yellowFilled = 0;
+            greenFilled = 0;
+          }
+          
+          sections = [
+            { value: redFilled, color: safeDisplay.progress_color_tertiary || 'red' },
+            { value: redPercent - redFilled, color: 'gray' },
+            { value: yellowFilled, color: safeDisplay.progress_color_secondary || 'yellow' },
+            { value: yellowPercent - yellowFilled, color: 'gray' },
+            { value: greenFilled, color: safeDisplay.progress_color_main || 'green' },
+            { value: greenPercent - greenFilled, color: 'gray' },
+          ].filter(s => s.value > 0);
+        } else {
+          const greenPercent = (warningTime / safeTimer.duration_seconds) * 100;
+          const yellowPercent = ((criticalTime - warningTime) / safeTimer.duration_seconds) * 100;
+          const redPercent = ((safeTimer.duration_seconds - criticalTime) / safeTimer.duration_seconds) * 100;
+          
+          const currentPercent = mainSection;
+          let greenFilled = 0;
+          let yellowFilled = 0;
+          let redFilled = 0;
+          
+          if (currentPercent > (greenPercent + yellowPercent)) {
+            greenFilled = greenPercent;
+            yellowFilled = yellowPercent;
+            redFilled = currentPercent - (greenPercent + yellowPercent);
+          } else if (currentPercent > greenPercent) {
+            greenFilled = greenPercent;
+            yellowFilled = currentPercent - greenPercent;
+            redFilled = 0;
+          } else {
+            greenFilled = currentPercent;
+            yellowFilled = 0;
+            redFilled = 0;
+          }
+          
+          sections = [
+            { value: greenFilled, color: safeDisplay.progress_color_main || 'green' },
+            { value: greenPercent - greenFilled, color: 'gray' },
+            { value: yellowFilled, color: safeDisplay.progress_color_secondary || 'yellow' },
+            { value: yellowPercent - yellowFilled, color: 'gray' },
+            { value: redFilled, color: safeDisplay.progress_color_tertiary || 'red' },
+            { value: redPercent - redFilled, color: 'gray' },
+          ].filter(s => s.value > 0);
+        }
+      } else {
+        sections = [{ value: 100, color: safeDisplay.progress_color_main || 'green' }];
+      }
+      
       progressComponent = (
         <Box style={{ position: 'relative' }}>
           <Progress.Root size="xl" radius="xs">
-            <Progress.Section
-              value={mainSection}
-              color={progressColor}
-              striped
-              animated={safeTimer.is_active && !safeTimer.is_paused}
-            />
+            {sections.map((section, index) => (
+              <Progress.Section
+                key={index}
+                value={section.value}
+                color={section.color}
+              />
+            ))}
           </Progress.Root>
           <Box
             style={{
               position: 'absolute',
               top: '50%',
-              left: `${mainSection}%`,
+              left: `${Math.max(0, Math.min(100, mainSection))}%`,
               transform: 'translate(-50%, -50%)',
               width: '4px',
-              height: '20px',
+              height: '24px',
               backgroundColor: 'white',
               borderRadius: '2px',
               boxShadow: '0 2px 4px rgba(0,0,0,0.5)',
               zIndex: 2,
+              pointerEvents: 'none',
             }}
           />
         </Box>
       );
     } else if (progressStyle === 'ring') {
-      const ringValue = mainSection;
+      let ringSections = [];
+      
+      if (safeTimer.duration_seconds && safeTimer.duration_seconds > 0) {
+        const warningTime = safeTimer.warning_time || safeTimer.duration_seconds * 0.3;
+        const criticalTime = safeTimer.critical_time || safeTimer.duration_seconds * 0.1;
+        
+        if (safeTimer.timer_type === 'countdown') {
+          const greenPercent = ((safeTimer.duration_seconds - warningTime) / safeTimer.duration_seconds) * 100;
+          const yellowPercent = ((warningTime - criticalTime) / safeTimer.duration_seconds) * 100;
+          const redPercent = (criticalTime / safeTimer.duration_seconds) * 100;
+          
+          ringSections = [
+            { value: greenPercent, color: safeDisplay.progress_color_main || 'green' },
+            { value: yellowPercent, color: safeDisplay.progress_color_secondary || 'yellow' },
+            { value: redPercent, color: safeDisplay.progress_color_tertiary || 'red' },
+          ];
+        } else {
+          const greenPercent = (warningTime / safeTimer.duration_seconds) * 100;
+          const yellowPercent = ((criticalTime - warningTime) / safeTimer.duration_seconds) * 100;
+          const redPercent = ((safeTimer.duration_seconds - criticalTime) / safeTimer.duration_seconds) * 100;
+          
+          ringSections = [
+            { value: greenPercent, color: safeDisplay.progress_color_main || 'green' },
+            { value: yellowPercent, color: safeDisplay.progress_color_secondary || 'yellow' },
+            { value: redPercent, color: safeDisplay.progress_color_tertiary || 'red' },
+          ];
+        }
+      } else {
+        ringSections = [{ value: 100, color: safeDisplay.progress_color_main || 'green' }];
+      }
+      
       progressComponent = (
         <RingProgress
-          sections={[{ value: ringValue, color: progressColor }]}
+          sections={ringSections}
           size={120}
           thickness={12}
-          label={<Text size="sm" ta="center" c={progressColor}>{Math.round(ringValue)}%</Text>}
+          label={<Text size="sm" ta="center" c={getCurrentProgressColor()}>{Math.round(mainSection)}%</Text>}
         />
       );
     }
@@ -527,14 +624,14 @@ switch (safeDisplay.background_type || 'color') {
         <Box style={{
   maxWidth: '100%',
   maxHeight: '100%',
-  overflow: 'visible', // Changed from 'hidden' to 'visible'
+  overflow: 'visible',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
 }}>
   <Text style={{
     ...timerStyle,
-    fontSize: `min(${timerStyle.fontSize}, 18vw, 12vh)`, // Adjusted constraints
+    fontSize: `min(${timerStyle.fontSize}, ${baseFontSize * 18}vw, ${baseFontSize * 12}vh)`,
     whiteSpace: 'nowrap',
   }}>
     {timerText}
@@ -578,7 +675,7 @@ switch (safeDisplay.background_type || 'color') {
 
       {safeDisplay.logo_image && (
     <Image 
-      src={safeDisplay.logo_image}  // Expect full data URL format
+      src={safeDisplay.logo_image}
       style={logoStyle} 
       alt="Logo"
     />

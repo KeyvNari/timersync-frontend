@@ -65,7 +65,7 @@ export default function TimerDisplayEditor({ initialDisplay, onSave, onCancel })
   const mockTimer = {
     title: 'Sample Timer',
     speaker: 'John Doe',
-    notes: 'This is a preview of your display settings',
+    notes: 'This is a sample',
     show_title: true,
     show_speaker: true,
     show_notes: true,
@@ -94,6 +94,12 @@ export default function TimerDisplayEditor({ initialDisplay, onSave, onCancel })
     }
   };
 
+  const monoFontOptions = [
+    'Roboto Mono',
+    'Courier New',
+    'monospace',
+  ];
+
   const fontOptions = [
     'Roboto Mono',
     'Arial',
@@ -110,6 +116,12 @@ export default function TimerDisplayEditor({ initialDisplay, onSave, onCancel })
     { value: 'top_right', label: 'Top Right' },
     { value: 'bottom_left', label: 'Bottom Left' },
     { value: 'bottom_right', label: 'Bottom Right' },
+  ];
+
+  const timerPositionOptions = [
+    { value: 'center', label: 'Center' },
+    { value: 'top', label: 'Top' },
+    { value: 'bottom', label: 'Bottom' },
   ];
 
   const displayLocationOptions = [
@@ -278,7 +290,7 @@ export default function TimerDisplayEditor({ initialDisplay, onSave, onCancel })
 
                   <Select
                     label="Timer Font"
-                    data={fontOptions}
+                    data={monoFontOptions}
                     value={display.timer_font_family}
                     onChange={(value) => updateDisplay('timer_font_family', value)}
                   />
@@ -291,6 +303,13 @@ export default function TimerDisplayEditor({ initialDisplay, onSave, onCancel })
                     max={200}
                   />
 
+                  <Select
+                    label="Timer Position"
+                    data={timerPositionOptions}
+                    value={display.timer_position}
+                    onChange={(value) => updateDisplay('timer_position', value)}
+                  />
+
                   <Divider label="Clock Settings" />
 
                   <Switch
@@ -301,7 +320,7 @@ export default function TimerDisplayEditor({ initialDisplay, onSave, onCancel })
 
                   <Select
                     label="Clock Font"
-                    data={fontOptions}
+                    data={monoFontOptions}
                     value={display.clock_font_family}
                     onChange={(value) => updateDisplay('clock_font_family', value)}
                   />
@@ -320,6 +339,29 @@ export default function TimerDisplayEditor({ initialDisplay, onSave, onCancel })
                     data={displayLocationOptions}
                     value={display.speaker_display_location}
                     onChange={(value) => updateDisplay('speaker_display_location', value)}
+                  />
+
+                  <Divider label="Font Families" />
+
+                  <Select
+                    label="Header Font"
+                    data={fontOptions}
+                    value={display.header_font_family}
+                    onChange={(value) => updateDisplay('header_font_family', value)}
+                  />
+
+                  <Select
+                    label="Footer Font"
+                    data={fontOptions}
+                    value={display.footer_font_family}
+                    onChange={(value) => updateDisplay('footer_font_family', value)}
+                  />
+
+                  <Select
+                    label="Message Font"
+                    data={fontOptions}
+                    value={display.message_font_family}
+                    onChange={(value) => updateDisplay('message_font_family', value)}
                   />
                 </Stack>
               </Tabs.Panel>
