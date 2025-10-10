@@ -73,9 +73,8 @@ export default function RoomComponent({
 
   // Display Editor handlers
   const handleOpenDisplayEditor = () => {
-    // Open with the first display or create new
-    const currentDisplay = displays && displays.length > 0 ? displays[0] : null;
-    setEditingDisplay(currentDisplay);
+    // Open without pre-selecting a display so user can choose from dropdown
+    setEditingDisplay(null);
     openEditor();
   };
 
@@ -261,6 +260,7 @@ export default function RoomComponent({
         <Box p="md" style={{ height: '100%', overflow: 'auto' }}>
           <TimerDisplayEditor
             initialDisplay={editingDisplay}
+            displays={displays}
             onSave={handleSaveDisplay}
             onCancel={closeEditor}
           />

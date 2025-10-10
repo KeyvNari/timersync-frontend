@@ -29,8 +29,20 @@ import {
 import TimerDisplay from '@/components/timer-display';
 
 // Main Editor Component
-export default function TimerDisplayEditor({ initialDisplay, onSave, onCancel }) {
-  const [display, setDisplay] = useState(initialDisplay || {
+interface TimerDisplayEditorProps {
+  initialDisplay?: any;
+  displays?: any[];
+  onSave?: (display: any) => void;
+  onCancel?: () => void;
+}
+
+export default function TimerDisplayEditor({
+  initialDisplay,
+  displays = [],
+  onSave,
+  onCancel
+}: TimerDisplayEditorProps) {
+  const defaultDisplay = {
     name: 'New Display',
     logo_image: null,
     logo_size_percent: 60,
@@ -59,17 +71,54 @@ export default function TimerDisplayEditor({ initialDisplay, onSave, onCancel })
     progress_color_main: 'green',
     progress_color_secondary: 'orange',
     progress_color_tertiary: 'red',
-  });
+  };
+
+  const [display, setDisplay] = useState(initialDisplay || defaultDisplay);
+  const [selectedDisplayId, setSelectedDisplayId] = useState<string | number>(initialDisplay?.id || 'new');
+  const [isCreatingNew, setIsCreatingNew] = useState(!initialDisplay?.id);
+
+  const handleDisplaySelection = (value: string | null) => {
+    if (!value) return;
+
+    if (value === 'new') {
+      // Create a new display cloned from the current settings (if editing) or defaults
+      const baseDisplay = initialDisplay ? { ...display } : { ...defaultDisplay };
+      delete baseDisplay.id; // Remove ID for new display
+      // Reset name for new displays
+      const newDisplayName = initialDisplay ? `${baseDisplay.name} (Copy)` : 'New Display';
+      const newDisplay = { ...baseDisplay, name: newDisplayName };
+      setDisplay(newDisplay);
+      setSelectedDisplayId('new');
+      setIsCreatingNew(true);
+    } else {
+      // Load existing display
+      const selectedDisplay = displays.find(d => d.id.toString() === value);
+      if (selectedDisplay) {
+        setDisplay({ ...selectedDisplay });
+        setSelectedDisplayId(selectedDisplay.id);
+        setIsCreatingNew(false);
+      }
+    }
+  };
+
+  // Create display options for the select
+  const displayOptions = [
+    { value: 'new', label: '+ Create New Display' },
+    ...displays.map(display => ({
+      value: display.id.toString(),
+      label: display.name || `Display ${display.id}`
+    }))
+  ];
 
   // Mock timer for preview - matches the format expected by TimerDisplay
   const mockTimer = {
     title: 'Sample Timer',
     speaker: 'John Doe',
-    notes: 'This is a sample',
+    notes: '',
     show_title: true,
     show_speaker: true,
     show_notes: true,
-    timer_type: 'countdown',
+    timer_type: 'countdown' as const,
     duration_seconds: 300,
     current_time_seconds: 180,
     is_active: true,
@@ -151,10 +200,21 @@ export default function TimerDisplayEditor({ initialDisplay, onSave, onCancel })
           <Stack gap="md">
             <Title order={3}>Display Settings</Title>
             
+            <Select
+              label="Select Display Configuration"
+              placeholder="Choose a display to edit or create new"
+              data={displayOptions}
+              value={selectedDisplayId.toString()}
+              onChange={handleDisplaySelection}
+              searchable
+              clearable={false}
+            />
+
             <TextInput
               label="Display Name"
               value={display.name}
               onChange={(e) => updateDisplay('name', e.currentTarget.value)}
+              disabled={!isCreatingNew}
             />
 
             <Tabs defaultValue="general">
@@ -445,7 +505,7 @@ export default function TimerDisplayEditor({ initialDisplay, onSave, onCancel })
               )}
               <Button
                 leftSection={<IconDeviceFloppy size={16} />}
-                onClick={() => onSave(display)}
+                onClick={() => onSave?.(display)}
               >
                 Save Display
               </Button>

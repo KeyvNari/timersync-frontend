@@ -13,7 +13,7 @@ type Display = {
   time_of_day_color?: string | null;
   timer_text_style?: string | null;
   timer_size_percent?: number | null;
-  timer_position?: string | null;
+  timer_position?: 'center' | 'top' | 'bottom' | null;
   auto_hide_completed?: boolean;
   clock_format?: string | null;
   clock_font_family?: string | null;
@@ -554,6 +554,23 @@ switch (safeDisplay.background_type || 'color') {
 
   const borderColor = getCurrentProgressColor();
 
+  // Determine the justify property based on timer_position
+  const timerPosition = safeDisplay.timer_position || 'center';
+  let stackJustify: 'center' | 'flex-start' | 'flex-end' = 'center';
+  
+  switch (timerPosition) {
+    case 'top':
+      stackJustify = 'flex-start';
+      break;
+    case 'bottom':
+      stackJustify = 'flex-end';
+      break;
+    case 'center':
+    default:
+      stackJustify = 'center';
+      break;
+  }
+
   return (
     <Box
       onMouseMove={handleMouseMove}
@@ -619,24 +636,24 @@ switch (safeDisplay.background_type || 'color') {
       >
         {header && <Box style={{ flexShrink: 0 }}>{header}</Box>}
 
-        <Stack align="center" justify="center" gap="md" style={{ flex: 1, minHeight: 0 }}>
+        <Stack align="center" justify={stackJustify} gap="md" style={{ flex: 1, minHeight: 0 }}>
           {showTimer && (
-        <Box style={{
-  maxWidth: '100%',
-  maxHeight: '100%',
-  overflow: 'visible',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-}}>
-  <Text style={{
-    ...timerStyle,
-    fontSize: `min(${timerStyle.fontSize}, ${baseFontSize * 18}vw, ${baseFontSize * 12}vh)`,
-    whiteSpace: 'nowrap',
-  }}>
-    {timerText}
-  </Text>
-</Box>
+            <Box style={{
+              maxWidth: '100%',
+              maxHeight: '100%',
+              overflow: 'visible',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <Text style={{
+                ...timerStyle,
+                fontSize: `min(${timerStyle.fontSize}, ${baseFontSize * 18}vw, ${baseFontSize * 12}vh)`,
+                whiteSpace: 'nowrap',
+              }}>
+                {timerText}
+              </Text>
+            </Box>
           )}
 
           {safeDisplay.clock_visible && !showOnlyClock && (
@@ -674,12 +691,12 @@ switch (safeDisplay.background_type || 'color') {
       )}
 
       {safeDisplay.logo_image && (
-    <Image 
-      src={safeDisplay.logo_image}
-      style={logoStyle} 
-      alt="Logo"
-    />
-  )}
+        <Image 
+          src={safeDisplay.logo_image}
+          style={logoStyle} 
+          alt="Logo"
+        />
+      )}
 
       {progressStyle === 'ring' && progressComponent && (
         <Box style={{ position: 'absolute', bottom: 20, right: 20, zIndex: 10 }}>
