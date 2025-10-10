@@ -56,7 +56,7 @@ export interface DisplayConfig {
   timer_format: string;
   timer_font_family: string;
   timer_size_percent: number;
-  timer_position: string;
+  timer_position: 'center' | 'top' | 'bottom' | null;
   theme_name: string;
   [key: string]: any; // allow extra display props
 }
@@ -283,6 +283,22 @@ selectTimer(timerId: number, timerData?: Partial<TimerData>): void {
     timer_data: timerData || {},
   });
 }
+
+  // Display management
+  createDisplay(displayData: any): void {
+    this.send({
+      type: 'display_create',
+      display_data: displayData,
+    });
+  }
+
+  updateDisplay(displayId: number, updateData: any): void {
+    this.send({
+      type: 'display_update',
+      display_id: displayId,
+      update_data: updateData,
+    });
+  }
 
   // Room management
   joinRoom(): void {

@@ -50,6 +50,10 @@ interface WebSocketContextValue {
   selectTimer: (timerId: number, timerData?: Partial<TimerData>) => void;
   createTimer: (timerData: Partial<TimerData>) => void;
 
+  // Display management
+  createDisplay: (displayData: any) => void;
+  updateDisplay: (displayId: number, updateData: any) => void;
+
   // Room actions
   refreshTimers: () => void;
   joinRoom: () => void;
@@ -495,6 +499,15 @@ const createTimer = useCallback((timerData: Partial<TimerData>) => {
   wsServiceRef.current?.createTimer(timerData);
 }, []);
 
+// Display management
+const createDisplay = useCallback((displayData: any) => {
+  wsServiceRef.current?.createDisplay(displayData);
+}, []);
+
+const updateDisplay = useCallback((displayId: number, updateData: any) => {
+  wsServiceRef.current?.updateDisplay(displayId, updateData);
+}, []);
+
 // Connections
 const requestConnections = useCallback(() => {
   wsServiceRef.current?.requestConnections();
@@ -529,6 +542,8 @@ const requestConnections = useCallback(() => {
     deleteTimer,
     selectTimer,
     createTimer,
+    createDisplay,
+    updateDisplay,
     refreshTimers,
     joinRoom,
     leaveRoom,

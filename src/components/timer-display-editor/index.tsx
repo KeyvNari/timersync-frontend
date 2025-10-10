@@ -34,13 +34,15 @@ interface TimerDisplayEditorProps {
   displays?: any[];
   onSave?: (display: any) => void;
   onCancel?: () => void;
+  nameError?: string | null;
 }
 
 export default function TimerDisplayEditor({
   initialDisplay,
   displays = [],
   onSave,
-  onCancel
+  onCancel,
+  nameError
 }: TimerDisplayEditorProps) {
   const defaultDisplay = {
     name: 'New Display',
@@ -215,6 +217,7 @@ export default function TimerDisplayEditor({
               value={display.name}
               onChange={(e) => updateDisplay('name', e.currentTarget.value)}
               disabled={!isCreatingNew}
+              error={nameError}
             />
 
             <Tabs defaultValue="general">

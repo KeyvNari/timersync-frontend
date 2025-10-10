@@ -32,6 +32,8 @@ export interface RoomComponentProps {
   onAddTimer: () => void;
   onCreateWithAI: () => void;
   onSaveDisplay?: (display: any) => void;
+  onCreateDisplay?: (displayData: any) => void;
+  onUpdateDisplay?: (displayId: number, updateData: any) => void;
   showBackButton?: boolean;
   showShareButton?: boolean;
   showActionButtons?: boolean;
@@ -56,6 +58,8 @@ export default function RoomComponent({
   onAddTimer,
   onCreateWithAI,
   onSaveDisplay,
+  onCreateDisplay,
+  onUpdateDisplay,
   showBackButton = false,
   showShareButton = true,
   showActionButtons = true,
@@ -66,6 +70,7 @@ export default function RoomComponent({
   // Display Editor state
   const [editorOpened, { open: openEditor, close: closeEditor }] = useDisclosure(false);
   const [editingDisplay, setEditingDisplay] = useState<any>(null);
+  const [displayNameError, setDisplayNameError] = useState<string | null>(null);
 
   const handleLeftWidthChange = (width: number) => {
     console.log('Left panel width changed to:', width);
@@ -80,9 +85,55 @@ export default function RoomComponent({
 
   const handleSaveDisplay = (displayData: any) => {
     console.log('Saving display:', displayData);
-    if (onSaveDisplay) {
-      onSaveDisplay(displayData);
+
+    // Clear any previous errors
+    setDisplayNameError(null);
+
+    // Determine if creating new or updating existing display
+    const isNewDisplay = !displayData.id;
+
+    // Validate display name for duplicates (case-insensitive)
+    const displayName = displayData.name?.trim();
+    if (!displayName) {
+      setDisplayNameError('Display name cannot be empty');
+      return;
     }
+
+    // Check for duplicate names, excluding the current display when editing
+    const isDuplicate = displays.some(d =>
+      d.name?.trim().toLowerCase() === displayName.toLowerCase() &&
+      (!displayData.id || d.id !== displayData.id)
+    );
+
+    if (isDuplicate) {
+      setDisplayNameError('A display with this name already exists');
+      return;
+    }
+
+    if (isNewDisplay) {
+      // Create new display via prop callback
+      if (onCreateDisplay) {
+        onCreateDisplay(displayData);
+      } else {
+        // Fallback to legacy callback (legacy props pattern)
+        if (onSaveDisplay) {
+          onSaveDisplay(displayData);
+        }
+      }
+    } else {
+      // Update existing display via prop callback
+      if (onUpdateDisplay) {
+        onUpdateDisplay(displayData.id, displayData);
+      } else {
+        // Fallback to legacy callback (legacy props pattern)
+        if (onSaveDisplay) {
+          onSaveDisplay(displayData);
+        }
+      }
+    }
+
+    // Close editor and clear error on successful save
+    setDisplayNameError(null);
     closeEditor();
   };
 
@@ -263,6 +314,7 @@ export default function RoomComponent({
             displays={displays}
             onSave={handleSaveDisplay}
             onCancel={closeEditor}
+            nameError={displayNameError}
           />
         </Box>
       </Modal>

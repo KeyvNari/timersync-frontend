@@ -157,6 +157,8 @@ export default function HomePage() {
     connections,
     roomInfo,
     createTimer,
+    createDisplay,
+    updateDisplay,
   } = useWebSocketContext();
 
   const {
@@ -352,6 +354,8 @@ const handleAddTimer = useCallback(() => {
             onShare={handleShare}
             onAddTimer={handleAddTimer}
             onCreateWithAI={handleCreateWithAI}
+            onCreateDisplay={createDisplay}
+            onUpdateDisplay={updateDisplay}
             showBackButton={false}
             showShareButton={true}
             showActionButtons={true}
