@@ -6,6 +6,9 @@ import {
   WebSocketMessage,
   TimerData,
   ConnectionInfo,
+  RoomInfo,
+  TimerSelectedMessage,
+  ConnectionUpdateMessage,
   createSimpleWebSocketService as createWebSocketService
 } from '@/services/websocket';
 
@@ -45,6 +48,9 @@ export interface UseWebSocketReturn {
   pauseTimer: (timerId: number) => void;
   stopTimer: (timerId: number) => void;
   selectTimer: (timerId: number, timerData?: Partial<TimerData>) => void;
+
+  // Display controls
+  setDefaultDisplay: (displayId: number) => void;
   
   // Room actions
   refreshTimers: () => void;
@@ -116,8 +122,10 @@ export function useWebSocket(roomId: number, options: UseWebSocketOptions = {}):
       ));
     };
 
-    const handleTimerSelected = (message: TimerSelectedMessage) => {
-      setSelectedTimerId(message.timer_id);
+    const handleTimerSelected = (message: WebSocketMessage) => {
+      if (message.type === 'timer_selected') {
+        setSelectedTimerId(message.timer_id);
+      }
     };
 
     const handleRoomTimers = (message: WebSocketMessage) => {
@@ -129,10 +137,12 @@ export function useWebSocket(roomId: number, options: UseWebSocketOptions = {}):
       }
     };
 
-    const handleConnectionUpdate = (message: ConnectionUpdateMessage) => {
-      setConnectionCount(message.count);
-      if (message.current_connections) {
-        setConnections(message.current_connections);
+    const handleConnectionUpdate = (message: WebSocketMessage) => {
+      if (message.type === 'connection_count') {
+        setConnectionCount(message.count);
+        if (message.current_connections) {
+          setConnections(message.current_connections);
+        }
       }
     };
 
@@ -274,6 +284,12 @@ export function useWebSocket(roomId: number, options: UseWebSocketOptions = {}):
     wsServiceRef.current.selectTimer(timerId, timerData);
   }, []);
 
+  // Display controls
+  const setDefaultDisplay = useCallback((displayId: number) => {
+    if (!wsServiceRef.current) return;
+    wsServiceRef.current.setDefaultDisplay(displayId);
+  }, []);
+
   // Room actions
   const refreshTimers = useCallback(() => {
     if (!wsServiceRef.current) return;
@@ -333,6 +349,9 @@ const refreshConnections = useCallback(() => {
     pauseTimer,
     stopTimer,
     selectTimer,
+
+    // Display controls
+    setDefaultDisplay,
 
     // Room actions
     refreshTimers,

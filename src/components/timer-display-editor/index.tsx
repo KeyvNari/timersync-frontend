@@ -10,12 +10,16 @@ import {
   ColorInput,
   NumberInput,
   Switch,
+  Checkbox,
   FileInput,
   Button,
   Divider,
   Grid,
   Text,
   ActionIcon,
+  Badge,
+  Card,
+  rem,
 } from '@mantine/core';
 import {
   IconUpload,
@@ -25,8 +29,13 @@ import {
   IconLayout,
   IconDeviceFloppy,
   IconX,
+  IconClock,
+  IconTextSize,
+  IconSparkles,
+  IconStar,
 } from '@tabler/icons-react';
 import TimerDisplay from '@/components/timer-display';
+import { useWebSocketContext } from '@/providers/websocket-provider';
 
 // Main Editor Component
 interface TimerDisplayEditorProps {
@@ -44,6 +53,8 @@ export default function TimerDisplayEditor({
   onCancel,
   nameError
 }: TimerDisplayEditorProps) {
+  const { setDefaultDisplay } = useWebSocketContext();
+
   const defaultDisplay = {
     name: 'New Display',
     logo_image: null,
@@ -73,6 +84,7 @@ export default function TimerDisplayEditor({
     progress_color_main: 'green',
     progress_color_secondary: 'orange',
     progress_color_tertiary: 'red',
+    is_default: false,
   };
 
   const [display, setDisplay] = useState(initialDisplay || defaultDisplay);
@@ -83,17 +95,14 @@ export default function TimerDisplayEditor({
     if (!value) return;
 
     if (value === 'new') {
-      // Create a new display cloned from the current settings (if editing) or defaults
       const baseDisplay = initialDisplay ? { ...display } : { ...defaultDisplay };
-      delete baseDisplay.id; // Remove ID for new display
-      // Reset name for new displays
+      delete baseDisplay.id;
       const newDisplayName = initialDisplay ? `${baseDisplay.name} (Copy)` : 'New Display';
       const newDisplay = { ...baseDisplay, name: newDisplayName };
       setDisplay(newDisplay);
       setSelectedDisplayId('new');
       setIsCreatingNew(true);
     } else {
-      // Load existing display
       const selectedDisplay = displays.find(d => d.id.toString() === value);
       if (selectedDisplay) {
         setDisplay({ ...selectedDisplay });
@@ -103,7 +112,6 @@ export default function TimerDisplayEditor({
     }
   };
 
-  // Create display options for the select
   const displayOptions = [
     { value: 'new', label: '+ Create New Display' },
     ...displays.map(display => ({
@@ -112,7 +120,6 @@ export default function TimerDisplayEditor({
     }))
   ];
 
-  // Mock timer for preview - matches the format expected by TimerDisplay
   const mockTimer = {
     title: 'Sample Timer',
     speaker: 'John Doe',
@@ -196,319 +203,499 @@ export default function TimerDisplayEditor({
   ];
 
   return (
-    <Grid gutter="md">
+    <Grid gutter="lg">
       <Grid.Col span={{ base: 12, lg: 5 }}>
-        <Paper withBorder p="md" style={{ height: '100%', overflow: 'auto' }}>
-          <Stack gap="md">
-            <Title order={3}>Display Settings</Title>
+        <Paper withBorder p="xl" radius="md" style={{ height: '100%', overflow: 'auto' }}>
+          <Stack gap="lg">
+            <div>
+              <Group justify="space-between" mb="xs">
+                <Title order={2}>Display Settings</Title>
+                {isCreatingNew && <Badge color="blue" variant="light">New</Badge>}
+              </Group>
+              <Text size="sm" c="dimmed">
+                Configure your timer display appearance and behavior
+              </Text>
+            </div>
             
             <Select
-              label="Select Display Configuration"
-              placeholder="Choose a display to edit or create new"
+              label="Display Configuration"
+              description="Select an existing display to edit or create a new one"
+              placeholder="Choose a display"
               data={displayOptions}
               value={selectedDisplayId.toString()}
               onChange={handleDisplaySelection}
               searchable
               clearable={false}
+              size="md"
             />
 
             <TextInput
               label="Display Name"
+              description={isCreatingNew ? "Give your display a unique name" : "Display name (read-only)"}
               value={display.name}
               onChange={(e) => updateDisplay('name', e.currentTarget.value)}
               disabled={!isCreatingNew}
               error={nameError}
+              size="md"
             />
 
-            <Tabs defaultValue="general">
-              <Tabs.List>
-                <Tabs.Tab value="general" leftSection={<IconLayout size={16} />}>
-                  General
+            <Checkbox
+              label={
+                <Group gap="xs">
+                  <IconStar size={20} style={{ color: 'var(--mantine-color-yellow-filled)' }} />
+                  <Text fw={500}>Set as default display</Text>
+                </Group>
+              }
+              description="Use this display configuration as the default for new timers"
+              checked={display.is_default}
+              onChange={(e) => updateDisplay('is_default', e.currentTarget.checked)}
+              size="md"
+            />
+
+            <Tabs defaultValue="layout" variant="pills">
+              <Tabs.List grow>
+                <Tabs.Tab value="layout" leftSection={<IconLayout size={18} />}>
+                  Layout
                 </Tabs.Tab>
-                <Tabs.Tab value="branding" leftSection={<IconPhoto size={16} />}>
-                  Branding
+                <Tabs.Tab value="branding" leftSection={<IconPhoto size={18} />}>
+                  Brand
                 </Tabs.Tab>
-                <Tabs.Tab value="timer" leftSection={<IconTypography size={16} />}>
+                <Tabs.Tab value="timer" leftSection={<IconClock size={18} />}>
                   Timer
                 </Tabs.Tab>
-                <Tabs.Tab value="colors" leftSection={<IconPalette size={16} />}>
+                <Tabs.Tab value="content" leftSection={<IconTextSize size={18} />}>
+                  Content
+                </Tabs.Tab>
+                <Tabs.Tab value="colors" leftSection={<IconPalette size={18} />}>
                   Colors
                 </Tabs.Tab>
               </Tabs.List>
 
-              <Tabs.Panel value="general" pt="md">
-                <Stack gap="sm">
-                  <Select
-                    label="Display Ratio"
-                    data={aspectRatioOptions}
-                    value={display.display_ratio}
-                    onChange={(value) => updateDisplay('display_ratio', value)}
-                  />
-
-                  <Select
-                    label="Background Type"
-                    data={[
-                      { value: 'color', label: 'Solid Color' },
-                      { value: 'image', label: 'Image' },
-                      { value: 'transparent', label: 'Transparent' },
-                    ]}
-                    value={display.background_type}
-                    onChange={(value) => updateDisplay('background_type', value)}
-                  />
-
-                  {display.background_type === 'color' && (
-                    <ColorInput
-                      label="Background Color"
-                      value={display.background_color}
-                      onChange={(value) => updateDisplay('background_color', value)}
-                      withEyeDropper={false}
-                      swatches={['#000000', '#ffffff', '#1a1b1e', '#2C2E33', '#25262B', '#868e96', '#fa5252', '#e64980', '#be4bdb', '#7950f2', '#4c6ef5', '#228be6', '#15aabf', '#12b886', '#40c057', '#82c91e', '#fab005', '#fd7e14']}
-                    />
-                  )}
-
-                  {display.background_type === 'image' && (
-                    <Stack gap="xs">
-                      <FileInput
-                        label="Background Image"
-                        placeholder="Upload image"
-                        leftSection={<IconUpload size={16} />}
-                        onChange={(file) => handleFileUpload(file, 'background_image')}
+              {/* Layout & Background Tab */}
+              <Tabs.Panel value="layout" pt="lg">
+                <Stack gap="lg">
+                  <Card withBorder radius="md" p="md">
+                    <Stack gap="sm">
+                      <Group gap="xs">
+                        <IconLayout size={20} />
+                        <Text fw={600} size="sm">Display Dimensions</Text>
+                      </Group>
+                      <Text size="xs" c="dimmed" mb="xs">
+                        Choose the aspect ratio for your timer display
+                      </Text>
+                      <Select
+                        label="Aspect Ratio"
+                        data={aspectRatioOptions}
+                        value={display.display_ratio}
+                        onChange={(value) => updateDisplay('display_ratio', value)}
                       />
-                      {display.background_image && (
-                        <Group gap="xs">
-                          <Text size="xs" c="dimmed">Image uploaded</Text>
+                    </Stack>
+                  </Card>
+
+                  <Card withBorder radius="md" p="md">
+                    <Stack gap="sm">
+                      <Group gap="xs">
+                        <IconSparkles size={20} />
+                        <Text fw={600} size="sm">Background</Text>
+                      </Group>
+                      <Text size="xs" c="dimmed" mb="xs">
+                        Set the background style for your display
+                      </Text>
+                      
+                      <Select
+                        label="Background Type"
+                        data={[
+                          { value: 'color', label: 'Solid Color' },
+                          { value: 'image', label: 'Image' },
+                          { value: 'transparent', label: 'Transparent' },
+                        ]}
+                        value={display.background_type}
+                        onChange={(value) => updateDisplay('background_type', value)}
+                      />
+
+                      {display.background_type === 'color' && (
+                        <ColorInput
+                          label="Background Color"
+                          value={display.background_color}
+                          onChange={(value) => updateDisplay('background_color', value)}
+                          withEyeDropper={false}
+                          swatches={['#000000', '#1a1b1e', '#2C2E33', '#25262B', '#ffffff', '#868e96', '#fa5252', '#e64980', '#be4bdb', '#7950f2', '#4c6ef5', '#228be6', '#15aabf', '#12b886', '#40c057', '#82c91e', '#fab005', '#fd7e14']}
+                        />
+                      )}
+
+                      {display.background_type === 'image' && (
+                        <Stack gap="xs">
+                          <FileInput
+                            label="Background Image"
+                            placeholder="Click to upload image"
+                            leftSection={<IconUpload size={16} />}
+                            onChange={(file) => handleFileUpload(file, 'background_image')}
+                          />
+                          {display.background_image && (
+                            <Group gap="xs" p="xs" style={{ background: 'var(--mantine-color-green-light)', borderRadius: '4px' }}>
+                              <Text size="xs" c="green" fw={500}>✓ Image uploaded</Text>
+                              <ActionIcon
+                                size="sm"
+                                color="red"
+                                variant="subtle"
+                                onClick={() => updateDisplay('background_image', null)}
+                              >
+                                <IconX size={14} />
+                              </ActionIcon>
+                            </Group>
+                          )}
+                        </Stack>
+                      )}
+                    </Stack>
+                  </Card>
+
+                  <Card withBorder radius="md" p="md">
+                    <Stack gap="sm">
+                      <Text fw={600} size="sm">Progress Indicator</Text>
+                      <Text size="xs" c="dimmed" mb="xs">
+                        Visual indicator showing timer progress
+                      </Text>
+                      <Select
+                        label="Progress Style"
+                        data={progressStyleOptions}
+                        value={display.progress_style}
+                        onChange={(value) => updateDisplay('progress_style', value)}
+                      />
+                    </Stack>
+                  </Card>
+                </Stack>
+              </Tabs.Panel>
+
+              {/* Branding Tab */}
+              <Tabs.Panel value="branding" pt="lg">
+                <Stack gap="lg">
+                  <Card withBorder radius="md" p="md">
+                    <Stack gap="sm">
+                      <Group gap="xs">
+                        <IconPhoto size={20} />
+                        <Text fw={600} size="sm">Logo Settings</Text>
+                      </Group>
+                      <Text size="xs" c="dimmed" mb="xs">
+                        Add your organization's logo to the display
+                      </Text>
+                      
+                      <FileInput
+                        label="Logo Image"
+                        description="Upload a PNG or JPG file"
+                        placeholder="Click to upload logo"
+                        leftSection={<IconUpload size={16} />}
+                        onChange={(file) => handleFileUpload(file, 'logo_image')}
+                      />
+                      
+                      {display.logo_image && (
+                        <Group gap="xs" p="xs" style={{ background: 'var(--mantine-color-green-light)', borderRadius: '4px' }}>
+                          <Text size="xs" c="green" fw={500}>✓ Logo uploaded</Text>
                           <ActionIcon
                             size="sm"
                             color="red"
                             variant="subtle"
-                            onClick={() => updateDisplay('background_image', null)}
+                            onClick={() => updateDisplay('logo_image', null)}
                           >
                             <IconX size={14} />
                           </ActionIcon>
                         </Group>
                       )}
+
+                      <NumberInput
+                        label="Logo Size"
+                        description="Size in pixels"
+                        value={display.logo_size_percent}
+                        onChange={(value) => updateDisplay('logo_size_percent', value)}
+                        min={20}
+                        max={200}
+                        suffix=" px"
+                      />
+
+                      <Select
+                        label="Logo Position"
+                        description="Where to place the logo on screen"
+                        data={positionOptions}
+                        value={display.logo_position}
+                        onChange={(value) => updateDisplay('logo_position', value)}
+                      />
                     </Stack>
-                  )}
-
-                  <Select
-                    label="Progress Bar Style"
-                    data={progressStyleOptions}
-                    value={display.progress_style}
-                    onChange={(value) => updateDisplay('progress_style', value)}
-                  />
+                  </Card>
                 </Stack>
               </Tabs.Panel>
 
-              <Tabs.Panel value="branding" pt="md">
-                <Stack gap="sm">
-                  <FileInput
-                    label="Logo Image"
-                    placeholder="Upload logo"
-                    leftSection={<IconUpload size={16} />}
-                    onChange={(file) => handleFileUpload(file, 'logo_image')}
-                  />
-                  
-                  {display.logo_image && (
-                    <Group gap="xs">
-                      <Text size="xs" c="dimmed">Logo uploaded</Text>
-                      <ActionIcon
-                        size="sm"
-                        color="red"
-                        variant="subtle"
-                        onClick={() => updateDisplay('logo_image', null)}
-                      >
-                        <IconX size={14} />
-                      </ActionIcon>
-                    </Group>
-                  )}
+              {/* Timer & Clock Tab */}
+              <Tabs.Panel value="timer" pt="lg">
+                <Stack gap="lg">
+                  <Card withBorder radius="md" p="md">
+                    <Stack gap="sm">
+                      <Group gap="xs">
+                        <IconClock size={20} />
+                        <Text fw={600} size="sm">Timer Configuration</Text>
+                      </Group>
+                      <Text size="xs" c="dimmed" mb="xs">
+                        Customize how the timer appears
+                      </Text>
 
-                  <NumberInput
-                    label="Logo Size (px)"
-                    value={display.logo_size_percent}
-                    onChange={(value) => updateDisplay('logo_size_percent', value)}
-                    min={20}
-                    max={200}
-                  />
+                      <Select
+                        label="Timer Format"
+                        description="Time display format"
+                        data={[
+                          { value: 'mm:ss', label: 'MM:SS (Minutes:Seconds)' },
+                          { value: 'hh:mm:ss', label: 'HH:MM:SS (Hours:Minutes:Seconds)' },
+                        ]}
+                        value={display.timer_format}
+                        onChange={(value) => updateDisplay('timer_format', value)}
+                      />
 
-                  <Select
-                    label="Logo Position"
-                    data={positionOptions}
-                    value={display.logo_position}
-                    onChange={(value) => updateDisplay('logo_position', value)}
-                  />
+                      <Select
+                        label="Timer Font"
+                        description="Monospace fonts recommended for timers"
+                        data={monoFontOptions}
+                        value={display.timer_font_family}
+                        onChange={(value) => updateDisplay('timer_font_family', value)}
+                      />
+
+                      <NumberInput
+                        label="Timer Size"
+                        description="Percentage of default size"
+                        value={display.timer_size_percent}
+                        onChange={(value) => updateDisplay('timer_size_percent', value)}
+                        min={50}
+                        max={200}
+                        suffix="%"
+                      />
+
+                      <Select
+                        label="Timer Position"
+                        description="Vertical placement on screen"
+                        data={timerPositionOptions}
+                        value={display.timer_position}
+                        onChange={(value) => updateDisplay('timer_position', value)}
+                      />
+                    </Stack>
+                  </Card>
+
+                  <Card withBorder radius="md" p="md">
+                    <Stack gap="sm">
+                      <Text fw={600} size="sm">Clock Display</Text>
+                      <Text size="xs" c="dimmed" mb="xs">
+                        Show current time alongside the timer
+                      </Text>
+
+                      <Switch
+                        label="Show Clock"
+                        description="Display current time on screen"
+                        checked={display.clock_visible}
+                        onChange={(e) => updateDisplay('clock_visible', e.currentTarget.checked)}
+                      />
+
+                      {display.clock_visible && (
+                        <Select
+                          label="Clock Font"
+                          data={monoFontOptions}
+                          value={display.clock_font_family}
+                          onChange={(value) => updateDisplay('clock_font_family', value)}
+                        />
+                      )}
+                    </Stack>
+                  </Card>
                 </Stack>
               </Tabs.Panel>
 
-              <Tabs.Panel value="timer" pt="md">
-                <Stack gap="sm">
-                  <Select
-                    label="Timer Format"
-                    data={[
-                      { value: 'mm:ss', label: 'MM:SS' },
-                      { value: 'hh:mm:ss', label: 'HH:MM:SS' },
-                    ]}
-                    value={display.timer_format}
-                    onChange={(value) => updateDisplay('timer_format', value)}
-                  />
+              {/* Content Layout Tab */}
+              <Tabs.Panel value="content" pt="lg">
+                <Stack gap="lg">
+                  <Card withBorder radius="md" p="md">
+                    <Stack gap="sm">
+                      <Group gap="xs">
+                        <IconTextSize size={20} />
+                        <Text fw={600} size="sm">Content Placement</Text>
+                      </Group>
+                      <Text size="xs" c="dimmed" mb="xs">
+                        Choose where to display title and speaker information
+                      </Text>
 
-                  <Select
-                    label="Timer Font"
-                    data={monoFontOptions}
-                    value={display.timer_font_family}
-                    onChange={(value) => updateDisplay('timer_font_family', value)}
-                  />
+                      <Select
+                        label="Title Location"
+                        description="Where to show the timer title"
+                        data={displayLocationOptions}
+                        value={display.title_display_location}
+                        onChange={(value) => updateDisplay('title_display_location', value)}
+                      />
 
-                  <NumberInput
-                    label="Timer Size (%)"
-                    value={display.timer_size_percent}
-                    onChange={(value) => updateDisplay('timer_size_percent', value)}
-                    min={50}
-                    max={200}
-                  />
+                      <Select
+                        label="Speaker Location"
+                        description="Where to show the speaker name"
+                        data={displayLocationOptions}
+                        value={display.speaker_display_location}
+                        onChange={(value) => updateDisplay('speaker_display_location', value)}
+                      />
+                    </Stack>
+                  </Card>
 
-                  <Select
-                    label="Timer Position"
-                    data={timerPositionOptions}
-                    value={display.timer_position}
-                    onChange={(value) => updateDisplay('timer_position', value)}
-                  />
+                  <Card withBorder radius="md" p="md">
+                    <Stack gap="sm">
+                      <Group gap="xs">
+                        <IconTypography size={20} />
+                        <Text fw={600} size="sm">Typography</Text>
+                      </Group>
+                      <Text size="xs" c="dimmed" mb="xs">
+                        Font families for different text elements
+                      </Text>
 
-                  <Divider label="Clock Settings" />
+                      <Select
+                        label="Header Font"
+                        description="Font for header text"
+                        data={fontOptions}
+                        value={display.header_font_family}
+                        onChange={(value) => updateDisplay('header_font_family', value)}
+                      />
 
-                  <Switch
-                    label="Show Clock"
-                    checked={display.clock_visible}
-                    onChange={(e) => updateDisplay('clock_visible', e.currentTarget.checked)}
-                  />
+                      <Select
+                        label="Footer Font"
+                        description="Font for footer text"
+                        data={fontOptions}
+                        value={display.footer_font_family}
+                        onChange={(value) => updateDisplay('footer_font_family', value)}
+                      />
 
-                  <Select
-                    label="Clock Font"
-                    data={monoFontOptions}
-                    value={display.clock_font_family}
-                    onChange={(value) => updateDisplay('clock_font_family', value)}
-                  />
-
-                  <Divider label="Text Layout" />
-
-                  <Select
-                    label="Title Location"
-                    data={displayLocationOptions}
-                    value={display.title_display_location}
-                    onChange={(value) => updateDisplay('title_display_location', value)}
-                  />
-
-                  <Select
-                    label="Speaker Location"
-                    data={displayLocationOptions}
-                    value={display.speaker_display_location}
-                    onChange={(value) => updateDisplay('speaker_display_location', value)}
-                  />
-
-                  <Divider label="Font Families" />
-
-                  <Select
-                    label="Header Font"
-                    data={fontOptions}
-                    value={display.header_font_family}
-                    onChange={(value) => updateDisplay('header_font_family', value)}
-                  />
-
-                  <Select
-                    label="Footer Font"
-                    data={fontOptions}
-                    value={display.footer_font_family}
-                    onChange={(value) => updateDisplay('footer_font_family', value)}
-                  />
-
-                  <Select
-                    label="Message Font"
-                    data={fontOptions}
-                    value={display.message_font_family}
-                    onChange={(value) => updateDisplay('message_font_family', value)}
-                  />
+                      <Select
+                        label="Message Font"
+                        description="Font for message text"
+                        data={fontOptions}
+                        value={display.message_font_family}
+                        onChange={(value) => updateDisplay('message_font_family', value)}
+                      />
+                    </Stack>
+                  </Card>
                 </Stack>
               </Tabs.Panel>
 
-              <Tabs.Panel value="colors" pt="md">
-                <Stack gap="sm">
-                  <ColorInput
-                    label="Timer Color"
-                    value={display.timer_color}
-                    onChange={(value) => updateDisplay('timer_color', value)}
-                    withEyeDropper={true}
-                    swatches={['#ffffff', '#000000', '#868e96', '#fa5252', '#e64980', '#be4bdb', '#7950f2', '#4c6ef5', '#228be6', '#15aabf', '#12b886', '#40c057', '#82c91e', '#fab005', '#fd7e14']}
-                  />
+              {/* Colors & Theme Tab */}
+              <Tabs.Panel value="colors" pt="lg">
+                <Stack gap="lg">
+                  <Card withBorder radius="md" p="md">
+                    <Stack gap="sm">
+                      <Group gap="xs">
+                        <IconPalette size={20} />
+                        <Text fw={600} size="sm">Timer & Clock Colors</Text>
+                      </Group>
+                      <Text size="xs" c="dimmed" mb="xs">
+                        Colors for time display elements
+                      </Text>
 
-                  <ColorInput
-                    label="Clock Color"
-                    value={display.clock_color}
-                    onChange={(value) => updateDisplay('clock_color', value)}
-                    withEyeDropper={true}
-                    swatches={['#ffffff', '#000000', '#868e96', '#fa5252', '#e64980', '#be4bdb', '#7950f2', '#4c6ef5', '#228be6', '#15aabf', '#12b886', '#40c057', '#82c91e', '#fab005', '#fd7e14']}
-                  />
+                      <ColorInput
+                        label="Timer Color"
+                        description="Main timer text color"
+                        value={display.timer_color}
+                        onChange={(value) => updateDisplay('timer_color', value)}
+                        withEyeDropper={true}
+                        swatches={['#ffffff', '#000000', '#868e96', '#fa5252', '#e64980', '#be4bdb', '#7950f2', '#4c6ef5', '#228be6', '#15aabf', '#12b886', '#40c057', '#82c91e', '#fab005', '#fd7e14']}
+                      />
 
-                  <ColorInput
-                    label="Header Text Color"
-                    value={display.header_color}
-                    onChange={(value) => updateDisplay('header_color', value)}
-                    withEyeDropper={true}
-                    swatches={['#ffffff', '#000000', '#868e96', '#fa5252', '#e64980', '#be4bdb', '#7950f2', '#4c6ef5', '#228be6', '#15aabf', '#12b886', '#40c057', '#82c91e', '#fab005', '#fd7e14']}
-                  />
+                      <ColorInput
+                        label="Clock Color"
+                        description="Current time display color"
+                        value={display.clock_color}
+                        onChange={(value) => updateDisplay('clock_color', value)}
+                        withEyeDropper={true}
+                        swatches={['#ffffff', '#000000', '#868e96', '#fa5252', '#e64980', '#be4bdb', '#7950f2', '#4c6ef5', '#228be6', '#15aabf', '#12b886', '#40c057', '#82c91e', '#fab005', '#fd7e14']}
+                      />
+                    </Stack>
+                  </Card>
 
-                  <ColorInput
-                    label="Footer Text Color"
-                    value={display.footer_color}
-                    onChange={(value) => updateDisplay('footer_color', value)}
-                    withEyeDropper={true}
-                    swatches={['#ffffff', '#000000', '#868e96', '#fa5252', '#e64980', '#be4bdb', '#7950f2', '#4c6ef5', '#228be6', '#15aabf', '#12b886', '#40c057', '#82c91e', '#fab005', '#fd7e14']}
-                  />
+                  <Card withBorder radius="md" p="md">
+                    <Stack gap="sm">
+                      <Text fw={600} size="sm">Content Text Colors</Text>
+                      <Text size="xs" c="dimmed" mb="xs">
+                        Colors for titles, speakers, and messages
+                      </Text>
 
-                  <ColorInput
-                    label="Message Color"
-                    value={display.message_color}
-                    onChange={(value) => updateDisplay('message_color', value)}
-                    withEyeDropper={true}
-                    swatches={['#ffffff', '#000000', '#868e96', '#fa5252', '#e64980', '#be4bdb', '#7950f2', '#4c6ef5', '#228be6', '#15aabf', '#12b886', '#40c057', '#82c91e', '#fab005', '#fd7e14']}
-                  />
+                      <ColorInput
+                        label="Header Text Color"
+                        description="Color for header content"
+                        value={display.header_color}
+                        onChange={(value) => updateDisplay('header_color', value)}
+                        withEyeDropper={true}
+                        swatches={['#ffffff', '#000000', '#868e96', '#fa5252', '#e64980', '#be4bdb', '#7950f2', '#4c6ef5', '#228be6', '#15aabf', '#12b886', '#40c057', '#82c91e', '#fab005', '#fd7e14']}
+                      />
 
-                  <Divider label="Progress Colors" />
+                      <ColorInput
+                        label="Footer Text Color"
+                        description="Color for footer content"
+                        value={display.footer_color}
+                        onChange={(value) => updateDisplay('footer_color', value)}
+                        withEyeDropper={true}
+                        swatches={['#ffffff', '#000000', '#868e96', '#fa5252', '#e64980', '#be4bdb', '#7950f2', '#4c6ef5', '#228be6', '#15aabf', '#12b886', '#40c057', '#82c91e', '#fab005', '#fd7e14']}
+                      />
 
-                  <ColorInput
-                    label="Normal State"
-                    value={display.progress_color_main}
-                    onChange={(value) => updateDisplay('progress_color_main', value)}
-                    withEyeDropper={true}
-                    swatches={['#40c057', '#12b886', '#15aabf', '#228be6', '#4c6ef5', '#7950f2', '#be4bdb', '#e64980', '#fa5252', '#fd7e14', '#fab005', '#82c91e']}
-                  />
+                      <ColorInput
+                        label="Message Color"
+                        description="Color for message text"
+                        value={display.message_color}
+                        onChange={(value) => updateDisplay('message_color', value)}
+                        withEyeDropper={true}
+                        swatches={['#ffffff', '#000000', '#868e96', '#fa5252', '#e64980', '#be4bdb', '#7950f2', '#4c6ef5', '#228be6', '#15aabf', '#12b886', '#40c057', '#82c91e', '#fab005', '#fd7e14']}
+                      />
+                    </Stack>
+                  </Card>
 
-                  <ColorInput
-                    label="Warning State"
-                    value={display.progress_color_secondary}
-                    onChange={(value) => updateDisplay('progress_color_secondary', value)}
-                    withEyeDropper={true}
-                    swatches={['#fab005', '#fd7e14', '#82c91e', '#40c057', '#12b886', '#15aabf', '#228be6', '#4c6ef5', '#7950f2', '#be4bdb', '#e64980', '#fa5252']}
-                  />
+                  <Card withBorder radius="md" p="md">
+                    <Stack gap="sm">
+                      <Text fw={600} size="sm">Progress Indicator Colors</Text>
+                      <Text size="xs" c="dimmed" mb="xs">
+                        Colors for different timer states
+                      </Text>
 
-                  <ColorInput
-                    label="Critical State"
-                    value={display.progress_color_tertiary}
-                    onChange={(value) => updateDisplay('progress_color_tertiary', value)}
-                    withEyeDropper={true}
-                    swatches={['#fa5252', '#e64980', '#fd7e14', '#fab005', '#be4bdb', '#7950f2', '#4c6ef5', '#228be6', '#15aabf', '#12b886', '#40c057', '#82c91e']}
-                  />
+                      <ColorInput
+                        label="Normal State"
+                        description="Color when timer is running normally"
+                        value={display.progress_color_main}
+                        onChange={(value) => updateDisplay('progress_color_main', value)}
+                        withEyeDropper={true}
+                        swatches={['#40c057', '#12b886', '#15aabf', '#228be6', '#4c6ef5', '#7950f2', '#be4bdb', '#e64980', '#fa5252', '#fd7e14', '#fab005', '#82c91e']}
+                      />
+
+                      <ColorInput
+                        label="Warning State"
+                        description="Color when approaching time limit"
+                        value={display.progress_color_secondary}
+                        onChange={(value) => updateDisplay('progress_color_secondary', value)}
+                        withEyeDropper={true}
+                        swatches={['#fab005', '#fd7e14', '#82c91e', '#40c057', '#12b886', '#15aabf', '#228be6', '#4c6ef5', '#7950f2', '#be4bdb', '#e64980', '#fa5252']}
+                      />
+
+                      <ColorInput
+                        label="Critical State"
+                        description="Color when time is almost up"
+                        value={display.progress_color_tertiary}
+                        onChange={(value) => updateDisplay('progress_color_tertiary', value)}
+                        withEyeDropper={true}
+                        swatches={['#fa5252', '#e64980', '#fd7e14', '#fab005', '#be4bdb', '#7950f2', '#4c6ef5', '#228be6', '#15aabf', '#12b886', '#40c057', '#82c91e']}
+                      />
+                    </Stack>
+                  </Card>
                 </Stack>
               </Tabs.Panel>
             </Tabs>
 
-            <Group justify="flex-end" gap="sm" mt="md">
+            <Divider />
+
+            <Group justify="flex-end" gap="sm">
               {onCancel && (
-                <Button variant="light" onClick={onCancel}>
+                <Button variant="default" onClick={onCancel} size="md">
                   Cancel
                 </Button>
               )}
               <Button
-                leftSection={<IconDeviceFloppy size={16} />}
-                onClick={() => onSave?.(display)}
+                leftSection={<IconDeviceFloppy size={18} />}
+                onClick={() => {
+                  onSave?.(display);
+                  if (display.is_default && display.id) {
+                    setDefaultDisplay(display.id);
+                  }
+                }}
+                size="md"
               >
                 Save Display
               </Button>
@@ -518,13 +705,17 @@ export default function TimerDisplayEditor({
       </Grid.Col>
 
       <Grid.Col span={{ base: 12, lg: 7 }}>
-        <Paper withBorder p="md" style={{ position: 'sticky', top: '1rem' }}>
+        <Paper withBorder p="xl" radius="md" style={{ position: 'sticky', top: '1rem' }}>
           <Stack gap="md">
-            <Title order={3}>Live Preview</Title>
-            <Text size="sm" c="dimmed">
-              Changes are reflected in real-time
-            </Text>
-            {/* Using the existing TimerDisplay component for preview */}
+            <div>
+              <Group justify="space-between" align="center">
+                <Title order={2}>Live Preview</Title>
+                <Badge color="green" variant="dot">Real-time</Badge>
+              </Group>
+              <Text size="sm" c="dimmed" mt="xs">
+                Changes are reflected instantly as you adjust settings
+              </Text>
+            </div>
             <TimerDisplay 
               display={display} 
               timer={mockTimer}

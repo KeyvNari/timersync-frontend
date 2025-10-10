@@ -6,7 +6,8 @@ import RoomComponent from '@/components/room';
 import { useWebSocketContext, useTimerContext } from '@/providers/websocket-provider';
 import { useAuth, useGetAccountInfo } from '@/hooks';
 import { app } from '@/config';
-
+import { useDisclosure } from '@mantine/hooks';
+import { AITimerChat } from '@/components/ai-timer-chat';
 // Mock data types
 type Display = {
   name: string;
@@ -321,9 +322,10 @@ const handleAddTimer = useCallback(() => {
   //   refreshTimers();
   // }, 1500);
 }, [isAuthenticated, roomId, timers, createTimer, refreshTimers]);
+const [aiChatOpened, { open: openAIChat, close: closeAIChat }] = useDisclosure(false);
 
   const handleCreateWithAI = () => {
-    console.log('Create timer with AI for room:', roomId);
+    openAIChat();
   };
 
 
@@ -366,6 +368,11 @@ const handleAddTimer = useCallback(() => {
         // TODO: Show home/dashboard when no roomId (rooms list, etc.)
         <div>Home/Dashboard content goes here</div>
       )}
+          <AITimerChat
+      opened={aiChatOpened}
+      onClose={closeAIChat}
+      onTimerCreate={handleCreateWithAI }
+    />
     </Page>
   );
 }

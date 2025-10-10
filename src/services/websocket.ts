@@ -300,6 +300,13 @@ selectTimer(timerId: number, timerData?: Partial<TimerData>): void {
     });
   }
 
+  setDefaultDisplay(displayId: number): void {
+    this.send({
+      type: 'set_default_display',
+      display_id: displayId,
+    });
+  }
+
   // Room management
   joinRoom(): void {
     this.send({ type: 'room_join' });

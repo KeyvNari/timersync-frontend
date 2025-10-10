@@ -53,6 +53,7 @@ interface WebSocketContextValue {
   // Display management
   createDisplay: (displayData: any) => void;
   updateDisplay: (displayId: number, updateData: any) => void;
+  setDefaultDisplay: (displayId: number) => void;
 
   // Room actions
   refreshTimers: () => void;
@@ -508,6 +509,10 @@ const updateDisplay = useCallback((displayId: number, updateData: any) => {
   wsServiceRef.current?.updateDisplay(displayId, updateData);
 }, []);
 
+const setDefaultDisplay = useCallback((displayId: number) => {
+  wsServiceRef.current?.setDefaultDisplay(displayId);
+}, []);
+
 // Connections
 const requestConnections = useCallback(() => {
   wsServiceRef.current?.requestConnections();
@@ -544,6 +549,7 @@ const requestConnections = useCallback(() => {
     createTimer,
     createDisplay,
     updateDisplay,
+    setDefaultDisplay,
     refreshTimers,
     joinRoom,
     leaveRoom,
