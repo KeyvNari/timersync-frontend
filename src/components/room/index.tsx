@@ -12,6 +12,7 @@ import TimerDisplay from '@/components/timer-display';
 import { ConnectedDevices } from '@/components/connected-devices';
 import { ResizableDashboard } from '@/components/resizable-dashboard';
 import TimerDisplayEditor from '@/components/timer-display-editor';
+import { useWebSocketContext } from '@/providers/websocket-provider';
 import classes from './room.module.css';
 
 export interface RoomComponentProps {
@@ -66,6 +67,7 @@ export default function RoomComponent({
   showHeader = true,
 }: RoomComponentProps) {
   const navigate = useNavigate();
+  const { defaultDisplayId } = useWebSocketContext();
 
   // Display Editor state
   const [editorOpened, { open: openEditor, close: closeEditor }] = useDisclosure(false);
@@ -78,8 +80,9 @@ export default function RoomComponent({
 
   // Display Editor handlers
   const handleOpenDisplayEditor = () => {
-    // Open without pre-selecting a display so user can choose from dropdown
-    setEditingDisplay(null);
+    // Pre-select the default display if available, otherwise null
+    const defaultDisplay = displays.find(d => d.id === defaultDisplayId) || null;
+    setEditingDisplay(defaultDisplay);
     openEditor();
   };
 
@@ -315,6 +318,7 @@ export default function RoomComponent({
             onSave={handleSaveDisplay}
             onCancel={closeEditor}
             nameError={displayNameError}
+            defaultDisplayId={defaultDisplayId}
           />
         </Box>
       </Modal>

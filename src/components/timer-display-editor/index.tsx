@@ -44,6 +44,7 @@ interface TimerDisplayEditorProps {
   onSave?: (display: any) => void;
   onCancel?: () => void;
   nameError?: string | null;
+  defaultDisplayId?: number | null;
 }
 
 export default function TimerDisplayEditor({
@@ -51,7 +52,8 @@ export default function TimerDisplayEditor({
   displays = [],
   onSave,
   onCancel,
-  nameError
+  nameError,
+  defaultDisplayId
 }: TimerDisplayEditorProps) {
   const { setDefaultDisplay } = useWebSocketContext();
 
@@ -87,7 +89,12 @@ export default function TimerDisplayEditor({
     is_default: false,
   };
 
-  const [display, setDisplay] = useState(initialDisplay || defaultDisplay);
+  const initialDisplayWithIsDefault = initialDisplay ? {
+    ...initialDisplay,
+    is_default: initialDisplay.id === defaultDisplayId
+  } : { ...defaultDisplay, is_default: false };
+
+  const [display, setDisplay] = useState(initialDisplayWithIsDefault);
   const [selectedDisplayId, setSelectedDisplayId] = useState<string | number>(initialDisplay?.id || 'new');
   const [isCreatingNew, setIsCreatingNew] = useState(!initialDisplay?.id);
 
@@ -105,7 +112,10 @@ export default function TimerDisplayEditor({
     } else {
       const selectedDisplay = displays.find(d => d.id.toString() === value);
       if (selectedDisplay) {
-        setDisplay({ ...selectedDisplay });
+        setDisplay({
+          ...selectedDisplay,
+          is_default: selectedDisplay.id === defaultDisplayId
+        });
         setSelectedDisplayId(selectedDisplay.id);
         setIsCreatingNew(false);
       }
@@ -690,7 +700,9 @@ export default function TimerDisplayEditor({
               <Button
                 leftSection={<IconDeviceFloppy size={18} />}
                 onClick={() => {
-                  onSave?.(display);
+                  // Remove client-side only properties before saving
+                  const { is_default, ...displayToSave } = display;
+                  onSave?.(displayToSave);
                   if (display.is_default && display.id) {
                     setDefaultDisplay(display.id);
                   }

@@ -28,6 +28,7 @@ interface WebSocketContextValue {
   displays: DisplayConfig[];
   connections: ConnectionInfo[];
   connectionCount: number;
+  defaultDisplayId: number | null;
 
   // Error/success messages
   lastError: string | null;
@@ -86,6 +87,7 @@ export function WebSocketProvider({
   const [displays, setDisplays] = useState<DisplayConfig[]>([]);
   const [connections, setConnections] = useState<ConnectionInfo[]>([]);
   const [connectionCount, setConnectionCount] = useState(0);
+  const [defaultDisplayId, setDefaultDisplayId] = useState<number | null>(null);
 
   const [lastError, setLastError] = useState<string | null>(null);
   const [lastSuccess, setLastSuccess] = useState<string | null>(null);
@@ -336,6 +338,11 @@ wsService.on('error', (message: any) => {
         return Array.from(existingMap.values());
       });
     });
+
+    wsService.on('default_display_id', (message: any) => {
+      console.log('Received default display ID:', message.default_display_id);
+      setDefaultDisplayId(message.default_display_id);
+    });
   };
 
   // Connection management
@@ -421,6 +428,7 @@ const disconnect = useCallback(() => {
   setDisplays([]);
   setConnections([]);
   setConnectionCount(0);
+  setDefaultDisplayId(null);
   setLastError(null);
   setLastSuccess(null);
 }, []);
@@ -534,6 +542,7 @@ const requestConnections = useCallback(() => {
     displays,
     connections,
     connectionCount,
+    defaultDisplayId,
     lastError,
     lastSuccess,
     wsService: wsServiceRef.current,
