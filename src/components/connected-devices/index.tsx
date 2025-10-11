@@ -240,6 +240,7 @@ export function ConnectedDevices({
   const [connectionList, setConnectionList] = useState<ConnectionInfo[]>(connections);
   
   useEffect(() => {
+    console.log('ConnectedDevices received connections:', connections);
     setConnectionList(connections);
   }, [connections]);
   

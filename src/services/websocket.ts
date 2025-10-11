@@ -48,6 +48,11 @@ export interface ConnectionInfo {
   connection_id: string;
   connection_name: string;
   access_level: 'viewer' | 'full';
+  user_id: number;
+  ip_address: string;
+  connected_at: string;
+  is_self?: boolean;
+  access_token_id?: number;
 }
 
 export interface DisplayConfig {

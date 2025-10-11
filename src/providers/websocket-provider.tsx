@@ -156,9 +156,10 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
       setSelectedTimerId(message.room_info?.selected_timer_id || null);
       setLastSuccess(message.message || 'Connected successfully');
 
-      // Request initial timers after successful connection
+      // Request initial timers and connections after successful connection
       setTimeout(() => {
         wsService.requestRoomTimers();
+        wsService.requestConnections();
       }, 100);
     } else {
       // This is likely a successful operation response
@@ -311,8 +312,15 @@ wsService.on('error', (message: any) => {
     });
 
     // Connection events
-    wsService.on('CONNECTION_COUNT', (message: any) => {
+    wsService.on('connection_count', (message: any) => {
       setConnectionCount(message.count || 0);
+      if (message.current_connections) {
+        setConnections(message.current_connections);
+      } else if (message.disconnected_connection) {
+        setConnections((prev) =>
+          prev.filter((conn) => conn.connection_id !== message.disconnected_connection.connection_id)
+        );
+      }
     });
 
     wsService.on('CONNECTION_UPDATE', (message: any) => {
