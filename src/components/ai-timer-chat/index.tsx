@@ -1,5 +1,6 @@
-// src/components/ai-timer-chat/index.tsx
 import { useState, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {
   Modal,
   Paper,
@@ -70,12 +71,12 @@ export function AITimerChat({ opened, onClose, onTimerCreate }: AITimerChatProps
     setIsThinking(true);
 
     // TODO: Add AI logic here
-    // For now, just simulate a response
+    // Simulating a response with markdown formatting
     setTimeout(() => {
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: 'I understand. Let me help you create that timer...',
+        content: "Let's create a timer for your presentation titled **\"AI Use Cases in Data Analytics\"** with a duration of **10 minutes** as a countdown timer.\n\nHere's a summary of what I'll create:\n\n| **Timer Title**                       | **Duration** | **Timer Type** |\n|---------------------------------------|--------------|-----------------|\n| AI Use Cases in Data Analytics        | 10 minutes   | Countdown       |\n\nDo you want me to proceed? (yes/no)",
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, aiResponse]);
@@ -164,9 +165,9 @@ export function AITimerChat({ opened, onClose, onTimerCreate }: AITimerChatProps
                         marginLeft: '32px',
                       }}
                     >
-                      <Text size="sm" c="dark" style={{ whiteSpace: 'pre-wrap' }}>
-                        {message.content}
-                      </Text>
+                      <Box className="markdown-content">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+                      </Box>
                       <Group gap="xs" mt="sm">
                         <ActionIcon
                           size="sm"
@@ -366,7 +367,7 @@ export function AITimerChat({ opened, onClose, onTimerCreate }: AITimerChatProps
         </Box>
       </Stack>
 
-      {/* Add pulse animation */}
+      {/* Markdown and animation styles */}
       <style>
         {`
           @keyframes pulse {
@@ -378,6 +379,105 @@ export function AITimerChat({ opened, onClose, onTimerCreate }: AITimerChatProps
               opacity: 1;
               transform: scale(1.2);
             }
+          }
+
+          .markdown-content {
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--mantine-color-dark-6);
+          }
+
+          .markdown-content h1,
+          .markdown-content h2,
+          .markdown-content h3,
+          .markdown-content h4,
+          .markdown-content h5,
+          .markdown-content h6 {
+            margin-top: 16px;
+            margin-bottom: 8px;
+            font-weight: 600;
+            line-height: 1.3;
+          }
+
+          .markdown-content h3 {
+            font-size: 16px;
+          }
+
+          .markdown-content p {
+            margin-top: 0;
+            margin-bottom: 12px;
+          }
+
+          .markdown-content ul,
+          .markdown-content ol {
+            margin-top: 0;
+            margin-bottom: 12px;
+            padding-left: 24px;
+          }
+
+          .markdown-content li {
+            margin-bottom: 4px;
+          }
+
+          .markdown-content strong {
+            font-weight: 600;
+            color: var(--mantine-color-dark-7);
+          }
+
+          .markdown-content code {
+            background-color: var(--mantine-color-gray-1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+          }
+
+          .markdown-content pre {
+            background-color: var(--mantine-color-gray-1);
+            padding: 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin-bottom: 12px;
+          }
+
+          .markdown-content pre code {
+            background-color: transparent;
+            padding: 0;
+          }
+
+          .markdown-content blockquote {
+            border-left: 4px solid var(--mantine-color-blue-5);
+            padding-left: 12px;
+            margin-left: 0;
+            color: var(--mantine-color-gray-7);
+          }
+
+          .markdown-content table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 12px;
+            font-size: 14px;
+          }
+
+          .markdown-content th,
+          .markdown-content td {
+            border: 1px solid var(--mantine-color-gray-3);
+            padding: 8px 12px;
+            text-align: left;
+          }
+
+          .markdown-content th {
+            background-color: var(--mantine-color-gray-1);
+            font-weight: 600;
+            color: var(--mantine-color-dark-7);
+          }
+
+          .markdown-content tr:nth-child(even) {
+            background-color: var(--mantine-color-gray-0);
+          }
+
+          .markdown-content tr:hover {
+            background-color: var(--mantine-color-gray-1);
           }
         `}
       </style>
