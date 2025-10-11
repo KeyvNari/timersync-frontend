@@ -371,7 +371,8 @@ const [aiChatOpened, { open: openAIChat, close: closeAIChat }] = useDisclosure(f
           <AITimerChat
       opened={aiChatOpened}
       onClose={closeAIChat}
-      onTimerCreate={handleCreateWithAI }
+      onTimerCreate={handleCreateWithAI}
+      roomId={roomId}
     />
     </Page>
   );

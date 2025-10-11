@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
@@ -28,6 +28,8 @@ import {
   IconX,
   IconFile,
 } from '@tabler/icons-react';
+import { useAskAI } from '@/hooks/api/ai-chat';
+import { notifications } from '@mantine/notifications';
 
 interface Message {
   id: string;
@@ -40,9 +42,10 @@ interface AITimerChatProps {
   opened: boolean;
   onClose: () => void;
   onTimerCreate?: (timerData: any) => void;
+  roomId: number | null;
 }
 
-export function AITimerChat({ opened, onClose, onTimerCreate }: AITimerChatProps) {
+export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerChatProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -54,10 +57,48 @@ export function AITimerChat({ opened, onClose, onTimerCreate }: AITimerChatProps
   const [inputValue, setInputValue] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const resetRef = useRef<() => void>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  // Initialize the AI mutation hook
+  const askAIMutation = useAskAI({
+    onSuccess: (data) => {
+      // Store the session_id for future messages
+      setSessionId(data.session_id);
+
+      // Add AI response to messages
+      const aiResponse: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: data.answer,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, aiResponse]);
+      setIsThinking(false);
+    },
+    onError: (error) => {
+      setIsThinking(false);
+      notifications.show({
+        title: 'Error',
+        message: error.message || 'Failed to get response from AI',
+        color: 'red',
+      });
+    },
+  });
 
   const handleSendMessage = () => {
     if (!inputValue.trim()) return;
+
+    // Validate roomId
+    if (!roomId) {
+      notifications.show({
+        title: 'Error',
+        message: 'No room selected. Please select a room first.',
+        color: 'red',
+      });
+      return;
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -67,21 +108,16 @@ export function AITimerChat({ opened, onClose, onTimerCreate }: AITimerChatProps
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    const question = inputValue;
     setInputValue('');
     setIsThinking(true);
 
-    // TODO: Add AI logic here
-    // Simulating a response with markdown formatting
-    setTimeout(() => {
-      const aiResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: "Let's create a timer for your presentation titled **\"AI Use Cases in Data Analytics\"** with a duration of **10 minutes** as a countdown timer.\n\nHere's a summary of what I'll create:\n\n| **Timer Title**                       | **Duration** | **Timer Type** |\n|---------------------------------------|--------------|-----------------|\n| AI Use Cases in Data Analytics        | 10 minutes   | Countdown       |\n\nDo you want me to proceed? (yes/no)",
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, aiResponse]);
-      setIsThinking(false);
-    }, 1000);
+    // Call the backend API
+    askAIMutation.mutate({
+      question,
+      current_room_id: roomId,
+      session_id: sessionId,
+    });
   };
 
   const handleKeyPress = (event: React.KeyboardEvent) => {
@@ -105,6 +141,7 @@ export function AITimerChat({ opened, onClose, onTimerCreate }: AITimerChatProps
       },
     ]);
     setUploadedFile(null);
+    setSessionId(null); // Reset session when clearing chat
     resetRef.current?.();
   };
 
