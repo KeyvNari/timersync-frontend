@@ -150,6 +150,8 @@ export default function HomePage() {
 
   const {
     connected,
+    connectionStatus,
+    connectionMessage,
     connect,
     disconnect,
     lastError,
@@ -160,6 +162,7 @@ export default function HomePage() {
     createTimer,
     createDisplay,
     updateDisplay,
+    disconnectClient,
   } = useWebSocketContext();
 
   const {
@@ -333,8 +336,33 @@ const [aiChatOpened, { open: openAIChat, close: closeAIChat }] = useDisclosure(f
   // Show loading if roomId is present but roomInfo not loaded yet
   const isLoading = roomId && !roomInfo;
 
+  const showConnectionNotification = connectionStatus !== 'connected' && connectionMessage;
+
   return (
     <Page title={roomInfo?.name || 'Loading Room...' || 'Home'} disableProgress={true}>
+      {(roomId && showConnectionNotification) && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '80px',
+            right: '20px',
+            padding: '12px 20px',
+            backgroundColor: connectionStatus === 'disconnected' ? '#ff6b6b' : '#ffa500',
+            color: 'white',
+            borderRadius: '8px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            zIndex: 1000,
+            maxWidth: '300px',
+            fontSize: '14px',
+            fontFamily: 'Arial, sans-serif',
+          }}
+        >
+          <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+            {connectionStatus === 'disconnected' ? 'Connection Lost' : 'Reconnecting...'}
+          </div>
+          <div>{connectionMessage}</div>
+        </div>
+      )}
       {roomId ? (
         isLoading ? (
           <LoadingScreen />
@@ -358,6 +386,7 @@ const [aiChatOpened, { open: openAIChat, close: closeAIChat }] = useDisclosure(f
             onCreateWithAI={handleCreateWithAI}
             onCreateDisplay={createDisplay}
             onUpdateDisplay={updateDisplay}
+            onDisconnectDevice={disconnectClient}
             showBackButton={false}
             showShareButton={true}
             showActionButtons={true}

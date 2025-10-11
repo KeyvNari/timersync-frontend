@@ -35,6 +35,7 @@ export interface RoomComponentProps {
   onSaveDisplay?: (display: any) => void;
   onCreateDisplay?: (displayData: any) => void;
   onUpdateDisplay?: (displayId: number, updateData: any) => void;
+  onDisconnectDevice?: (connectionId: string) => void;
   showBackButton?: boolean;
   showShareButton?: boolean;
   showActionButtons?: boolean;
@@ -61,6 +62,7 @@ export default function RoomComponent({
   onSaveDisplay,
   onCreateDisplay,
   onUpdateDisplay,
+  onDisconnectDevice,
   showBackButton = false,
   showShareButton = true,
   showActionButtons = true,
@@ -279,6 +281,7 @@ export default function RoomComponent({
         connections={connections}
         currentUserAccess={userAccessLevel}
         compactMode={false}
+        onDisconnectDevice={onDisconnectDevice}
       />
     </Paper>
   );

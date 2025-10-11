@@ -19,6 +19,10 @@ import {
 interface WebSocketContextValue {
   connected: boolean;
 
+  // Connection health state
+  connectionStatus: 'connected' | 'disconnected' | 'reconnecting';
+  connectionMessage: string | null;
+
   // Timer state
   timers: TimerData[];
   selectedTimerId: number | null;
@@ -64,6 +68,7 @@ interface WebSocketContextValue {
 
   // Connections
   requestConnections: () => void;
+  disconnectClient: (targetConnectionId: string) => void;
 }
 
 const WebSocketContext = createContext<WebSocketContextValue | null>(null);
@@ -80,6 +85,9 @@ export function WebSocketProvider({
   const wsServiceRef = useRef<SimpleWebSocketService | null>(null);
 
   const [connected, setConnected] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'reconnecting'>('disconnected');
+  const [connectionMessage, setConnectionMessage] = useState<string | null>(null);
+
   const [timers, setTimers] = useState<TimerData[]>([]);
   const [selectedTimerId, setSelectedTimerId] = useState<number | null>(null);
 
@@ -410,6 +418,16 @@ const connect = useCallback(async (
 
   const wsService = createSimpleWebSocketService(finalOptions);
 
+  // Set connection health callback to update UI state
+  wsService.setConnectionHealthCallback((status, message) => {
+    setConnectionStatus(status);
+    setConnectionMessage(message || null);
+  });
+
+  // Initial state for reconnection
+  setConnectionStatus('reconnecting');
+  setConnectionMessage('Connecting to room...');
+
   wsServiceRef.current = wsService;
   setupEventHandlers(wsService);
 
@@ -430,6 +448,8 @@ const disconnect = useCallback(() => {
   }
 
   setConnected(false);
+  setConnectionStatus('disconnected');
+  setConnectionMessage('Disconnected by user');
   setTimers([]);
   setSelectedTimerId(null);
   setRoomInfo(null);
@@ -534,6 +554,10 @@ const requestConnections = useCallback(() => {
   wsServiceRef.current?.requestConnections();
 }, []);
 
+const disconnectClient = useCallback((targetConnectionId: string) => {
+  wsServiceRef.current?.disconnectClient(targetConnectionId);
+}, []);
+
   useEffect(() => {
     return () => {
       if (wsServiceRef.current) {
@@ -544,6 +568,8 @@ const requestConnections = useCallback(() => {
 
   const value: WebSocketContextValue = {
     connected,
+    connectionStatus,
+    connectionMessage,
     timers,
     selectedTimerId,
     roomInfo,
@@ -572,6 +598,7 @@ const requestConnections = useCallback(() => {
     leaveRoom,
     updateRoom,
     requestConnections,
+    disconnectClient,
   };
 
   return (

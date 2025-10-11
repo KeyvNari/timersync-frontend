@@ -145,6 +145,7 @@ function ConnectionItem({
   currentUserAccess: 'viewer' | 'full';
   onDisconnect?: (connectionId: string) => void;
 }) {
+  console.log('Rendering connection:', connection.connection_name, 'is_self:', connection.is_self);
   const [expanded, setExpanded] = useState(false);
   const deviceType = getDeviceType(connection.user_agent);
   const isOnline = connection.last_ping ?
