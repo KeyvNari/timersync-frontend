@@ -15,6 +15,7 @@ import {
   Avatar,
   Badge,
   FileButton,
+  Loader,
 } from '@mantine/core';
 import {
   IconSend,
@@ -30,6 +31,7 @@ import {
 } from '@tabler/icons-react';
 import { useAskAI } from '@/hooks/api/ai-chat';
 import { notifications } from '@mantine/notifications';
+import { extractFileContent, formatFileSize } from '@/utils/file-parser';
 
 interface Message {
   id: string;
@@ -57,6 +59,9 @@ export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerC
   const [inputValue, setInputValue] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [extractedFileContent, setExtractedFileContent] = useState<string | null>(null);
+  const [isExtractingFile, setIsExtractingFile] = useState(false);
+  const [hasFileSent, setHasFileSent] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const resetRef = useRef<() => void>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -123,12 +128,21 @@ export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerC
     setInputValue('');
     setIsThinking(true);
 
-    // Call the backend API
-    askAIMutation.mutate({
+    // Prepare base request data
+    const requestData = {
       question,
       current_room_id: roomId,
       session_id: sessionId,
-    });
+      ...((!hasFileSent && extractedFileContent) ? { file_content: extractedFileContent } : {}),
+    };
+
+    // Mark file as sent if it was included
+    if (!hasFileSent && extractedFileContent) {
+      setHasFileSent(true);
+    }
+
+    // Call the backend API
+    askAIMutation.mutate(requestData);
   };
 
   const handleKeyPress = (event: React.KeyboardEvent) => {
@@ -152,17 +166,59 @@ export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerC
       },
     ]);
     setUploadedFile(null);
+    setExtractedFileContent(null);
+    setHasFileSent(false);
     setSessionId(null); // Reset session when clearing chat
     resetRef.current?.();
   };
 
-  const handleFileUpload = (file: File | null) => {
+  const handleFileUpload = async (file: File | null) => {
+    if (!file) return;
+
     setUploadedFile(file);
-    // TODO: Process the file here
+    setIsExtractingFile(true);
+
+    try {
+      const result = await extractFileContent(file);
+
+      if (result.success && result.content) {
+        setExtractedFileContent(result.content);
+        notifications.show({
+          title: 'File uploaded',
+          message: `Successfully extracted content from ${file.name}`,
+          color: 'green',
+        });
+      } else {
+        setUploadedFile(null);
+        notifications.show({
+          title: 'Error',
+          message: result.error || 'Failed to extract file content',
+          color: 'red',
+        });
+      }
+    } catch (error) {
+      setUploadedFile(null);
+      notifications.show({
+        title: 'Error',
+        message: 'An unexpected error occurred while processing the file',
+        color: 'red',
+      });
+    } finally {
+      setIsExtractingFile(false);
+    }
   };
 
   const handleRemoveFile = () => {
+    if (hasFileSent) {
+      notifications.show({
+        title: 'Cannot remove file',
+        message: 'File has already been sent. Clear the chat to upload a new file.',
+        color: 'orange',
+      });
+      return;
+    }
     setUploadedFile(null);
+    setExtractedFileContent(null);
     resetRef.current?.();
   };
 
@@ -354,18 +410,33 @@ export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerC
               <Paper p="xs" withBorder>
                 <Group gap="xs" justify="space-between">
                   <Group gap="xs">
-                    <IconFile size={18} color="var(--mantine-color-blue-6)" />
+                    {isExtractingFile ? (
+                      <Loader size="sm" />
+                    ) : (
+                      <IconFile size={18} color="var(--mantine-color-blue-6)" />
+                    )}
                     <Text size="sm" fw={500}>{uploadedFile.name}</Text>
                     <Text size="xs" c="dimmed">
-                      ({(uploadedFile.size / 1024).toFixed(1)} KB)
+                      ({formatFileSize(uploadedFile.size)})
                     </Text>
+                    {extractedFileContent && (
+                      <Badge size="xs" color="green" variant="light">
+                        {extractedFileContent.length} chars
+                      </Badge>
+                    )}
+                    {hasFileSent && (
+                      <Badge size="xs" color="blue" variant="light">
+                        Sent
+                      </Badge>
+                    )}
                   </Group>
                   <ActionIcon
                     size="sm"
                     variant="subtle"
                     color="red"
                     onClick={handleRemoveFile}
-                    title="Remove file"
+                    title={hasFileSent ? "Cannot remove - file already sent" : "Remove file"}
+                    disabled={hasFileSent}
                   >
                     <IconX size={16} />
                   </ActionIcon>
@@ -377,8 +448,8 @@ export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerC
               <FileButton
                 resetRef={resetRef}
                 onChange={handleFileUpload}
-                accept=".pdf,.docx,.md,.txt,.csv"
-                disabled={uploadedFile !== null}
+                accept=".pdf,.docx,.md,.txt,.csv,.xlsx,.xls"
+                disabled={uploadedFile !== null || isExtractingFile}
               >
                 {(props) => (
                   <ActionIcon
@@ -386,8 +457,8 @@ export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerC
                     size="lg"
                     variant="light"
                     color="gray"
-                    disabled={uploadedFile !== null}
-                    title={uploadedFile ? "Remove current file to upload another" : "Upload file"}
+                    disabled={uploadedFile !== null || isExtractingFile}
+                    title={uploadedFile ? "Remove current file to upload another" : "Upload file (.pdf, .docx, .md, .txt, .csv, .xlsx, .xls)"}
                   >
                     <IconPaperclip size={18} />
                   </ActionIcon>

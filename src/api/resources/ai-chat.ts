@@ -6,6 +6,7 @@ export const AskAIRequestSchema = z.object({
   question: z.string().min(1),
   current_room_id: z.number().int().positive(),
   session_id: z.string().uuid().nullable(),
+  file_content: z.string().optional(),
 });
 
 // Response schema matching backend API
