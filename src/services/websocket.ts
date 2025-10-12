@@ -121,8 +121,8 @@ export class SimpleWebSocketService {
   private connectionHealthCallback?: (status: 'connected' | 'disconnected' | 'reconnecting', message?: string) => void;
 
   // Connection health constants
-  private static readonly PING_INTERVAL = 10000; // Send ping every 10 seconds
-  private static readonly PONG_TIMEOUT = 5000;   // Wait 5 seconds for pong
+  private static readonly PING_INTERVAL = 30000; // Send ping every 30 seconds
+  private static readonly PONG_TIMEOUT = 15000;   // Wait 15 seconds for pong
   private static readonly MAX_MISSED_PINGS = 3;   // Allow 3 missed pings before force reconnect
   private static readonly RECONNECT_DELAY_BASE = 1000; // Start with 1 second
   private static readonly MAX_RECONNECT_DELAY = 30000; // Cap at 30 seconds

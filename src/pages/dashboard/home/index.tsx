@@ -8,6 +8,7 @@ import { useAuth, useGetAccountInfo } from '@/hooks';
 import { app } from '@/config';
 import { useDisclosure } from '@mantine/hooks';
 import { AITimerChat } from '@/components/ai-timer-chat';
+import { Modal, Button, Text, Group, Stack } from '@mantine/core';
 // Mock data types
 type Display = {
   name: string;
@@ -152,6 +153,7 @@ export default function HomePage() {
     connected,
     connectionStatus,
     connectionMessage,
+    disconnectedByHost,
     connect,
     disconnect,
     lastError,
@@ -331,6 +333,30 @@ const [aiChatOpened, { open: openAIChat, close: closeAIChat }] = useDisclosure(f
     openAIChat();
   };
 
+  // Handle retry connection after being disconnected by host
+  const handleRetryConnection = useCallback(async () => {
+    if (!roomId) return;
+
+    try {
+      const userToken = localStorage.getItem(app.accessTokenStoreKey);
+      if (!userToken) {
+        console.error('❌ No authentication token found!');
+        return;
+      }
+
+      const connectOptions = {
+        token: userToken,
+        autoReconnect: true,
+        reconnectInterval: 3000,
+        maxReconnectAttempts: 5,
+      };
+
+      await connect(roomId, connectOptions);
+    } catch (error) {
+      console.error('Failed to reconnect to room:', error);
+    }
+  }, [roomId, connect]);
+
 
 
   // Show loading if roomId is present but roomInfo not loaded yet
@@ -403,6 +429,48 @@ const [aiChatOpened, { open: openAIChat, close: closeAIChat }] = useDisclosure(f
       onTimerCreate={handleCreateWithAI}
       roomId={roomId}
     />
+
+      {/* Disconnection by Host Modal */}
+      <Modal
+        opened={!!disconnectedByHost && roomId !== null}
+        onClose={() => {}} // Modal cannot be closed by user
+        centered
+        size="md"
+        title="Disconnected from Room"
+        closeOnClickOutside={false}
+        closeOnEscape={false}
+        withCloseButton={false}
+        styles={{
+          header: { backgroundColor: '#ff6b6b', color: 'white', borderRadius: '8px 8px 0 0' },
+          content: { borderRadius: '8px' },
+          title: { fontWeight: 'bold' }
+        }}
+      >
+        <Stack gap="md" align="center">
+          <Text size="lg" ta="center">
+            You have been disconnected from the room
+          </Text>
+
+          {disconnectedByHost?.disconnected_by?.connection_name && (
+            <Text size="sm" c="dimmed" ta="center">
+              Disconnected by: {disconnectedByHost.disconnected_by.connection_name}
+            </Text>
+          )}
+
+          <Text size="sm" c="dimmed" ta="center">
+            {disconnectedByHost?.message || 'You are being disconnected by the host'}
+          </Text>
+
+          <Group mt="lg">
+            <Button variant="outline" onClick={() => window.history.back()}>
+              Go to TimerSync
+            </Button>
+            <Button color="blue" onClick={handleRetryConnection}>
+              Try Again
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </Page>
   );
 }

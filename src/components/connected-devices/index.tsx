@@ -145,11 +145,21 @@ function ConnectionItem({
   currentUserAccess: 'viewer' | 'full';
   onDisconnect?: (connectionId: string) => void;
 }) {
-  console.log('Rendering connection:', connection.connection_name, 'is_self:', connection.is_self);
+  console.log('Rendering connection:', connection.connection_name, 'Full connection object:', connection);
   const [expanded, setExpanded] = useState(false);
   const deviceType = getDeviceType(connection.user_agent);
   const isOnline = connection.last_ping ?
     (new Date().getTime() - new Date(connection.last_ping).getTime()) < 300000  : true;
+
+  // Check if this is the current user's connection
+  // Backend might send 'self' instead of 'is_self'
+  const isSelf = connection.is_self === true || (connection as any).self === true;
+  console.log('isSelf check:', {
+    is_self: connection.is_self,
+    self: (connection as any).self,
+    isSelf: isSelf,
+    connectionName: connection.connection_name
+  });
 
   return (
     <Box p="sm">
@@ -171,16 +181,16 @@ function ConnectionItem({
               <Text size="sm" fw={500} truncate>
                 {connection.connection_name}
               </Text>
-              
-              <Tooltip label={connection.access_level === 'full' ? 'Admin access' : 'Viewer access'}>
+
+              <Tooltip label={connection.access_level === 'full' ? 'Admin access' : 'Viewer access'} withinPortal>
                 {connection.access_level === 'full' ? (
                   <AdminIcon size="0.7rem" color="var(--mantine-color-blue-6)" />
                 ) : (
                   <ViewerIcon size="0.7rem" color="var(--mantine-color-gray-6)" />
                 )}
               </Tooltip>
-              
-              {connection.is_self && (
+
+              {isSelf && (
                 <Badge size="xs" color="green" variant="dot">
                   You
                 </Badge>
@@ -191,7 +201,7 @@ function ConnectionItem({
 
         <Group gap="xs">
           {currentUserAccess === 'full' && (
-            <Tooltip label={expanded ? "Hide details" : "Show details"}>
+            <Tooltip label={expanded ? "Hide details" : "Show details"} withinPortal>
               <ActionIcon
                 variant="subtle"
                 size="xs"
@@ -201,8 +211,8 @@ function ConnectionItem({
               </ActionIcon>
             </Tooltip>
           )}
-          {currentUserAccess === 'full' && !connection.is_self && onDisconnect && (
-            <Tooltip label="Disconnect device">
+          {currentUserAccess === 'full' && !isSelf && onDisconnect && (
+            <Tooltip label="Disconnect device" withinPortal>
               <ActionIcon
                 variant="subtle"
                 color="red"

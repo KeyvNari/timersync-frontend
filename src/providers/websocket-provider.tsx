@@ -23,6 +23,15 @@ interface WebSocketContextValue {
   connectionStatus: 'connected' | 'disconnected' | 'reconnecting';
   connectionMessage: string | null;
 
+  // Disconnection by host
+  disconnectedByHost: {
+    message: string;
+    disconnected_by: {
+      connection_id: string;
+      connection_name: string;
+    };
+  } | null;
+
   // Timer state
   timers: TimerData[];
   selectedTimerId: number | null;
@@ -88,6 +97,15 @@ export function WebSocketProvider({
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'reconnecting'>('disconnected');
   const [connectionMessage, setConnectionMessage] = useState<string | null>(null);
 
+  // Disconnection by host state
+  const [disconnectedByHost, setDisconnectedByHost] = useState<{
+    message: string;
+    disconnected_by: {
+      connection_id: string;
+      connection_name: string;
+    };
+  } | null>(null);
+
   const [timers, setTimers] = useState<TimerData[]>([]);
   const [selectedTimerId, setSelectedTimerId] = useState<number | null>(null);
 
@@ -105,6 +123,9 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
   // Use lowercase to match what backend actually sends
   wsService.on('success', (message: any) => {
     console.log('Received success message:', message);
+
+    // Clear any disconnection state on successful connection
+    setDisconnectedByHost(null);
 
     // Check if this is a timer operation success
     if (message.timer_id && message.message) {
@@ -359,6 +380,42 @@ wsService.on('error', (message: any) => {
       console.log('Received default display ID:', message.default_display_id);
       setDefaultDisplayId(message.default_display_id);
     });
+
+    // Disconnection by host event
+    wsService.on('disconnected_by_host', (message: any) => {
+      console.log('Received disconnected_by_host event:', message);
+
+      // Stop any ongoing connection health monitoring
+      if (wsServiceRef.current) {
+        wsServiceRef.current.disconnect();
+        wsServiceRef.current = null;
+      }
+
+      // Set disconnection state
+      setConnected(false);
+      setConnectionStatus('disconnected');
+      setConnectionMessage('Disconnected by host');
+
+      // Store disconnection details
+      setDisconnectedByHost({
+        message: message.message || 'You have been disconnected from the room',
+        disconnected_by: message.disconnected_by || {
+          connection_id: 'unknown',
+          connection_name: 'Host'
+        }
+      });
+
+      // Clear other state
+      setTimers([]);
+      setSelectedTimerId(null);
+      setRoomInfo(null);
+      setDisplays([]);
+      setConnections([]);
+      setConnectionCount(0);
+      setDefaultDisplayId(null);
+      setLastError(null);
+      setLastSuccess(null);
+    });
   };
 
   // Connection management
@@ -450,6 +507,7 @@ const disconnect = useCallback(() => {
   setConnected(false);
   setConnectionStatus('disconnected');
   setConnectionMessage('Disconnected by user');
+  setDisconnectedByHost(null);
   setTimers([]);
   setSelectedTimerId(null);
   setRoomInfo(null);
@@ -570,6 +628,7 @@ const disconnectClient = useCallback((targetConnectionId: string) => {
     connected,
     connectionStatus,
     connectionMessage,
+    disconnectedByHost,
     timers,
     selectedTimerId,
     roomInfo,

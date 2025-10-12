@@ -508,7 +508,7 @@ const handleDoubleClick = (e: React.MouseEvent) => {
           )}
 
           {!item.is_manual_start && (
-            <Text size="xs" c="teal" fw={500}>Auto Start</Text>
+            <Text size="xs" c="teal" fw={500}>Auto Start ON</Text>
           )}
         </div>
 

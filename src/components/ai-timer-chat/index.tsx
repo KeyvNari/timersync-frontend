@@ -60,6 +60,17 @@ export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerC
   const [sessionId, setSessionId] = useState<string | null>(null);
   const resetRef = useRef<() => void>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const viewport = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (viewport.current) {
+      viewport.current.scrollTo({
+        top: viewport.current.scrollHeight,
+        behavior: 'smooth',
+      });
+    }
+  }, [messages, isThinking]);
 
   // Initialize the AI mutation hook
   const askAIMutation = useAskAI({
@@ -168,20 +179,24 @@ export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerC
       }
       padding={0}
       styles={{
-        body: { 
+        body: {
           height: 'calc(80vh - 60px)',
           display: 'flex',
           flexDirection: 'column',
         },
-        content: { height: '80vh' }
+        content: {
+          height: '80vh',
+          border: '1px solid var(--mantine-color-gray-3)',
+        }
       }}
     >
       <Stack gap={0} style={{ height: '100%' }}>
         {/* Messages Area */}
-        <ScrollArea 
+        <ScrollArea
           style={{ flex: 1 }}
           p="md"
           type="auto"
+          viewportRef={viewport}
         >
           <Stack gap="md">
             {messages.map((message) => (
