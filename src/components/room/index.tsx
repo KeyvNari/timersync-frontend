@@ -172,6 +172,7 @@ export default function RoomComponent({
           current_time_seconds: displayTimer.current_time_seconds,
           warning_time: displayTimer.warning_time,
           critical_time: displayTimer.critical_time,
+          timer_format: displayTimer.timer_format,
         }
       : undefined;
   }, [displayTimer]);

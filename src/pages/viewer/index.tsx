@@ -249,6 +249,13 @@ useEffect(() => {
   const displayTimer = selectedTimer || activeTimer || timers?.[0];
   const matchedDisplay = displayTimer ? displays.find(d => d.id === displayTimer.display_id) : undefined;
 
+  // Merge display data with defaults for full Display type
+  const displayConfig = matchedDisplay ? {
+    ...defaultDisplay,
+    ...matchedDisplay,
+    timer_position: (matchedDisplay.timer_position as 'center' | 'top' | 'bottom' | null) || 'center'
+  } : defaultDisplay;
+
 
 
   // Convert timer data to the format expected by TimerDisplay
@@ -270,6 +277,7 @@ useEffect(() => {
     current_time_seconds: displayTimer.current_time_seconds,
     warning_time: displayTimer.warning_time,
     critical_time: displayTimer.critical_time,
+    timer_format: displayTimer.timer_format,
   } : undefined;
   // Handle going back or disconnecting
   const handleGoBack = () => {
@@ -473,8 +481,8 @@ return connected && displayTimer ? (
     }}
   >
     <TimerDisplay
-      key={`${displayTimer.id}-${displayTimer.current_time_seconds}`}
-      display={matchedDisplay || defaultDisplay}
+      key={`${displayTimer.id}-${displayTimer.current_time_seconds}-${displayTimer.timer_format}`}
+      display={displayConfig}
       timer={convertedTimer}
       in_view_mode={true}
     />

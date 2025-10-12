@@ -58,6 +58,7 @@ type Timer = {
   current_time_seconds: number;
   warning_time?: number | null;
   critical_time?: number | null;
+  timer_format?: string | null;
 };
 
 
@@ -218,7 +219,7 @@ function TimerDisplay({
     } else {
       timeStr = [m, s].map(n => n.toString().padStart(2, '0')).join(':');
     }
-    
+
     return isOvertime ? `+${timeStr}` : timeStr;
   };
 
@@ -265,7 +266,7 @@ function TimerDisplay({
     return progressColor;
   };
 
-  const timerText = formatTime(currentTimeSeconds, safeDisplay.timer_format || 'mm:ss');
+  const timerText = formatTime(currentTimeSeconds, safeTimer.timer_format || safeDisplay.timer_format || 'mm:ss');
   const clockText = formatClock();
   const showTimer = !(safeDisplay.auto_hide_completed && safeTimer.is_finished);
   const showOnlyClock = !showTimer && safeDisplay.clock_visible;

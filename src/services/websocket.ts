@@ -42,6 +42,7 @@ export interface TimerData {
   updated_at: string;
   deleted_at?: string | null;
   is_deleted: boolean;
+  timer_format?: string | null;
 }
 
 export interface ConnectionInfo {

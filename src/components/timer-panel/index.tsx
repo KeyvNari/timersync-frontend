@@ -64,6 +64,7 @@ interface Timer {
   actual_start_time: string | null;
   last_calculated_at: string | null;
   is_selected: boolean | null;
+  timer_format: string | null;
 }
 
 // Timer events interface
@@ -135,7 +136,8 @@ const mockTimers: Timer[] = [
     paused_at: "2025-09-19T14:00:00Z",
     completed_at: null,
     actual_start_time: "2025-09-19T13:54:00Z",
-    last_calculated_at: "2025-09-19T14:00:00Z"
+    last_calculated_at: "2025-09-19T14:00:00Z",
+    timer_format: null
   },
   {
     id: 2,
@@ -170,7 +172,8 @@ const mockTimers: Timer[] = [
     paused_at: null,
     completed_at: null,
     actual_start_time: null,
-    last_calculated_at: null
+    last_calculated_at: null,
+    timer_format: null
   },
   {
     id: 3,
@@ -205,7 +208,8 @@ const mockTimers: Timer[] = [
     paused_at: null,
     completed_at: null,
     actual_start_time: "2025-09-19T14:30:00Z",
-    last_calculated_at: "2025-09-19T14:32:30Z"
+    last_calculated_at: "2025-09-19T14:32:30Z",
+    timer_format: null
   }
 ];
 
@@ -757,11 +761,12 @@ export function Timers({
     open();
   };
 
-  const form = useForm({
+const form = useForm({
     initialValues: {
       title: '',
       speaker: '',
       duration_seconds: 0,
+      timer_format: 'mm:ss',
       scheduled_start_time: null as Date | null,
       is_manual_start: false,
       linked_timer_id: null as string | null,
@@ -790,6 +795,7 @@ export function Timers({
         title: editingTimer.title,
         speaker: editingTimer.speaker || '',
         duration_seconds: editingTimer.duration_seconds || 0,
+        timer_format: editingTimer.timer_format || 'mm:ss',
         scheduled_start_time: editingTimer.scheduled_start_date && editingTimer.scheduled_start_time
           ? new Date(`${editingTimer.scheduled_start_date}T${editingTimer.scheduled_start_time}`)
           : null,
@@ -900,6 +906,17 @@ export function Timers({
                     placeholder="Enter duration in seconds"
                     min={1}
                     {...form.getInputProps('duration_seconds')}
+                  />
+
+                  <Select
+                    label="Timer Format"
+                    placeholder="Select timer display format"
+                    data={[
+                      { value: 'mm:ss', label: 'MM:SS (minutes:seconds)' },
+                      { value: 'h:mm:ss', label: 'H:MM:SS (hours:minutes:seconds)' },
+                      { value: 'hh:mm:ss', label: 'HH:MM:SS (zero-padded hours)' },
+                    ]}
+                    {...form.getInputProps('timer_format')}
                   />
 
                   <Select

@@ -54,6 +54,10 @@ export interface RoomsComponentProps {
   showCreateButton?: boolean;
   /** Optional: Callback for create room */
   onCreateRoom?: () => void;
+  /** Optional: Callback for edit room */
+  onEditRoom?: (roomId: number) => void;
+  /** Optional: Callback for delete room */
+  onDeleteRoom?: (roomId: number) => void;
   /** Optional: Hide header (default: false) */
   hideHeader?: boolean;
 }
@@ -66,6 +70,8 @@ export function RoomsComponent({
   fetchRooms,
   showCreateButton = true,
   onCreateRoom,
+  onEditRoom,
+  onDeleteRoom,
   hideHeader = false,
 }: RoomsComponentProps) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -89,13 +95,19 @@ export function RoomsComponent({
   };
 
   const handleDeleteRoom = (roomId: number) => {
-    // TODO: Implement delete functionality
-    console.log('Delete room:', roomId);
+    if (onDeleteRoom) {
+      onDeleteRoom(roomId);
+    } else {
+      console.log('Delete room:', roomId);
+    }
   };
 
   const handleEditRoom = (roomId: number) => {
-    // TODO: Implement edit functionality
-    console.log('Edit room:', roomId);
+    if (onEditRoom) {
+      onEditRoom(roomId);
+    } else {
+      console.log('Edit room:', roomId);
+    }
   };
 
   const handleLogout = () => {
