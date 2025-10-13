@@ -433,8 +433,8 @@ export class SimpleWebSocketService {
     this.send({ type: 'room_leave' });
   }
 
-  updateRoom(settings: Record<string, any>): void {
-    this.send({ type: 'room_update', settings });
+  updateRoom(updateData: Record<string, any>): void {
+    this.send({ type: 'room_update', update_data: updateData });
   }
 
   requestRoomTimers(): void {

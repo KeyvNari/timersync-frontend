@@ -1,21 +1,27 @@
 import { useState, useRef, useEffect } from 'react';
-import { Text, TextInput, ActionIcon, Group, Tooltip } from '@mantine/core';
+import { Text, TextInput, ActionIcon, Group, Tooltip, Select } from '@mantine/core';
 import { PiPencilSimpleDuotone as EditIcon, PiCheckDuotone as CheckIcon, PiXDuotone as CancelIcon } from 'react-icons/pi';
 
 interface EditableRoomNameProps {
   initialName?: string;
+  initialTimeZone?: string;
   onSave?: (name: string) => void;
+  onTimeZoneSave?: (timeZone: string) => void;
   maxLength?: number;
 }
 
-export function EditableRoomName({ 
-  initialName = "Unnamed Room...", 
-  onSave, 
-  maxLength = 50 
+export function EditableRoomName({
+  initialName = "Unnamed Room...",
+  initialTimeZone = "UTC",
+  onSave,
+  onTimeZoneSave,
+  maxLength = 50
 }: EditableRoomNameProps) {
   const [roomName, setRoomName] = useState(initialName);
+  const [timeZone, setTimeZone] = useState(initialTimeZone);
   const [isEditing, setIsEditing] = useState(false);
   const [tempName, setTempName] = useState(roomName);
+  const [tempTimeZone, setTempTimeZone] = useState(timeZone);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -30,12 +36,18 @@ export function EditableRoomName({
     setRoomName(initialName);
   }, [initialName]);
 
-  // Sync tempName with roomName when not editing
+  // Update the timeZone state when initialTimeZone prop changes
+  useEffect(() => {
+    setTimeZone(initialTimeZone);
+  }, [initialTimeZone]);
+
+  // Sync tempName and tempTimeZone when not editing
   useEffect(() => {
     if (!isEditing) {
       setTempName(roomName);
+      setTempTimeZone(timeZone);
     }
-  }, [roomName, isEditing]);
+  }, [roomName, timeZone, isEditing]);
 
   const handleStartEdit = () => {
     setTempName(roomName);
@@ -48,11 +60,16 @@ export function EditableRoomName({
       setRoomName(trimmedName);
       onSave?.(trimmedName);
     }
+    if (tempTimeZone !== timeZone) {
+      setTimeZone(tempTimeZone);
+      onTimeZoneSave?.(tempTimeZone);
+    }
     setIsEditing(false);
   };
 
   const handleCancel = () => {
     setTempName(roomName);
+    setTempTimeZone(timeZone);
     setIsEditing(false);
   };
 
@@ -64,26 +81,64 @@ export function EditableRoomName({
     }
   };
 
+  // Timezone options
+  const timeZoneOptions = [
+    { value: 'UTC', label: 'UTC (Coordinated Universal Time)' },
+    { value: 'America/New_York', label: 'EST (Eastern Standard Time)' },
+    { value: 'America/Chicago', label: 'CST (Central Standard Time)' },
+    { value: 'America/Denver', label: 'MST (Mountain Standard Time)' },
+    { value: 'America/Los_Angeles', label: 'PST (Pacific Standard Time)' },
+    { value: 'Europe/London', label: 'GMT (Greenwich Mean Time)' },
+    { value: 'Europe/Berlin', label: 'CET (Central European Time)' },
+    { value: 'Europe/Paris', label: 'CET (Central European Time)' },
+    { value: 'Europe/Rome', label: 'CET (Central European Time)' },
+    { value: 'Europe/Moscow', label: 'MSK (Moscow Time)' },
+    { value: 'Asia/Dubai', label: 'GST (Gulf Standard Time)' },
+    { value: 'Asia/Kolkata', label: 'IST (Indian Standard Time)' },
+    { value: 'Asia/Shanghai', label: 'CST (China Standard Time)' },
+    { value: 'Asia/Tokyo', label: 'JST (Japan Standard Time)' },
+    { value: 'Asia/Seoul', label: 'KST (Korea Standard Time)' },
+    { value: 'Australia/Sydney', label: 'AEST (Australian Eastern Standard Time)' },
+    { value: 'Australia/Melbourne', label: 'AEST (Australian Eastern Standard Time)' },
+    { value: 'Pacific/Auckland', label: 'NZST (New Zealand Standard Time)' },
+  ];
+
   if (isEditing) {
     return (
-      <Group gap="xs" wrap="nowrap">
-        <TextInput
-          ref={inputRef}
-          value={tempName}
-          onChange={(e) => setTempName(e.currentTarget.value)}
-          onKeyDown={handleKeyPress}
-          onBlur={handleSave}
-          size="sm"
-          styles={{
-            input: {
-              minWidth: '120px',
-              maxWidth: '250px',
-              fontSize: '1rem',
-              fontWeight: 500,
-            },
-          }}
-          maxLength={maxLength}
-        />
+      <Group gap="sm" wrap="wrap" align="flex-start">
+        <div>
+          <TextInput
+            ref={inputRef}
+            value={tempName}
+            onChange={(e) => setTempName(e.currentTarget.value)}
+            onKeyDown={handleKeyPress}
+            placeholder="Room name"
+            size="sm"
+            mb="xs"
+            styles={{
+              input: {
+                minWidth: '120px',
+                maxWidth: '250px',
+                fontSize: '1rem',
+                fontWeight: 500,
+              },
+            }}
+            maxLength={maxLength}
+          />
+          <Select
+            value={tempTimeZone}
+            onChange={(value) => setTempTimeZone(value || 'UTC')}
+            data={timeZoneOptions}
+            placeholder="Select timezone"
+            size="sm"
+            styles={{
+              input: {
+                minWidth: '120px',
+                maxWidth: '250px',
+              },
+            }}
+          />
+        </div>
         <Group gap={4}>
           <Tooltip label="Save">
             <ActionIcon
@@ -111,20 +166,31 @@ export function EditableRoomName({
   }
 
   return (
-    <Group gap="xs" wrap="nowrap">
-      <Text
-        fw={500}
-        style={{
-          cursor: 'pointer',
-          minWidth: '60px',
-          fontSize: '2rem',
-        }}
-        onClick={handleStartEdit}
-        title="Click to edit room name"
-      >
-        {roomName}
-      </Text>
-      <Tooltip label="Edit room name">
+    <Group gap="xs" wrap="nowrap" align="center">
+      <div>
+        <Text
+          fw={500}
+          style={{
+            cursor: 'pointer',
+            minWidth: '60px',
+            fontSize: '2rem',
+          }}
+          onClick={handleStartEdit}
+          title="Click to edit room name and timezone"
+        >
+          {roomName}
+        </Text>
+        <Text
+          size="sm"
+          c="dimmed"
+          style={{ cursor: 'pointer' }}
+          onClick={handleStartEdit}
+          title="Click to edit room name and timezone"
+        >
+          {timeZone}
+        </Text>
+      </div>
+      <Tooltip label="Edit room name and timezone">
         <ActionIcon
           size="sm"
           variant="subtle"

@@ -20,6 +20,7 @@ export interface RoomComponentProps {
   roomId: number;
   roomName: string;
   roomDescription?: string;
+  roomTimeZone?: string;
   timers: any[];
   displays: any[];
   connections: any[];
@@ -31,6 +32,7 @@ export interface RoomComponentProps {
   timerEvents?: any;
   messages?: Message[];
   onRoomNameSave: (name: string) => void;
+  onTimeZoneSave?: (timeZone: string) => void;
   onShare: () => void;
   onAddTimer: () => void;
   onCreateWithAI: () => void;
@@ -50,6 +52,7 @@ export default function RoomComponent({
   roomId,
   roomName,
   roomDescription,
+  roomTimeZone,
   timers,
   displays,
   connections,
@@ -61,6 +64,7 @@ export default function RoomComponent({
   timerEvents,
   messages,
   onRoomNameSave,
+  onTimeZoneSave,
   onShare,
   onAddTimer,
   onCreateWithAI,
@@ -201,7 +205,9 @@ export default function RoomComponent({
           )}
           <EditableRoomName
             initialName={roomName}
+            initialTimeZone={roomTimeZone}
             onSave={onRoomNameSave}
+            onTimeZoneSave={onTimeZoneSave}
           />
         </Group>
 

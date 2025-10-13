@@ -166,6 +166,7 @@ export default function HomePage() {
     updateDisplay,
     deleteDisplay,
     disconnectClient,
+    updateRoom,
   } = useWebSocketContext();
 
   const {
@@ -276,8 +277,29 @@ const handleTimerSelect = useCallback((timer: any) => {
   }, [roomId]);
 
   const handleRoomNameSave = (newName: string) => {
-    // TODO: Implement API call to update room name
     console.log('Saving room name:', newName);
+    if (!isAuthenticated || !roomId) {
+      console.warn('Cannot update room: not authenticated or no room ID');
+      return;
+    }
+
+    // Send room update via WebSocket
+    updateRoom({
+      name: newName
+    });
+  };
+
+  const handleTimeZoneSave = (newTimeZone: string) => {
+    console.log('Saving timezone:', newTimeZone);
+    if (!isAuthenticated || !roomId) {
+      console.warn('Cannot update room: not authenticated or no room ID');
+      return;
+    }
+
+    // Send room update via WebSocket
+    updateRoom({
+      time_zone: newTimeZone
+    });
   };
 
   const handleShare = () => {
@@ -398,6 +420,7 @@ const [aiChatOpened, { open: openAIChat, close: closeAIChat }] = useDisclosure(f
             roomId={roomId}
             roomName={roomInfo?.name || `Room ${roomId}`}
             roomDescription={roomInfo?.description}
+            roomTimeZone={roomInfo?.time_zone}
             timers={timers || []}
             displays={displays || []}
             connections={connections || []}
@@ -408,6 +431,7 @@ const [aiChatOpened, { open: openAIChat, close: closeAIChat }] = useDisclosure(f
             user={user}
             timerEvents={timerEvents}
             onRoomNameSave={handleRoomNameSave}
+            onTimeZoneSave={handleTimeZoneSave}
             onShare={handleShare}
             onAddTimer={handleAddTimer}
             onCreateWithAI={handleCreateWithAI}
