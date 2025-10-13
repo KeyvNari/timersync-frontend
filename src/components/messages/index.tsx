@@ -212,14 +212,14 @@ function MessageItem({ message, onUpdate, onDelete }: MessageItemProps) {
               </Group>
             ) : (
               <span style={{ minWidth: '20px', display: 'inline-block' }}>
-                {message.source || '\u00A0'}
+                {message.source ? message.source : <span style={{color: 'gray'}}>Enter source...</span>}
               </span>
             )}
           </span>
 
           {/* Asker editing */}
           <span className={classes.editableField} onClick={() => !editingAsker && setEditingAsker(true)}>
-            Asker: {editingAsker ? (
+            Asked by: {editingAsker ? (
               <Group gap="xs" style={{ display: 'inline-flex' }}>
                 <TextInput
                   value={askerValue}
@@ -236,7 +236,7 @@ function MessageItem({ message, onUpdate, onDelete }: MessageItemProps) {
               </Group>
             ) : (
               <span style={{ minWidth: '20px', display: 'inline-block' }}>
-                {message.asker || '\u00A0'}
+                {message.asker ? message.asker : <span style={{color: 'gray'}}>Enter asker...</span>}
               </span>
             )}
           </span>
