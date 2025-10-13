@@ -68,6 +68,7 @@ interface WebSocketContextValue {
   createDisplay: (displayData: any) => void;
   updateDisplay: (displayId: number, updateData: any) => void;
   setDefaultDisplay: (displayId: number) => void;
+  deleteDisplay: (displayId: number) => void;
 
   // Room actions
   refreshTimers: () => void;
@@ -362,6 +363,18 @@ wsService.on('error', (message: any) => {
 
     // Display events
     wsService.on('display_info', (message: any) => {
+      // Handle display deletion
+      if (message.deleted_display_id) {
+        setDisplays(prevDisplays =>
+          prevDisplays.filter(d => d.id !== message.deleted_display_id)
+        );
+
+        // If deleted display was the default, clear default display ID
+        if (message.deleted_display_id === defaultDisplayId) {
+          setDefaultDisplayId(null);
+        }
+      }
+
       // Accumulate displays instead of replacing - merge with existing displays
       setDisplays(prevDisplays => {
         const newDisplays = message.displays || [];
@@ -607,6 +620,10 @@ const setDefaultDisplay = useCallback((displayId: number) => {
   wsServiceRef.current?.setDefaultDisplay(displayId);
 }, []);
 
+const deleteDisplay = useCallback((displayId: number) => {
+  wsServiceRef.current?.deleteDisplay(displayId);
+}, []);
+
 // Connections
 const requestConnections = useCallback(() => {
   wsServiceRef.current?.requestConnections();
@@ -652,6 +669,7 @@ const disconnectClient = useCallback((targetConnectionId: string) => {
     createDisplay,
     updateDisplay,
     setDefaultDisplay,
+    deleteDisplay,
     refreshTimers,
     joinRoom,
     leaveRoom,

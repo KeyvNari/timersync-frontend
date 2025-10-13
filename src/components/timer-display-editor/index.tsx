@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Paper,
   Title,
@@ -19,6 +19,7 @@ import {
   ActionIcon,
   Badge,
   Card,
+  Modal,
   rem,
 } from '@mantine/core';
 import {
@@ -33,6 +34,7 @@ import {
   IconTextSize,
   IconSparkles,
   IconStar,
+  IconTrash,
 } from '@tabler/icons-react';
 import TimerDisplay from '@/components/timer-display';
 import { useWebSocketContext } from '@/providers/websocket-provider';
@@ -43,6 +45,7 @@ interface TimerDisplayEditorProps {
   displays?: any[];
   onSave?: (display: any) => void;
   onCancel?: () => void;
+  onDelete?: (displayId: number) => void;
   nameError?: string | null;
   defaultDisplayId?: number | null;
 }
@@ -52,10 +55,11 @@ export default function TimerDisplayEditor({
   displays = [],
   onSave,
   onCancel,
+  onDelete,
   nameError,
   defaultDisplayId
 }: TimerDisplayEditorProps) {
-  const { setDefaultDisplay } = useWebSocketContext();
+  const { setDefaultDisplay, lastError, lastSuccess } = useWebSocketContext();
 
   const defaultDisplay = {
     name: 'New Display',
@@ -97,6 +101,8 @@ export default function TimerDisplayEditor({
   const [display, setDisplay] = useState(initialDisplayWithIsDefault);
   const [selectedDisplayId, setSelectedDisplayId] = useState<string | number>(initialDisplay?.id || 'new');
   const [isCreatingNew, setIsCreatingNew] = useState(!initialDisplay?.id);
+  const [deleteConfirmOpened, setDeleteConfirmOpened] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const handleDisplaySelection = (value: string | null) => {
     if (!value) return;
@@ -150,6 +156,57 @@ export default function TimerDisplayEditor({
 
   const updateDisplay = (key, value) => {
     setDisplay(prev => ({ ...prev, [key]: value }));
+  };
+
+  // Watch for errors from WebSocket and capture display deletion errors
+  useEffect(() => {
+    if (lastError && deleteConfirmOpened) {
+      // Check if it's a display-related error
+      if (lastError.includes('Cannot delete display')) {
+        // Simplify the error message for timer assignments
+        let errorMessage = lastError;
+        if (lastError.includes('assigned to') && lastError.includes('timer')) {
+          errorMessage = 'Cannot delete display: it is being used by one or more timers. Please unassign it from these timers first.';
+        }
+        setDeleteError(errorMessage);
+      }
+    }
+  }, [lastError, deleteConfirmOpened]);
+
+  // Watch for successful deletion and close modal/editor
+  useEffect(() => {
+    if (lastSuccess && deleteConfirmOpened && lastSuccess.includes('deleted successfully')) {
+      // Close the confirmation modal
+      setDeleteConfirmOpened(false);
+      setDeleteError(null);
+
+      // Close the editor after successful deletion
+      if (onCancel) {
+        setTimeout(() => {
+          onCancel();
+        }, 100);
+      }
+    }
+  }, [lastSuccess, deleteConfirmOpened, onCancel]);
+
+  const handleDeleteDisplay = () => {
+    if (!display.id || !onDelete) return;
+
+    // Clear any previous error
+    setDeleteError(null);
+
+    // Validate that we're not deleting the last display
+    if (displays.length <= 1) {
+      setDeleteError('Cannot delete the last display. At least one display must exist.');
+      return;
+    }
+
+    // Call the delete callback
+    onDelete(display.id);
+
+    // Note: We don't close the modal here anymore - we wait for success or error
+    // If successful, the display will be removed from the list and the editor will close
+    // If error, the error message will be shown in the modal
   };
 
   const handleFileUpload = (file, key) => {
@@ -691,26 +748,41 @@ export default function TimerDisplayEditor({
 
             <Divider />
 
-            <Group justify="flex-end" gap="sm">
-              {onCancel && (
-                <Button variant="default" onClick={onCancel} size="md">
-                  Cancel
+            <Group justify="space-between" gap="sm">
+              <div>
+                {!isCreatingNew && onDelete && displays.length > 1 && (
+                  <Button
+                    leftSection={<IconTrash size={18} />}
+                    color="red"
+                    variant="light"
+                    onClick={() => setDeleteConfirmOpened(true)}
+                    size="md"
+                  >
+                    Delete Display
+                  </Button>
+                )}
+              </div>
+              <Group gap="sm">
+                {onCancel && (
+                  <Button variant="default" onClick={onCancel} size="md">
+                    Cancel
+                  </Button>
+                )}
+                <Button
+                  leftSection={<IconDeviceFloppy size={18} />}
+                  onClick={() => {
+                    // Remove client-side only properties before saving
+                    const { is_default, ...displayToSave } = display;
+                    onSave?.(displayToSave);
+                    if (display.is_default && display.id) {
+                      setDefaultDisplay(display.id);
+                    }
+                  }}
+                  size="md"
+                >
+                  Save Display
                 </Button>
-              )}
-              <Button
-                leftSection={<IconDeviceFloppy size={18} />}
-                onClick={() => {
-                  // Remove client-side only properties before saving
-                  const { is_default, ...displayToSave } = display;
-                  onSave?.(displayToSave);
-                  if (display.is_default && display.id) {
-                    setDefaultDisplay(display.id);
-                  }
-                }}
-                size="md"
-              >
-                Save Display
-              </Button>
+              </Group>
             </Group>
           </Stack>
         </Paper>
@@ -728,13 +800,67 @@ export default function TimerDisplayEditor({
                 Changes are reflected instantly as you adjust settings
               </Text>
             </div>
-            <TimerDisplay 
-              display={display} 
+            <TimerDisplay
+              display={display}
               timer={mockTimer}
             />
           </Stack>
         </Paper>
       </Grid.Col>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        opened={deleteConfirmOpened}
+        onClose={() => {
+          setDeleteConfirmOpened(false);
+          setDeleteError(null);
+        }}
+        title="Delete Display?"
+        centered
+        size="md"
+      >
+        <Stack gap="md">
+          <Text>
+            Are you sure you want to delete the display "{display.name}"? This action cannot be undone.
+          </Text>
+
+          {display.is_default && !deleteError && (
+            <Text c="orange" fw={500}>
+              Warning: This is your default display. You'll need to set a new default after deletion.
+            </Text>
+          )}
+
+          {deleteError && (
+            <Text c="red" fw={500} style={{
+              padding: '12px',
+              backgroundColor: 'rgba(255, 107, 107, 0.1)',
+              borderRadius: '4px',
+              border: '1px solid rgba(255, 107, 107, 0.3)'
+            }}>
+              {deleteError}
+            </Text>
+          )}
+
+          <Group justify="flex-end" gap="sm" mt="md">
+            <Button
+              variant="default"
+              onClick={() => {
+                setDeleteConfirmOpened(false);
+                setDeleteError(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              color="red"
+              onClick={handleDeleteDisplay}
+              disabled={!!deleteError && deleteError.includes('Cannot delete')}
+            >
+              Delete
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </Grid>
   );
 }

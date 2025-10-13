@@ -164,6 +164,7 @@ export default function HomePage() {
     createTimer,
     createDisplay,
     updateDisplay,
+    deleteDisplay,
     disconnectClient,
   } = useWebSocketContext();
 
@@ -412,6 +413,7 @@ const [aiChatOpened, { open: openAIChat, close: closeAIChat }] = useDisclosure(f
             onCreateWithAI={handleCreateWithAI}
             onCreateDisplay={createDisplay}
             onUpdateDisplay={updateDisplay}
+            onDeleteDisplay={deleteDisplay}
             onDisconnectDevice={disconnectClient}
             showBackButton={false}
             showShareButton={true}

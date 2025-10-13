@@ -417,6 +417,13 @@ export class SimpleWebSocketService {
     });
   }
 
+  deleteDisplay(displayId: number): void {
+    this.send({
+      type: 'display_delete',
+      display_id: displayId,
+    });
+  }
+
   // Room management
   joinRoom(): void {
     this.send({ type: 'room_join' });
