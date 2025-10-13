@@ -1,8 +1,8 @@
 // src/components/room/index.tsx
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Paper, Group, Button, Box, Modal } from '@mantine/core';
-import { IconShare, IconArrowLeft, IconPlus, IconSparkles, IconSettings } from '@tabler/icons-react';
+import { Paper, Group, Button, Box, Modal, Tabs, Text } from '@mantine/core';
+import { IconShare, IconArrowLeft, IconPlus, IconSparkles, IconSettings, IconClock, IconMessage } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
 import { StickyHeader } from '@/components/sticky-header';
 import { EditableRoomName } from '@/layouts/dashboard/header/editable-room-name';
@@ -12,6 +12,7 @@ import TimerDisplay from '@/components/timer-display';
 import { ConnectedDevices } from '@/components/connected-devices';
 import { ResizableDashboard } from '@/components/resizable-dashboard';
 import TimerDisplayEditor from '@/components/timer-display-editor';
+import { Messages, Message } from '@/components/messages';
 import { useWebSocketContext } from '@/providers/websocket-provider';
 import classes from './room.module.css';
 
@@ -28,6 +29,7 @@ export interface RoomComponentProps {
   userAccessLevel?: "full" | "viewer";
   user: any;
   timerEvents?: any;
+  messages?: Message[];
   onRoomNameSave: (name: string) => void;
   onShare: () => void;
   onAddTimer: () => void;
@@ -37,6 +39,7 @@ export interface RoomComponentProps {
   onUpdateDisplay?: (displayId: number, updateData: any) => void;
   onDeleteDisplay?: (displayId: number) => void;
   onDisconnectDevice?: (connectionId: string) => void;
+  onMessagesChange?: (messages: Message[]) => void;
   showBackButton?: boolean;
   showShareButton?: boolean;
   showActionButtons?: boolean;
@@ -56,6 +59,7 @@ export default function RoomComponent({
   userAccessLevel = 'full',
   user,
   timerEvents,
+  messages,
   onRoomNameSave,
   onShare,
   onAddTimer,
@@ -65,6 +69,7 @@ export default function RoomComponent({
   onUpdateDisplay,
   onDeleteDisplay,
   onDisconnectDevice,
+  onMessagesChange,
   showBackButton = false,
   showShareButton = true,
   showActionButtons = true,
@@ -216,7 +221,7 @@ export default function RoomComponent({
     </StickyHeader>
   ) : null;
 
-  // Left Panel: Timer List with Action Buttons
+  // Left Panel: Timer List with Action Buttons and Messages Tab
   const leftPanel = (
     <Paper
       withBorder
@@ -224,30 +229,47 @@ export default function RoomComponent({
       h="100%"
       style={{ display: 'flex', flexDirection: 'column', overflow: 'auto' }}
     >
-      {showActionButtons && (
-        <Group justify="space-between" mb="md" wrap="wrap">
-          <Group gap="xs">
-            <Button variant="default" size="sm" leftSection={<IconPlus size={16} />} onClick={onAddTimer}>
-              Add Timer
-            </Button>
-            <Button variant="default" size="sm" leftSection={<IconSparkles size={16} />} onClick={onCreateWithAI}>
-              Create with AI
-            </Button>
-          </Group>
-          <Button 
-            variant="default" 
-            size="sm" 
-            leftSection={<IconSettings size={16} />}
-            onClick={handleOpenDisplayEditor}
-          >
-            Display Settings
-          </Button>
-        </Group>
-      )}
+      <Tabs defaultValue="timers" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <Tabs.List>
+          <Tabs.Tab value="timers" leftSection={<IconClock size={16} />}>
+            Timers
+          </Tabs.Tab>
+          <Tabs.Tab value="messages" leftSection={<IconMessage size={16} />}>
+            Messages
+          </Tabs.Tab>
+        </Tabs.List>
 
-      <Box style={{ flex: 1, overflow: 'auto' }}>
-        <Timers timers={timers} events={timerEvents} selectedTimerId={selectedTimerId} displays={displays} />
-      </Box>
+        <Tabs.Panel value="timers" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
+          {showActionButtons && (
+            <Group justify="space-between" mt="md" mb="md" wrap="wrap">
+              <Group gap="xs">
+                <Button variant="default" size="sm" leftSection={<IconPlus size={16} />} onClick={onAddTimer}>
+                  Add Timer
+                </Button>
+                <Button variant="default" size="sm" leftSection={<IconSparkles size={16} />} onClick={onCreateWithAI}>
+                  Create with AI
+                </Button>
+              </Group>
+              <Button
+                variant="default"
+                size="sm"
+                leftSection={<IconSettings size={16} />}
+                onClick={handleOpenDisplayEditor}
+              >
+                Display Settings
+              </Button>
+            </Group>
+          )}
+
+          <Box style={{ flex: 1, overflow: 'auto' }}>
+            <Timers timers={timers} events={timerEvents} selectedTimerId={selectedTimerId} displays={displays} />
+          </Box>
+        </Tabs.Panel>
+
+        <Tabs.Panel value="messages" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto' }} pt="md">
+          <Messages messages={messages} onMessagesChange={onMessagesChange} />
+        </Tabs.Panel>
+      </Tabs>
     </Paper>
   );
 
