@@ -167,7 +167,7 @@ export function EditableRoomName({
 
   return (
     <Group gap="xs" wrap="nowrap" align="center">
-      <div>
+      <Group gap="xs" align="baseline">
         <Text
           fw={500}
           style={{
@@ -180,16 +180,31 @@ export function EditableRoomName({
         >
           {roomName}
         </Text>
-        <Text
-          size="sm"
-          c="dimmed"
-          style={{ cursor: 'pointer' }}
-          onClick={handleStartEdit}
-          title="Click to edit room name and timezone"
-        >
-          {timeZone}
-        </Text>
-      </div>
+        <Group gap={4} align="center">
+          <Text
+            size="xs"
+            c="dimmed"
+            fw={500}
+            style={{
+              cursor: 'pointer',
+              letterSpacing: '0.5px',
+            }}
+            onClick={handleStartEdit}
+            title="Click to edit room name and timezone"
+          >
+            TimeZone:
+          </Text>
+          <Text
+            size="sm"
+            c="dimmed"
+            style={{ cursor: 'pointer' }}
+            onClick={handleStartEdit}
+            title="Click to edit room name and timezone"
+          >
+            {timeZone}
+          </Text>
+        </Group>
+      </Group>
       <Tooltip label="Edit room name and timezone">
         <ActionIcon
           size="sm"

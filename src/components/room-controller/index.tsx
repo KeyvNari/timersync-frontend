@@ -9,7 +9,7 @@ import { useAuth, useGetAccountInfo } from '@/hooks';
 import { app } from '@/config';
 import { useDisclosure } from '@mantine/hooks';
 import { AITimerChat } from '@/components/ai-timer-chat';
-import { Modal, Button, Text, Group, Stack } from '@mantine/core';
+import { Modal, Button, Text, Group, Stack, Box } from '@mantine/core';
 
 export interface RoomControllerProps {
   authMode: 'authGuard' | 'urlToken';
@@ -49,7 +49,6 @@ export default function RoomController({
     disconnectedByHost,
     connect,
     disconnect,
-    lastError,
     displays,
     connectionCount,
     connections,
@@ -68,11 +67,9 @@ export default function RoomController({
     startTimer,
     pauseTimer,
     stopTimer,
-    resetTimer,
     selectTimer,
     updateTimer,
     deleteTimer,
-    refreshTimers
   } = useTimerContext();
 
   // Event handlers for Timers component
@@ -312,7 +309,7 @@ export default function RoomController({
       )}
       {roomId ? (
         isLoading ? (
-          <LoadingScreen />
+          <LoadingScreen message="Preparing your room..." />
         ) : (
           <RoomComponent
             roomId={roomId}
@@ -337,7 +334,7 @@ export default function RoomController({
             onUpdateDisplay={updateDisplay}
             onDeleteDisplay={deleteDisplay}
             onDisconnectDevice={disconnectClient}
-            showBackButton={authMode === 'urlToken'}
+            showBackButton={false}
             showShareButton={true}
             showActionButtons={true}
             showHeader={true}
