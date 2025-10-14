@@ -27,6 +27,14 @@ const router = createBrowserRouter([
     element: LazyPage(() => import('@/pages/viewer')),
   },
   {
+    path: '/controller/:roomId/:token',
+    element: LazyPage(() => import('@/pages/controller')),
+  },
+  {
+    path: '/controller/:roomId/:token/pwd',
+    element: LazyPage(() => import('@/pages/controller')),
+  },
+  {
     path: '/',
     element: <Navigate to={paths.dashboard.root} replace />,
   },

@@ -8,6 +8,11 @@ export const paths = {
     passwordProtected: (roomId: number | string, token: string) =>
       `/viewer/${roomId}/${token}/pwd`,
   },
+  controller: {
+    detail: (roomId: number | string, token: string) => `/controller/${roomId}/${token}`,
+    passwordProtected: (roomId: number | string, token: string) =>
+      `/controller/${roomId}/${token}/pwd`,
+  },
   auth: {
     root: '/auth',
     login: '/auth/login',

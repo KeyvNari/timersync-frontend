@@ -46,6 +46,7 @@ export interface RoomComponentProps {
   showShareButton?: boolean;
   showActionButtons?: boolean;
   showHeader?: boolean;
+  showCurrentUser?: boolean;
 }
 
 export default function RoomComponent({
@@ -78,6 +79,7 @@ export default function RoomComponent({
   showShareButton = true,
   showActionButtons = true,
   showHeader = true,
+  showCurrentUser = true,
 }: RoomComponentProps) {
   const navigate = useNavigate();
   const { defaultDisplayId } = useWebSocketContext();
@@ -221,7 +223,7 @@ export default function RoomComponent({
               Share Room
             </Button>
           )}
-          <CurrentUser size="md" />
+          {showCurrentUser && <CurrentUser size="md" />}
         </Group>
       </Group>
     </StickyHeader>
