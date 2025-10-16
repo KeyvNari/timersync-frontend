@@ -117,12 +117,13 @@ export default function RoomController({
   }, [authMode, isAuthenticated, deleteTimer]);
 
   const handleTimerReorder = useCallback((reorderedTimers: any[]) => {
-    console.log('Reordering timers:', reorderedTimers.map(t => ({ id: t.id, order: t.room_sequence_order })));
+    console.log('Reordering timers:', reorderedTimers.map(t => ({ id: t.id, order: t.room_sequence_order, link: t.linked_timer_id })));
     if (authMode === 'authGuard' ? isAuthenticated : true) {
-      // Send bulk update with all timer order changes
+      // Send bulk update with all timer order changes AND link updates
       const updates = reorderedTimers.map(timer => ({
         timer_id: timer.id,
-        room_sequence_order: timer.room_sequence_order
+        room_sequence_order: timer.room_sequence_order,
+        linked_timer_id: timer.linked_timer_id
       }));
       bulkUpdateTimers(updates);
     }

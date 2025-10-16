@@ -60,7 +60,7 @@ interface WebSocketContextValue {
   stopTimer: (timerId: number) => void;
   resetTimer: (timerId: number) => void;
   updateTimer: (timerId: number, updates: Partial<TimerData>) => void;
-  bulkUpdateTimers: (updates: Array<{ timer_id: number; room_sequence_order: number }>) => void;
+  bulkUpdateTimers: (updates: Array<{ timer_id: number; room_sequence_order: number; linked_timer_id?: number | null }>) => void;
   deleteTimer: (timerId: number) => void;
   selectTimer: (timerId: number, timerData?: Partial<TimerData>) => void;
   createTimer: (timerData: Partial<TimerData>) => void;

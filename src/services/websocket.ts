@@ -375,7 +375,7 @@ export class SimpleWebSocketService {
     this.send({ type: 'timer_update', timer_id: timerId, ...updates });
   }
 
-  bulkUpdateTimers(updates: Array<{ timer_id: number; room_sequence_order: number }>): void {
+  bulkUpdateTimers(updates: Array<{ timer_id: number; room_sequence_order: number; linked_timer_id?: number | null }>): void {
     this.send({ type: 'timer_bulk_update', updates });
   }
 

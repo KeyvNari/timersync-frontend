@@ -14,7 +14,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { IconPlayerPlay, IconPlayerPause, IconRestore, IconGripVertical, IconSettings, IconNotes, IconTrash, IconClock, IconUser, IconCalendar } from '@tabler/icons-react';
+import { IconPlayerPlay, IconPlayerPause, IconRestore, IconGripVertical, IconSettings, IconNotes, IconTrash, IconClock, IconUser, IconCalendar, IconArrowDown, IconLink } from '@tabler/icons-react';
 import cx from 'clsx';
 import { Text, Button, Group, Alert, useMantineColorScheme, useMantineTheme, HoverCard, TextInput, Modal, Popover, Switch } from '@mantine/core';
 import { DateTimePicker } from '@mantine/dates';
@@ -323,13 +323,18 @@ function isScheduledTimeInPast(scheduledDate: string | null, scheduledTime: stri
 
 interface ItemProps {
   item: Timer;
+  allTimers: Timer[];
   onUpdateTimer: (id: number, updates: Partial<Timer>) => void;
   onSelectTimer: (id: number) => void;
   onOpenSettings: (timer: Timer) => void;
   events?: TimerEvents;
 }
 
-function SortableItem({ item, onUpdateTimer, onSelectTimer, onOpenSettings, events }: ItemProps) {
+function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSettings, events }: ItemProps) {
+  // Find the linked timer if exists
+  const linkedTimer = item.linked_timer_id
+    ? allTimers.find(t => t.id === item.linked_timer_id)
+    : null;
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
   });
@@ -569,6 +574,33 @@ const handleDoubleClick = (e: React.MouseEvent) => {
                 <Text size="sm">{item.notes}</Text>
               </HoverCard.Dropdown>
             </HoverCard>
+          )}
+
+          {/* Link indicator */}
+          {linkedTimer && (
+            <Tooltip
+              label={`Linked to: ${linkedTimer.title}`}
+              position="top"
+              withArrow
+            >
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  backgroundColor: 'var(--mantine-color-green-1)',
+                  border: '1px solid var(--mantine-color-green-4)',
+                  cursor: 'help'
+                }}
+              >
+                <IconArrowDown size={10} color="var(--mantine-color-green-7)" />
+                <Text size="xs" c="green.7" fw={500}>
+                  {linkedTimer.title}
+                </Text>
+              </div>
+            </Tooltip>
           )}
 
           {/* Auto Start Toggle - Clickable and shows ON/OFF */}
@@ -885,10 +917,37 @@ export function Timers({
       // Lock state updates to prevent flickering from incoming WebSocket messages
       reorderLockRef.current = true;
 
-      const newState = arrayMove(state, oldIndex, newIndex).map((item, index) => ({
+      // Reorder and update room_sequence_order
+      let newState = arrayMove(state, oldIndex, newIndex).map((item, index) => ({
         ...item,
         room_sequence_order: index + 1,
       }));
+
+      // Break links when timers are reordered
+      // Check if any timer's linked_timer_id no longer points to the next timer in sequence
+      const timersToUpdate: Timer[] = [];
+      newState.forEach((timer, index) => {
+        if (timer.linked_timer_id) {
+          const nextTimer = newState[index + 1];
+          // If the linked timer is not the next one in the sequence, break the link
+          if (!nextTimer || nextTimer.id !== timer.linked_timer_id) {
+            timersToUpdate.push({
+              ...timer,
+              linked_timer_id: null
+            });
+          }
+        }
+      });
+
+      // Apply link breaks to the new state
+      if (timersToUpdate.length > 0) {
+        newState = newState.map(timer => {
+          const updated = timersToUpdate.find(t => t.id === timer.id);
+          return updated || timer;
+        });
+        console.log(`Breaking ${timersToUpdate.length} timer link(s) due to reordering`);
+      }
+
       handlers.setState(newState);
       events?.onTimerReorder?.(newState);
 
@@ -1019,6 +1078,7 @@ const form = useForm({
             <SortableItem
               key={item.id}
               item={item}
+              allTimers={state}
               onUpdateTimer={handleUpdateTimer}
               onSelectTimer={handleSelectTimer}
               onOpenSettings={handleOpenSettings}
