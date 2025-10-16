@@ -67,6 +67,18 @@ export interface DisplayConfig {
   [key: string]: any; // allow extra display props
 }
 
+export interface MessageData {
+  id: string;
+  date: string;
+  content: string;
+  color?: string | null;
+  is_focused?: boolean;
+  is_flashing?: boolean;
+  source?: string | null;
+  asker?: string | null;
+  is_showing: boolean;
+}
+
 export interface WebSocketMessage {
   type: string;
   [key: string]: any;
@@ -452,6 +464,29 @@ export class SimpleWebSocketService {
 
   disconnectClient(targetConnectionId: string): void {
     this.send({ type: 'disconnect_client', target_connection_id: targetConnectionId });
+  }
+
+  // Message management
+  addMessage(messageData: Omit<MessageData, 'id'>): void {
+    this.send({
+      type: 'message_add',
+      message_data: messageData,
+    });
+  }
+
+  updateMessage(messageId: string, updateData: Partial<MessageData>): void {
+    this.send({
+      type: 'message_update',
+      message_id: messageId,
+      update_data: updateData,
+    });
+  }
+
+  deleteMessage(messageId: string): void {
+    this.send({
+      type: 'message_delete',
+      message_id: messageId,
+    });
   }
 
   // System

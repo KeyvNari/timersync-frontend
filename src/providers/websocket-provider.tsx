@@ -13,6 +13,7 @@ import {
   TimerData,
   ConnectionInfo,
   DisplayConfig,
+  MessageData,
   createSimpleWebSocketService,
 } from '@/services/websocket';
 
@@ -42,6 +43,7 @@ interface WebSocketContextValue {
   connections: ConnectionInfo[];
   connectionCount: number;
   defaultDisplayId: number | null;
+  messages: MessageData[];
 
   // Error/success messages
   lastError: string | null;
@@ -80,6 +82,11 @@ interface WebSocketContextValue {
   // Connections
   requestConnections: () => void;
   disconnectClient: (targetConnectionId: string) => void;
+
+  // Message management
+  addMessage: (messageData: Omit<MessageData, 'id'>) => void;
+  updateMessage: (messageId: string, updateData: Partial<MessageData>) => void;
+  deleteMessage: (messageId: string) => void;
 }
 
 const WebSocketContext = createContext<WebSocketContextValue | null>(null);
@@ -116,6 +123,7 @@ export function WebSocketProvider({
   const [connections, setConnections] = useState<ConnectionInfo[]>([]);
   const [connectionCount, setConnectionCount] = useState(0);
   const [defaultDisplayId, setDefaultDisplayId] = useState<number | null>(null);
+  const [messages, setMessages] = useState<MessageData[]>([]);
 
   const [lastError, setLastError] = useState<string | null>(null);
   const [lastSuccess, setLastSuccess] = useState<string | null>(null);
@@ -185,6 +193,12 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
       setConnected(true);
       setRoomInfo(message.room_info);
       setSelectedTimerId(message.room_info?.selected_timer_id || null);
+
+      // Load initial messages if provided in room_info
+      if (message.room_info?.messages && Array.isArray(message.room_info.messages)) {
+        setMessages(message.room_info.messages);
+      }
+
       setLastSuccess(message.message || 'Connected successfully');
 
       // Request initial timers and connections after successful connection
@@ -450,8 +464,17 @@ wsService.on('error', (message: any) => {
       setConnections([]);
       setConnectionCount(0);
       setDefaultDisplayId(null);
+      setMessages([]);
       setLastError(null);
       setLastSuccess(null);
+    });
+
+    // Message events
+    wsService.on('messages_list', (message: any) => {
+      console.log('Received messages_list:', message.messages);
+      if (message.messages && Array.isArray(message.messages)) {
+        setMessages(message.messages);
+      }
     });
   };
 
@@ -552,6 +575,7 @@ const disconnect = useCallback(() => {
   setConnections([]);
   setConnectionCount(0);
   setDefaultDisplayId(null);
+  setMessages([]);
   setLastError(null);
   setLastSuccess(null);
 }, []);
@@ -661,6 +685,19 @@ const disconnectClient = useCallback((targetConnectionId: string) => {
   wsServiceRef.current?.disconnectClient(targetConnectionId);
 }, []);
 
+// Message management
+const addMessage = useCallback((messageData: Omit<MessageData, 'id'>) => {
+  wsServiceRef.current?.addMessage(messageData);
+}, []);
+
+const updateMessage = useCallback((messageId: string, updateData: Partial<MessageData>) => {
+  wsServiceRef.current?.updateMessage(messageId, updateData);
+}, []);
+
+const deleteMessage = useCallback((messageId: string) => {
+  wsServiceRef.current?.deleteMessage(messageId);
+}, []);
+
   useEffect(() => {
     return () => {
       if (wsServiceRef.current) {
@@ -681,6 +718,7 @@ const disconnectClient = useCallback((targetConnectionId: string) => {
     connections,
     connectionCount,
     defaultDisplayId,
+    messages,
     lastError,
     lastSuccess,
     wsService: wsServiceRef.current,
@@ -705,6 +743,9 @@ const disconnectClient = useCallback((targetConnectionId: string) => {
     updateRoom,
     requestConnections,
     disconnectClient,
+    addMessage,
+    updateMessage,
+    deleteMessage,
   };
 
   return (

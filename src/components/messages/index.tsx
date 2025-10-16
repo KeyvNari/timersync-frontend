@@ -19,24 +19,28 @@ import { IconPlus, IconTrash, IconEye, IconEyeOff, IconPalette } from '@tabler/i
 import { v4 as uuidv4 } from 'uuid';
 import cx from 'clsx';
 import classes from './messages.module.css';
+import { useWebSocketContext } from '@/providers/websocket-provider';
 
 export interface Message {
   id: string;
   date: string;
   content: string;
-  color?: string;
+  color?: string | null;
   is_focused?: boolean;
   is_flashing?: boolean;
-  source?: string;
-  asker?: string;
+  source?: string | null;
+  asker?: string | null;
   is_showing: boolean;
   show_asker?: boolean;
   show_source?: boolean;
 }
 
 interface MessagesProps {
+  // Props are now optional - we use WebSocket context by default
   messages?: Message[];
   onMessagesChange?: (messages: Message[]) => void;
+  // If true, use local state instead of WebSocket (for testing/standalone use)
+  useLocalState?: boolean;
 }
 
 interface MessageItemProps {
@@ -401,39 +405,78 @@ function MessageItem({ message, onUpdate, onDelete }: MessageItemProps) {
   );
 }
 
-export function Messages({ messages: initialMessages = [], onMessagesChange }: MessagesProps) {
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
+export function Messages({
+  messages: propMessages,
+  onMessagesChange,
+  useLocalState = false
+}: MessagesProps) {
+  // Get WebSocket context
+  const wsContext = useWebSocketContext();
 
-  const updateMessages = (newMessages: Message[]) => {
-    setMessages(newMessages);
-    onMessagesChange?.(newMessages);
-  };
+  // Use local state only if useLocalState is true, otherwise use WebSocket context
+  const [localMessages, setLocalMessages] = useState<Message[]>(propMessages || []);
+
+  // Determine which messages to use
+  const messages = useLocalState ? localMessages : (wsContext?.messages || []);
+
+  // Determine which update functions to use
+  const addMessageFn = useLocalState
+    ? (messageData: Omit<Message, 'id'>) => {
+        const newMessage: Message = {
+          ...messageData,
+          id: uuidv4(),
+        };
+        const newMessages = [...localMessages, newMessage];
+        setLocalMessages(newMessages);
+        onMessagesChange?.(newMessages);
+      }
+    : (messageData: Omit<Message, 'id'>) => {
+        wsContext?.addMessage(messageData);
+      };
+
+  const updateMessageFn = useLocalState
+    ? (id: string, updates: Partial<Message>) => {
+        const updatedMessages = localMessages.map((msg) =>
+          msg.id === id ? { ...msg, ...updates } : msg
+        );
+        setLocalMessages(updatedMessages);
+        onMessagesChange?.(updatedMessages);
+      }
+    : (id: string, updates: Partial<Message>) => {
+        wsContext?.updateMessage(id, updates);
+      };
+
+  const deleteMessageFn = useLocalState
+    ? (id: string) => {
+        const updatedMessages = localMessages.filter((msg) => msg.id !== id);
+        setLocalMessages(updatedMessages);
+        onMessagesChange?.(updatedMessages);
+      }
+    : (id: string) => {
+        wsContext?.deleteMessage(id);
+      };
 
   const handleAddMessage = () => {
-    const newMessage: Message = {
-      id: uuidv4(),
+    const newMessage = {
       date: new Date().toISOString(),
       content: 'New message',
       color: '#FFFFFF',
       is_focused: false,
       is_flashing: false,
-      source: undefined,
+      source: 'user',
       asker: undefined,
-      is_showing: false,
-      show_asker: false,
-      show_source: false,
+      is_showing: true,
     };
 
-    updateMessages([...messages, newMessage]);
+    addMessageFn(newMessage);
   };
 
   const handleUpdateMessage = (id: string, updates: Partial<Message>) => {
-    const updatedMessages = messages.map((msg) => (msg.id === id ? { ...msg, ...updates } : msg));
-    updateMessages(updatedMessages);
+    updateMessageFn(id, updates);
   };
 
   const handleDeleteMessage = (id: string) => {
-    updateMessages(messages.filter((msg) => msg.id !== id));
+    deleteMessageFn(id);
   };
 
   return (
