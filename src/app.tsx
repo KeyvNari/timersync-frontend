@@ -22,7 +22,8 @@ import { queryClient } from '@/api/query-client';
 import { AuthProvider } from '@/providers/auth-provider';
 import { Router } from '@/routes/router';
 import { theme } from '@/theme';
-import { WebSocketProvider } from './providers/websocket-provider'; 
+import { WebSocketProvider } from './providers/websocket-provider';
+
 export function App() {
   return (
     <HelmetProvider>
@@ -30,7 +31,7 @@ export function App() {
         <ReactQueryDevtools initialIsOpen={false} />
         <AuthProvider>
           <WebSocketProvider >
-          <MantineProvider theme={theme}>
+          <MantineProvider theme={theme} forceColorScheme="dark">
             <Notifications position="bottom-center" />
             {/* <NavigationProgress /> */}
             <ModalsProvider>

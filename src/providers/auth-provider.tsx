@@ -20,6 +20,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isInitialized, setIsInitialized] = useState(false);
 
 useEffect(() => {
+  // Skip authentication check for controller routes - they use room tokens instead
+  if (window.location.pathname.startsWith('/controller')) {
+    console.log('🔐 Auth Provider - Skipping auth check for controller route');
+    setIsAuthenticated(false);
+    setIsInitialized(true);
+    return;
+  }
+
   loadAccessToken(); // This should load the token into axios and localStorage
 
   // Debug: Check if token exists after loading
@@ -29,7 +37,7 @@ useEffect(() => {
   // Check if user is authenticated
   const checkAuth = async () => {
     const token = localStorage.getItem(app.accessTokenStoreKey);
-    
+
     if (!token) {
       console.log('❌ No token found in storage');
       setIsAuthenticated(false);

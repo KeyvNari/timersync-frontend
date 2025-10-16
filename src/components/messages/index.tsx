@@ -1,5 +1,5 @@
 // src/components/messages/index.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -418,6 +418,28 @@ export function Messages({
 
   // Determine which messages to use
   const messages = useLocalState ? localMessages : (wsContext?.messages || []);
+
+  // Debug logging - track when messages change from context
+  useEffect(() => {
+    console.log('📬 Messages component: Context messages changed:', {
+      useLocalState,
+      messageCount: messages.length,
+      messages: messages,
+      wsContextMessages: wsContext?.messages,
+      wsContextMessagesCount: wsContext?.messages?.length
+    });
+  }, [messages, wsContext?.messages, useLocalState]);
+
+  // Debug logging - track component mount/unmount
+  useEffect(() => {
+    console.log('🎬 Messages component mounted', {
+      useLocalState,
+      initialMessageCount: messages.length
+    });
+    return () => {
+      console.log('🎬 Messages component unmounted');
+    };
+  }, []);
 
   // Determine which update functions to use
   const addMessageFn = useLocalState

@@ -195,16 +195,31 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
       setSelectedTimerId(message.room_info?.selected_timer_id || null);
 
       // Load initial messages if provided in room_info
+      console.log('🔍 Checking for initial messages in room_info:', {
+        hasMessages: !!message.room_info?.messages,
+        isArray: Array.isArray(message.room_info?.messages),
+        messageCount: message.room_info?.messages?.length,
+        messages: message.room_info?.messages
+      });
+
       if (message.room_info?.messages && Array.isArray(message.room_info.messages)) {
+        console.log('✅ Setting initial messages from room_info:', message.room_info.messages);
         setMessages(message.room_info.messages);
+      } else {
+        console.log('⚠️ No messages in room_info on initial connection');
       }
 
       setLastSuccess(message.message || 'Connected successfully');
 
-      // Request initial timers and connections after successful connection
+      // Request initial data after successful connection
       setTimeout(() => {
         wsService.requestRoomTimers();
         wsService.requestConnections();
+
+        // Always request messages to ensure they're loaded
+        // (Backend should include them in room_info, but this is a fallback)
+        console.log('📨 Requesting messages list...');
+        wsService.requestMessages();
       }, 100);
     } else {
       // This is likely a successful operation response
@@ -471,9 +486,15 @@ wsService.on('error', (message: any) => {
 
     // Message events
     wsService.on('messages_list', (message: any) => {
-      console.log('Received messages_list:', message.messages);
+      console.log('📨 Received messages_list event:', {
+        messageCount: message.messages?.length,
+        messages: message.messages,
+        timestamp: message.timestamp
+      });
       if (message.messages && Array.isArray(message.messages)) {
         setMessages(message.messages);
+      } else {
+        console.warn('⚠️ messages_list event missing messages array:', message);
       }
     });
   };
@@ -687,14 +708,17 @@ const disconnectClient = useCallback((targetConnectionId: string) => {
 
 // Message management
 const addMessage = useCallback((messageData: Omit<MessageData, 'id'>) => {
+  console.log('📤 Adding message:', messageData);
   wsServiceRef.current?.addMessage(messageData);
 }, []);
 
 const updateMessage = useCallback((messageId: string, updateData: Partial<MessageData>) => {
+  console.log('📤 Updating message:', { messageId, updateData });
   wsServiceRef.current?.updateMessage(messageId, updateData);
 }, []);
 
 const deleteMessage = useCallback((messageId: string) => {
+  console.log('📤 Deleting message:', messageId);
   wsServiceRef.current?.deleteMessage(messageId);
 }, []);
 

@@ -9,15 +9,7 @@ import { LazyPage } from './lazy-page';
 import { paths } from './paths';
 
 const router = createBrowserRouter([
-  ...docsRoutes,
-  {
-  path: paths.dashboard.rooms,
-  element: LazyPage(() => import('@/pages/dashboard/rooms')),
-},
-{
-  path: '/dashboard/room/:roomId',
-  element: LazyPage(() => import('@/pages/dashboard/room')),
-},
+  // Controller routes - no authentication guards needed
   {
     path: '/viewer/:roomId/:token',
     element: LazyPage(() => import('@/pages/viewer')),
@@ -34,6 +26,8 @@ const router = createBrowserRouter([
     path: '/controller/:roomId/:token/pwd',
     element: LazyPage(() => import('@/pages/controller')),
   },
+  ...docsRoutes,
+
   {
     path: '/',
     element: <Navigate to={paths.dashboard.root} replace />,
@@ -82,6 +76,14 @@ const router = createBrowserRouter([
   path: paths.dashboard.root,
   element: <Navigate to={paths.dashboard.rooms} replace />,
 },
+      {
+        path: paths.dashboard.rooms,
+        element: LazyPage(() => import('@/pages/dashboard/rooms')),
+      },
+      {
+        path: '/dashboard/room/:roomId',
+        element: LazyPage(() => import('@/pages/dashboard/room')),
+      },
       {
         path: paths.dashboard.home,
         element: LazyPage(() => import('@/pages/dashboard/home')),

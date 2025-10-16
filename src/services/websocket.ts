@@ -263,15 +263,19 @@ export class SimpleWebSocketService {
 
               this.handleMessage(event.data); // Process the success message
               resolve();
+              return; // Return after processing success, but subsequent messages will be processed below
             } else if (message.type === 'ERROR' || message.type === 'error') {
               console.error('Connection rejected:', message);
               reject(new Error(message.message || 'Connection rejected'));
               this.ws?.close();
+              return;
             }
-            return;
+            // If it's not SUCCESS or ERROR but we're not acknowledged yet,
+            // still process it (backend might send initial data immediately)
+            // Don't return here - fall through to process the message
           }
 
-          // Process subsequent messages normally
+          // Process all messages (including those that arrive right after connection)
           this.handleMessage(event.data);
         };
 
@@ -467,6 +471,10 @@ export class SimpleWebSocketService {
   }
 
   // Message management
+  requestMessages(): void {
+    this.send({ type: 'get_messages' });
+  }
+
   addMessage(messageData: Omit<MessageData, 'id'>): void {
     this.send({
       type: 'message_add',
