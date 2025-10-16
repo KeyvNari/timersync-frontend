@@ -118,6 +118,9 @@ export function WebSocketProvider({
   const [timers, setTimers] = useState<TimerData[]>([]);
   const [selectedTimerId, setSelectedTimerId] = useState<number | null>(null);
 
+  // Optimistic update tracking
+  const optimisticUpdatesRef = useRef<Map<number, { previous: TimerData; timeout: NodeJS.Timeout }>>(new Map());
+
   const [roomInfo, setRoomInfo] = useState<Record<string, any> | null>(null);
   const [displays, setDisplays] = useState<DisplayConfig[]>([]);
   const [connections, setConnections] = useState<ConnectionInfo[]>([]);
@@ -204,7 +207,10 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
 
       if (message.room_info?.messages && Array.isArray(message.room_info.messages)) {
         console.log('✅ Setting initial messages from room_info:', message.room_info.messages);
-        setMessages(message.room_info.messages);
+        // Deduplicate initial messages
+        const messageMap = new Map<string, MessageData>();
+        message.room_info.messages.forEach((msg: MessageData) => messageMap.set(msg.id, msg));
+        setMessages(Array.from(messageMap.values()));
       } else {
         console.log('⚠️ No messages in room_info on initial connection');
       }
@@ -277,6 +283,13 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
     if (!timerData?.id) {
       // console.log('❌ No timer data or ID in update');
       return prev;
+    }
+
+    // Clear optimistic update if server confirms the change
+    const optimisticUpdate = optimisticUpdatesRef.current.get(timerData.id);
+    if (optimisticUpdate) {
+      clearTimeout(optimisticUpdate.timeout);
+      optimisticUpdatesRef.current.delete(timerData.id);
     }
 
     const existingTimerIndex = prev.findIndex(timer => timer.id === timerData.id);
@@ -492,7 +505,19 @@ wsService.on('error', (message: any) => {
         timestamp: message.timestamp
       });
       if (message.messages && Array.isArray(message.messages)) {
-        setMessages(message.messages);
+        // Deduplicate messages by ID before setting
+        setMessages(prevMessages => {
+          const newMessages = message.messages as MessageData[];
+          const messageMap = new Map<string, MessageData>();
+
+          // Add existing messages first
+          prevMessages.forEach(msg => messageMap.set(msg.id, msg));
+
+          // Add/update with new messages (newer data wins)
+          newMessages.forEach(msg => messageMap.set(msg.id, msg));
+
+          return Array.from(messageMap.values());
+        });
       } else {
         console.warn('⚠️ messages_list event missing messages array:', message);
       }
@@ -500,14 +525,7 @@ wsService.on('error', (message: any) => {
   };
 
   // Connection management
-// In src/providers/websocket-provider.tsx
-
-// Update the connect function (around line 208-240):
-
-
-
-
-const connect = useCallback(async (
+  const connect = useCallback(async (
   roomId: number,
   options: Partial<WebSocketServiceOptions> = {}
 ) => {
@@ -630,6 +648,39 @@ const resetTimer = useCallback((timerId: number) => {
 }, []);
 
 const updateTimer = useCallback((timerId: number, updates: Partial<TimerData>) => {
+  // Apply optimistic update immediately
+  setTimers(prev => {
+    const index = prev.findIndex(t => t.id === timerId);
+    if (index === -1) return prev;
+
+    const currentTimer = prev[index];
+
+    // Store previous state for rollback
+    const rollbackTimeout = setTimeout(() => {
+      // Rollback if no confirmation after 5 seconds
+      console.warn(`No confirmation for timer ${timerId} update, rolling back...`);
+      setTimers(rollbackPrev => {
+        const rollbackIndex = rollbackPrev.findIndex(t => t.id === timerId);
+        if (rollbackIndex === -1) return rollbackPrev;
+        const newTimers = [...rollbackPrev];
+        newTimers[rollbackIndex] = currentTimer;
+        return newTimers;
+      });
+      optimisticUpdatesRef.current.delete(timerId);
+    }, 5000);
+
+    optimisticUpdatesRef.current.set(timerId, {
+      previous: currentTimer,
+      timeout: rollbackTimeout
+    });
+
+    // Apply optimistic update
+    const newTimers = [...prev];
+    newTimers[index] = { ...currentTimer, ...updates };
+    return newTimers;
+  });
+
+  // Send to server
   wsServiceRef.current?.updateTimer(timerId, updates);
 }, []);
 

@@ -878,6 +878,7 @@ export function Timers({
   const initialTimers = timers || [...mockTimers].sort((a, b) => a.room_sequence_order - b.room_sequence_order);
   const [state, handlers] = useListState<Timer>(initialTimers);
   const reorderLockRef = useRef<boolean>(false);
+  const reorderLockTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Update state when props change (but not during reorder operations)
   useEffect(() => {
@@ -951,10 +952,17 @@ export function Timers({
       handlers.setState(newState);
       events?.onTimerReorder?.(newState);
 
+      // Clear any existing timeout
+      if (reorderLockTimeoutRef.current) {
+        clearTimeout(reorderLockTimeoutRef.current);
+      }
+
       // Release lock after backend has had time to process and broadcast the bulk update
-      setTimeout(() => {
+      // Extended timeout for production latency (was 1000ms, now 3000ms)
+      reorderLockTimeoutRef.current = setTimeout(() => {
         reorderLockRef.current = false;
-      }, 1000);
+        reorderLockTimeoutRef.current = null;
+      }, 3000);
     }
   };
 

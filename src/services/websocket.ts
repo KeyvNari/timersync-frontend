@@ -126,6 +126,11 @@ export class SimpleWebSocketService {
   private reconnectAttempts = 0;
   private reconnectTimer: NodeJS.Timeout | null = null;
 
+  // Operation queue for handling disconnects
+  private pendingOperations: Array<{ message: WebSocketMessage; timestamp: number; retries: number }> = [];
+  private static readonly MAX_OPERATION_RETRIES = 3;
+  private static readonly OPERATION_TIMEOUT = 60000; // 60 seconds
+
   // Heartbeat/Health check properties
   private pingInterval: NodeJS.Timeout | null = null;
   private pongTimeout: NodeJS.Timeout | null = null;
@@ -261,6 +266,9 @@ export class SimpleWebSocketService {
               this.startHeartbeat();
               this.connectionHealthCallback?.('connected', 'Connected successfully');
 
+              // Process any pending operations from before disconnect
+              setTimeout(() => this.processPendingOperations(), 500);
+
               this.handleMessage(event.data); // Process the success message
               resolve();
               return; // Return after processing success, but subsequent messages will be processed below
@@ -336,7 +344,16 @@ export class SimpleWebSocketService {
 
   send(message: WebSocketMessage): void {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-      console.warn('WebSocket not connected, cannot send message:', message);
+      console.warn('WebSocket not connected, queueing message:', message);
+
+      // Queue user actions (not pings or system messages) for retry on reconnect
+      if (message.type !== 'ping' && message.type !== 'pong') {
+        this.pendingOperations.push({
+          message,
+          timestamp: Date.now(),
+          retries: 0
+        });
+      }
       return;
     }
 
@@ -346,7 +363,47 @@ export class SimpleWebSocketService {
       this.ws.send(JSON.stringify(message));
     } catch (error) {
       console.error('Error sending WebSocket message:', error);
+
+      // Queue for retry if it's a user action
+      if (message.type !== 'ping' && message.type !== 'pong') {
+        this.pendingOperations.push({
+          message,
+          timestamp: Date.now(),
+          retries: 0
+        });
+      }
     }
+  }
+
+  // Process queued operations after reconnection
+  private processPendingOperations(): void {
+    if (this.pendingOperations.length === 0) return;
+
+    console.log(`Processing ${this.pendingOperations.length} pending operations...`);
+
+    const now = Date.now();
+    const validOperations = this.pendingOperations.filter(op => {
+      // Remove operations older than timeout
+      if (now - op.timestamp > SimpleWebSocketService.OPERATION_TIMEOUT) {
+        console.warn('Dropping expired operation:', op.message);
+        return false;
+      }
+      // Remove operations that exceeded retry limit
+      if (op.retries >= SimpleWebSocketService.MAX_OPERATION_RETRIES) {
+        console.warn('Dropping operation after max retries:', op.message);
+        return false;
+      }
+      return true;
+    });
+
+    this.pendingOperations = [];
+
+    // Resend valid operations
+    validOperations.forEach(op => {
+      op.retries++;
+      console.log(`Retrying operation (attempt ${op.retries}):`, op.message);
+      this.send(op.message);
+    });
   }
 
   on(messageType: string, handler: WebSocketEventHandler): void {
@@ -388,11 +445,20 @@ export class SimpleWebSocketService {
   }
 
   updateTimer(timerId: number, updates: Partial<TimerData>): void {
-    this.send({ type: 'timer_update', timer_id: timerId, ...updates });
+    this.send({
+      type: 'timer_update',
+      timer_id: timerId,
+      client_timestamp: Date.now(), // Add timestamp for conflict resolution
+      ...updates
+    });
   }
 
   bulkUpdateTimers(updates: Array<{ timer_id: number; room_sequence_order: number; linked_timer_id?: number | null }>): void {
-    this.send({ type: 'timer_bulk_update', updates });
+    this.send({
+      type: 'timer_bulk_update',
+      updates,
+      client_timestamp: Date.now() // Add timestamp for conflict resolution
+    });
   }
 
   deleteTimer(timerId: number): void {

@@ -8,6 +8,7 @@ export const client = axios.create({
     Accept: 'application/json',
   },
   withCredentials: true, // Enable cookies for refresh tokens
+  timeout: 30000, // 30 second timeout for all requests
 });
 
 // Request interceptor to add auth token
