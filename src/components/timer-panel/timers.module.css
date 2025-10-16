@@ -4,7 +4,7 @@
   border-radius: var(--mantine-radius-sm);
   padding: var(--mantine-spacing-sm) var(--mantine-spacing-md);
   background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6));
-  margin-bottom: 1px;
+  margin-bottom: var(--mantine-spacing-sm);
   position: relative;
   transition: all 0.2s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
@@ -73,18 +73,19 @@
   display: flex;
   align-items: center;
   gap: var(--mantine-spacing-xs);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   flex-wrap: wrap;
 }
 
 .timerTitle {
-  font-weight: 600;
-  font-size: var(--mantine-font-size-sm);
-  color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-gray-0));
+  font-weight: 700;
+  font-size: var(--mantine-font-size-md);
+  color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-white));
   cursor: pointer;
   padding: 2px 4px;
   border-radius: var(--mantine-radius-xs);
   transition: background-color 0.2s ease;
+  letter-spacing: -0.015em;
 }
 
 .timerTitle:hover {
@@ -136,6 +137,41 @@
   color: var(--mantine-color-white);
 }
 
+.autoStartBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.autoStartBadge[data-enabled="true"] {
+  background-color: light-dark(var(--mantine-color-teal-0), var(--mantine-color-teal-9));
+  color: light-dark(var(--mantine-color-teal-8), var(--mantine-color-teal-2));
+}
+
+.autoStartBadge[data-enabled="false"] {
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-gray-4));
+}
+
+.autoStartBadge:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.autoStartBadge[data-enabled="true"]:hover {
+  background-color: light-dark(var(--mantine-color-teal-1), var(--mantine-color-teal-8));
+}
+
+.autoStartBadge[data-enabled="false"]:hover {
+  background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
+}
+
 .timerMeta {
   display: flex;
   align-items: center;
@@ -143,13 +179,44 @@
   font-size: var(--mantine-font-size-xs);
   color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-gray-4));
   flex-wrap: wrap;
+  font-family: 'Roboto Mono', monospace;
+  line-height: 1.5;
 }
 
 .editableField {
   cursor: pointer;
-  padding: 2px 4px;
+  padding: 4px 6px;
   border-radius: var(--mantine-radius-xs);
   transition: background-color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.metaLabel {
+  color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-gray-6));
+  font-weight: 400;
+  font-size: 11px;
+}
+
+.metaValue {
+  color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-cyan-3));
+  font-weight: 600;
+  font-size: var(--mantine-font-size-xs);
+}
+
+.metaSpeaker {
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-gray-3));
+  font-style: italic;
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 400;
+}
+
+.metaPlaceholder {
+  color: light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-3));
+  font-style: italic;
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 400;
 }
 
 .editableField:hover {

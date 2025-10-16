@@ -69,6 +69,7 @@ export default function RoomController({
     stopTimer,
     selectTimer,
     updateTimer,
+    bulkUpdateTimers,
     deleteTimer,
   } = useTimerContext();
 
@@ -115,6 +116,18 @@ export default function RoomController({
     }
   }, [authMode, isAuthenticated, deleteTimer]);
 
+  const handleTimerReorder = useCallback((reorderedTimers: any[]) => {
+    console.log('Reordering timers:', reorderedTimers.map(t => ({ id: t.id, order: t.room_sequence_order })));
+    if (authMode === 'authGuard' ? isAuthenticated : true) {
+      // Send bulk update with all timer order changes
+      const updates = reorderedTimers.map(timer => ({
+        timer_id: timer.id,
+        room_sequence_order: timer.room_sequence_order
+      }));
+      bulkUpdateTimers(updates);
+    }
+  }, [authMode, isAuthenticated, bulkUpdateTimers]);
+
   const timerEvents = useMemo(() => ({
     onTimerStart: handleTimerStart,
     onTimerPause: handleTimerPause,
@@ -122,7 +135,8 @@ export default function RoomController({
     onTimerSelect: handleTimerSelect,
     onTimerEdit: handleTimerUpdate,
     onTimerDelete: handleTimerDelete,
-  }), [handleTimerStart, handleTimerPause, handleTimerStop, handleTimerSelect, handleTimerUpdate, handleTimerDelete]);
+    onTimerReorder: handleTimerReorder,
+  }), [handleTimerStart, handleTimerPause, handleTimerStop, handleTimerSelect, handleTimerUpdate, handleTimerDelete, handleTimerReorder]);
 
   // Track connection state changes
   useEffect(() => {

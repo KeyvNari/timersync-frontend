@@ -60,6 +60,7 @@ interface WebSocketContextValue {
   stopTimer: (timerId: number) => void;
   resetTimer: (timerId: number) => void;
   updateTimer: (timerId: number, updates: Partial<TimerData>) => void;
+  bulkUpdateTimers: (updates: Array<{ timer_id: number; room_sequence_order: number }>) => void;
   deleteTimer: (timerId: number) => void;
   selectTimer: (timerId: number, timerData?: Partial<TimerData>) => void;
   createTimer: (timerData: Partial<TimerData>) => void;
@@ -241,7 +242,7 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
   //   is_active: message.timer_data?.is_active,
   //   full_data: message.timer_data
   // });
-  
+
   setTimers((prev) => {
     const timerData = message.timer_data;
     if (!timerData?.id) {
@@ -251,7 +252,7 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
 
     const existingTimerIndex = prev.findIndex(timer => timer.id === timerData.id);
     let newTimers;
-    
+
     if (existingTimerIndex !== -1) {
       // Create a completely new array with the updated timer
       newTimers = [...prev];
@@ -261,7 +262,30 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
       newTimers = [...prev, timerData];
       // console.log('➕ New timer added');
     }
-    
+
+    return newTimers;
+  });
+});
+
+wsService.on('timer_bulk_update', (message: any) => {
+  console.log('📍 TIMER_BULK_UPDATE received:', message.timers?.length, 'timers');
+
+  setTimers((prev) => {
+    const updatedTimers = message.timers;
+    if (!updatedTimers || !Array.isArray(updatedTimers)) {
+      console.log('❌ No timers array in bulk update');
+      return prev;
+    }
+
+    // Create a map for quick lookup of updated timers
+    const updatedMap = new Map(updatedTimers.map((t: TimerData) => [t.id, t]));
+
+    // Update all timers that were in the bulk update
+    const newTimers = prev.map(timer => {
+      const updated = updatedMap.get(timer.id);
+      return updated ? { ...updated } : timer;
+    });
+
     return newTimers;
   });
 });
@@ -564,6 +588,10 @@ const updateTimer = useCallback((timerId: number, updates: Partial<TimerData>) =
   wsServiceRef.current?.updateTimer(timerId, updates);
 }, []);
 
+const bulkUpdateTimers = useCallback((updates: Array<{ timer_id: number; room_sequence_order: number }>) => {
+  wsServiceRef.current?.bulkUpdateTimers(updates);
+}, []);
+
 const deleteTimer = useCallback((timerId: number) => {
   wsServiceRef.current?.deleteTimer(timerId);
 }, []);
@@ -663,6 +691,7 @@ const disconnectClient = useCallback((targetConnectionId: string) => {
     stopTimer,
     resetTimer,
     updateTimer,
+    bulkUpdateTimers,
     deleteTimer,
     selectTimer,
     createTimer,

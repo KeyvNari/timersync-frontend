@@ -14,12 +14,12 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { IconPlayerPlay, IconPlayerPause, IconRestore, IconGripVertical, IconSettings, IconNotes, IconTrash } from '@tabler/icons-react';
+import { IconPlayerPlay, IconPlayerPause, IconRestore, IconGripVertical, IconSettings, IconNotes, IconTrash, IconClock, IconUser, IconCalendar } from '@tabler/icons-react';
 import cx from 'clsx';
-import { Text, Button, Group, Alert, useMantineColorScheme, useMantineTheme, HoverCard, TextInput, Modal } from '@mantine/core';
+import { Text, Button, Group, Alert, useMantineColorScheme, useMantineTheme, HoverCard, TextInput, Modal, Popover, Switch } from '@mantine/core';
 import { DateTimePicker } from '@mantine/dates';
 import { useListState } from '@mantine/hooks';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useWebSocketContext } from '@/providers/websocket-provider';
 import dayjs from 'dayjs';
 import { Tooltip } from '@mantine/core';
@@ -331,7 +331,7 @@ interface ItemProps {
 
 function SortableItem({ item, onUpdateTimer, onSelectTimer, onOpenSettings, events }: ItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: item.room_sequence_order,
+    id: item.id,
   });
 
   const timerState = getTimerState(item);
@@ -347,6 +347,11 @@ function SortableItem({ item, onUpdateTimer, onSelectTimer, onOpenSettings, even
 
   // State for dismissed schedule warnings
   const [scheduleWarningDismissed, setScheduleWarningDismissed] = useState(false);
+
+  // State for schedule popover
+  const [schedulePopoverOpened, setSchedulePopoverOpened] = useState(false);
+  const [scheduleDateTime, setScheduleDateTime] = useState<Date | null>(null);
+  const [pendingAutoStart, setPendingAutoStart] = useState(false);
 
   // Reset dismissal when schedule changes
   useEffect(() => {
@@ -459,6 +464,58 @@ const handleDoubleClick = (e: React.MouseEvent) => {
     setScheduleWarningDismissed(true);
   };
 
+  // Handle auto start toggle
+  const handleAutoStartToggle = () => {
+    const newValue = !item.is_manual_start;
+
+    // If trying to enable auto start (is_manual_start = false), check if schedule exists
+    if (!newValue && (!item.scheduled_start_date || !item.scheduled_start_time)) {
+      // Auto start requires a schedule - open the schedule popover
+      setPendingAutoStart(true);
+      handleScheduleClick();
+      return;
+    }
+
+    const updates = { is_manual_start: newValue };
+    onUpdateTimer(item.id, updates);
+    events?.onTimerEdit?.(item, 'is_manual_start', newValue);
+    wsUpdateTimer(item.id, updates as any);
+  };
+
+  // Handle schedule save
+  const handleScheduleSave = (newDateTime: Date | null) => {
+    const updates: any = {
+      scheduled_start_date: newDateTime ? dayjs(newDateTime).format('YYYY-MM-DD') : null,
+      scheduled_start_time: newDateTime ? dayjs(newDateTime).format('HH:mm:ss') : null,
+    };
+
+    // If there was a pending auto start request and a valid schedule is being set
+    if (pendingAutoStart && newDateTime) {
+      updates.is_manual_start = false; // Enable auto start
+      setPendingAutoStart(false);
+    }
+
+    // If clearing the schedule and auto start is currently enabled, disable auto start
+    if (!newDateTime && !item.is_manual_start) {
+      updates.is_manual_start = true; // Disable auto start since schedule is being removed
+    }
+
+    onUpdateTimer(item.id, updates);
+    events?.onTimerEdit?.(item, 'scheduled_start_time', updates);
+    wsUpdateTimer(item.id, updates as any);
+    setSchedulePopoverOpened(false);
+  };
+
+  // Open schedule popover with current value
+  const handleScheduleClick = () => {
+    if (item.scheduled_start_date && item.scheduled_start_time) {
+      setScheduleDateTime(new Date(`${item.scheduled_start_date}T${item.scheduled_start_time}`));
+    } else {
+      setScheduleDateTime(null);
+    }
+    setSchedulePopoverOpened(true);
+  };
+
   return (
     <div
       className={cx(classes.item, {
@@ -472,6 +529,9 @@ const handleDoubleClick = (e: React.MouseEvent) => {
       title="Double-click to select timer"
       {...attributes}
     >
+      <div className={classes.dragHandle} {...listeners}>
+        <IconGripVertical size={18} />
+      </div>
       <div className={classes.timerContent}>
         <div className={classes.timerHeader}>
           {editingField === 'title' ? (
@@ -511,14 +571,35 @@ const handleDoubleClick = (e: React.MouseEvent) => {
             </HoverCard>
           )}
 
-          {!item.is_manual_start && (
-            <Text size="xs" c="teal" fw={500}>Auto Start ON</Text>
-          )}
+          {/* Auto Start Toggle - Clickable and shows ON/OFF */}
+          <Tooltip
+            label={
+              item.is_manual_start
+                ? "Click to enable auto start (schedule required)"
+                : "Click to disable auto start"
+            }
+            position="top"
+            withArrow
+          >
+            <div
+              className={classes.autoStartBadge}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleAutoStartToggle();
+              }}
+              data-enabled={!item.is_manual_start}
+            >
+              <Text size="xs" fw={500}>
+                Auto Start {item.is_manual_start ? 'OFF' : 'ON'}
+              </Text>
+            </div>
+          </Tooltip>
         </div>
 
         <div className={classes.timerMeta}>
           <span className={classes.editableField}>
-            Duration: {editingField === 'duration_seconds' ? (
+            <IconClock size={14} style={{ flexShrink: 0 }} />
+            {editingField === 'duration_seconds' ? (
               <div
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}
                 onBlur={(e) => {
@@ -551,9 +632,12 @@ const handleDoubleClick = (e: React.MouseEvent) => {
                 />
               </div>
             ) : (
-              <span onClick={() => startEditing('duration_seconds', formatDuration(item.duration_seconds))}>
-                {formatDuration(item.duration_seconds)}
-              </span>
+              <>
+                <span className={classes.metaLabel}>Duration</span>
+                <span className={classes.metaValue} onClick={() => startEditing('duration_seconds', formatDuration(item.duration_seconds))}>
+                  {formatDuration(item.duration_seconds)}
+                </span>
+              </>
             )}
           </span>
 
@@ -568,7 +652,8 @@ const handleDoubleClick = (e: React.MouseEvent) => {
 
           {item.speaker && (
             <span className={classes.editableField}>
-              Speaker: {editingField === 'speaker' ? (
+              <IconUser size={14} style={{ flexShrink: 0 }} />
+              {editingField === 'speaker' ? (
                 <TextInput
                   value={editValue}
                   onChange={(e) => setEditValue(e.currentTarget.value)}
@@ -579,27 +664,98 @@ const handleDoubleClick = (e: React.MouseEvent) => {
                   autoFocus
                 />
               ) : (
-                <span onClick={() => startEditing('speaker', item.speaker || '')}>
-                  {item.speaker}
-                </span>
+                <>
+                  <span className={classes.metaLabel}>Speaker</span>
+                  <span className={classes.metaSpeaker} onClick={() => startEditing('speaker', item.speaker || '')}>
+                    {item.speaker}
+                  </span>
+                </>
               )}
             </span>
           )}
 
-          {item.scheduled_start_time && item.scheduled_start_date && (
-            <span>
-              Scheduled: {item.scheduled_start_date} {item.scheduled_start_time}
-              {showScheduleWarning && (
-                <Tooltip label="Scheduled time is in the past" position="top" withArrow>
-                  <IconAlertTriangle
-                    size={12}
-                    color="orange"
-                    style={{ marginLeft: '4px', verticalAlign: 'middle' }}
-                  />
-                </Tooltip>
-              )}
-            </span>
-          )}
+          {/* Schedule Editing - Inline with Popover */}
+          <Popover
+            width={300}
+            position="bottom"
+            withArrow
+            shadow="md"
+            opened={schedulePopoverOpened}
+            onChange={setSchedulePopoverOpened}
+            closeOnClickOutside={false}
+            closeOnEscape={true}
+            trapFocus
+          >
+            <Popover.Target>
+              <span
+                className={classes.editableField}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleScheduleClick();
+                }}
+              >
+                <IconCalendar size={14} style={{ flexShrink: 0 }} />
+                {item.scheduled_start_time && item.scheduled_start_date ? (
+                  <>
+                    <span className={classes.metaLabel}>Scheduled</span>
+                    <span className={classes.metaValue}>
+                      {dayjs(`${item.scheduled_start_date}T${item.scheduled_start_time}`).format('MMM D, YYYY HH:mm')}
+                    </span>
+                    {showScheduleWarning && (
+                      <Tooltip label="Scheduled time is in the past" position="top" withArrow>
+                        <IconAlertTriangle
+                          size={12}
+                          color="orange"
+                          style={{ marginLeft: '4px', verticalAlign: 'middle' }}
+                        />
+                      </Tooltip>
+                    )}
+                  </>
+                ) : (
+                  <span className={classes.metaPlaceholder}>
+                    Click to set schedule
+                  </span>
+                )}
+              </span>
+            </Popover.Target>
+            <Popover.Dropdown onClick={(e) => e.stopPropagation()}>
+              <Stack gap="sm">
+                <Text size="sm" fw={500}>Set Schedule</Text>
+                {pendingAutoStart && (
+                  <Alert color="blue" variant="light" p="xs">
+                    <Text size="xs">Schedule is required to enable Auto Start</Text>
+                  </Alert>
+                )}
+                <DateTimePicker
+                  value={scheduleDateTime}
+                  onChange={setScheduleDateTime}
+                  placeholder="Pick date and time"
+                  clearable
+                  withSeconds={false}
+                  popoverProps={{ withinPortal: true }}
+                />
+                <Group justify="flex-end" gap="xs">
+                  <Button
+                    size="xs"
+                    variant="light"
+                    onClick={() => {
+                      setSchedulePopoverOpened(false);
+                      setPendingAutoStart(false);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="xs"
+                    onClick={() => handleScheduleSave(scheduleDateTime)}
+                    disabled={pendingAutoStart && !scheduleDateTime}
+                  >
+                    Save
+                  </Button>
+                </Group>
+              </Stack>
+            </Popover.Dropdown>
+          </Popover>
         </div>
       </div>
 
@@ -689,10 +845,11 @@ export function Timers({
   // Use provided timers or fall back to mock data
   const initialTimers = timers || [...mockTimers].sort((a, b) => a.room_sequence_order - b.room_sequence_order);
   const [state, handlers] = useListState<Timer>(initialTimers);
+  const reorderLockRef = useRef<boolean>(false);
 
-  // Update state when props change
+  // Update state when props change (but not during reorder operations)
   useEffect(() => {
-    if (timers) {
+    if (timers && !reorderLockRef.current) {
       handlers.setState(
         [...timers]
           .sort((a, b) => a.room_sequence_order - b.room_sequence_order)
@@ -721,16 +878,24 @@ export function Timers({
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    const oldIndex = state.findIndex((item) => item.room_sequence_order === active.id);
-    const newIndex = state.findIndex((item) => item.room_sequence_order === over.id);
+    const oldIndex = state.findIndex((item) => item.id === active.id);
+    const newIndex = state.findIndex((item) => item.id === over.id);
 
     if (oldIndex !== -1 && newIndex !== -1) {
+      // Lock state updates to prevent flickering from incoming WebSocket messages
+      reorderLockRef.current = true;
+
       const newState = arrayMove(state, oldIndex, newIndex).map((item, index) => ({
         ...item,
         room_sequence_order: index + 1,
       }));
       handlers.setState(newState);
       events?.onTimerReorder?.(newState);
+
+      // Release lock after backend has had time to process and broadcast the bulk update
+      setTimeout(() => {
+        reorderLockRef.current = false;
+      }, 1000);
     }
   };
 
@@ -849,7 +1014,7 @@ const form = useForm({
         </Alert>
       )}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={state.map((i) => i.room_sequence_order)} strategy={verticalListSortingStrategy}>
+        <SortableContext items={state.map((i) => i.id)} strategy={verticalListSortingStrategy}>
           {state.map((item) => (
             <SortableItem
               key={item.id}
