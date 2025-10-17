@@ -214,11 +214,50 @@ export function RoomsComponent({
             onChange={(e) => setSearchQuery(e.currentTarget.value)}
             style={{ flexGrow: 1, maxWidth: '400px' }}
           />
-          {showCreateButton && (
-            <Button leftSection={<IconPlus size="1rem" />} onClick={onCreateRoom || openCreate}>
-              Create Room
-            </Button>
-          )}
+          <Group gap="sm">
+            {showCreateButton && (
+              <Button leftSection={<IconPlus size="1rem" />} onClick={onCreateRoom || openCreate}>
+                Create Room
+              </Button>
+            )}
+            {hideHeader && (
+              <Menu position="bottom-end" shadow="md" width={200}>
+                <Menu.Target>
+                  <Button variant="subtle" color="gray" rightSection={<IconChevronDown size="1rem" />}>
+                    <Group gap="sm">
+                      <Avatar src={user?.profile_image_url} size="sm" radius="xl">
+                        <IconUser size="1rem" />
+                      </Avatar>
+                      <Text size="sm" fw={500}>
+                        {user?.name || user?.username || 'User'}
+                      </Text>
+                    </Group>
+                  </Button>
+                </Menu.Target>
+                <Menu.Dropdown>
+                  <Menu.Label>Account</Menu.Label>
+                  <Menu.Item>
+                    <Text size="sm" fw={500}>
+                      {user?.name}
+                    </Text>
+                    <Text size="xs" c="dimmed">
+                      {user?.email}
+                    </Text>
+                  </Menu.Item>
+                  <Menu.Divider />
+                  <Menu.Item leftSection={<IconSettings size="0.9rem" />}>Settings</Menu.Item>
+                  <Menu.Divider />
+                  <Menu.Item
+                    color="red"
+                    leftSection={<IconLogout size="0.9rem" />}
+                    onClick={handleLogout}
+                  >
+                    Logout
+                  </Menu.Item>
+                </Menu.Dropdown>
+              </Menu>
+            )}
+          </Group>
         </Group>
 
         {/* Rooms Grid */}

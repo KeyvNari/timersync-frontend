@@ -213,6 +213,7 @@ export default function RoomsPage() {
         onCreateRoom={handleCreateRoom}
         onEditRoom={handleEditRoom}
         onDeleteRoom={handleDeleteRoom}
+        hideHeader={true}
       />
 
       {/* Create Room Modal */}

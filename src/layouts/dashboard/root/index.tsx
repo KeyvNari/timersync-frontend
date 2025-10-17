@@ -1,14 +1,15 @@
-import { Outlet, useSearchParams } from 'react-router-dom';
+import { Outlet, useSearchParams, useLocation } from 'react-router-dom';
 import { Header } from '../header';
 import classes from './root.module.css';
 
 export function DashboardLayout() {
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const roomId = searchParams.get('roomId');
 
-  // Hide the global header when viewing a room (roomId present)
+  // Hide the global header when viewing a room (roomId present) or on the rooms list page
   // The room component will show its own header
-  const showHeader = !roomId;
+  const showHeader = !roomId && location.pathname !== '/dashboard/rooms';
 
   return (
     <div className={classes.root}>

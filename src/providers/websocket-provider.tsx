@@ -49,6 +49,10 @@ interface WebSocketContextValue {
   lastError: string | null;
   lastSuccess: string | null;
 
+  // Loading/Pending operations state
+  pendingOperations: Set<string>;
+  isOperationPending: (operationKey: string) => boolean;
+
   // WebSocket service instance
   wsService: SimpleWebSocketService | null;
 
@@ -121,6 +125,9 @@ export function WebSocketProvider({
   // Optimistic update tracking
   const optimisticUpdatesRef = useRef<Map<number, { previous: TimerData; timeout: NodeJS.Timeout }>>(new Map());
 
+  // Pending operations tracking
+  const [pendingOperations, setPendingOperations] = useState<Set<string>>(new Set());
+
   const [roomInfo, setRoomInfo] = useState<Record<string, any> | null>(null);
   const [displays, setDisplays] = useState<DisplayConfig[]>([]);
   const [connections, setConnections] = useState<ConnectionInfo[]>([]);
@@ -130,6 +137,23 @@ export function WebSocketProvider({
 
   const [lastError, setLastError] = useState<string | null>(null);
   const [lastSuccess, setLastSuccess] = useState<string | null>(null);
+
+  // Helper functions for operation tracking
+  const addPendingOperation = useCallback((key: string) => {
+    setPendingOperations(prev => new Set(prev).add(key));
+  }, []);
+
+  const removePendingOperation = useCallback((key: string) => {
+    setPendingOperations(prev => {
+      const next = new Set(prev);
+      next.delete(key);
+      return next;
+    });
+  }, []);
+
+  const isOperationPending = useCallback((key: string) => {
+    return pendingOperations.has(key);
+  }, [pendingOperations]);
 
   // Setup event handlers
 const setupEventHandlers = (wsService: SimpleWebSocketService) => {
@@ -142,6 +166,11 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
 
     // Check if this is a timer operation success
     if (message.timer_id && message.message) {
+      // Clear pending operation for this timer
+      removePendingOperation(`timer_${message.timer_id}`);
+      removePendingOperation(`timer_delete_${message.timer_id}`);
+      removePendingOperation(`timer_create`);
+
       // Handle timer-specific success messages
       if (message.message.includes('Timer deleted successfully')) {
         setTimers((prev) => {
@@ -285,6 +314,13 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
       return prev;
     }
 
+    // Clear pending operations for this timer
+    removePendingOperation(`timer_${timerData.id}`);
+    removePendingOperation(`timer_start_${timerData.id}`);
+    removePendingOperation(`timer_pause_${timerData.id}`);
+    removePendingOperation(`timer_stop_${timerData.id}`);
+    removePendingOperation(`timer_update_${timerData.id}`);
+
     // Clear optimistic update if server confirms the change
     const optimisticUpdate = optimisticUpdatesRef.current.get(timerData.id);
     if (optimisticUpdate) {
@@ -311,6 +347,9 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
 
 wsService.on('timer_bulk_update', (message: any) => {
   console.log('📍 TIMER_BULK_UPDATE received:', message.timers?.length, 'timers');
+
+  // Clear bulk update pending operation
+  removePendingOperation('timer_bulk_update');
 
   setTimers((prev) => {
     const updatedTimers = message.timers;
@@ -623,6 +662,8 @@ const disconnect = useCallback(() => {
 const startTimer = useCallback((timerId: number) => {
   if (!wsServiceRef.current) return;
 
+  addPendingOperation(`timer_start_${timerId}`);
+
   // Pause all other active timers before starting the new one
   const activeTimers = timers.filter(
     timer => timer.is_active && !timer.is_paused && timer.id !== timerId
@@ -633,21 +674,38 @@ const startTimer = useCallback((timerId: number) => {
 
   // Then start the requested timer
   wsServiceRef.current.startTimer(timerId);
-}, [timers]);
+
+  // Failsafe: clear pending state after 10 seconds
+  setTimeout(() => removePendingOperation(`timer_start_${timerId}`), 10000);
+}, [timers, addPendingOperation, removePendingOperation]);
 
 const pauseTimer = useCallback((timerId: number) => {
+  addPendingOperation(`timer_pause_${timerId}`);
   wsServiceRef.current?.pauseTimer(timerId);
-}, []);
+
+  // Failsafe: clear pending state after 10 seconds
+  setTimeout(() => removePendingOperation(`timer_pause_${timerId}`), 10000);
+}, [addPendingOperation, removePendingOperation]);
 
 const stopTimer = useCallback((timerId: number) => {
+  addPendingOperation(`timer_stop_${timerId}`);
   wsServiceRef.current?.stopTimer(timerId);
-}, []);
+
+  // Failsafe: clear pending state after 10 seconds
+  setTimeout(() => removePendingOperation(`timer_stop_${timerId}`), 10000);
+}, [addPendingOperation, removePendingOperation]);
 
 const resetTimer = useCallback((timerId: number) => {
+  addPendingOperation(`timer_${timerId}`);
   wsServiceRef.current?.resetTimer(timerId);
-}, []);
+
+  // Failsafe: clear pending state after 10 seconds
+  setTimeout(() => removePendingOperation(`timer_${timerId}`), 10000);
+}, [addPendingOperation, removePendingOperation]);
 
 const updateTimer = useCallback((timerId: number, updates: Partial<TimerData>) => {
+  addPendingOperation(`timer_update_${timerId}`);
+
   // Apply optimistic update immediately
   setTimers(prev => {
     const index = prev.findIndex(t => t.id === timerId);
@@ -667,6 +725,7 @@ const updateTimer = useCallback((timerId: number, updates: Partial<TimerData>) =
         return newTimers;
       });
       optimisticUpdatesRef.current.delete(timerId);
+      removePendingOperation(`timer_update_${timerId}`);
     }, 5000);
 
     optimisticUpdatesRef.current.set(timerId, {
@@ -682,15 +741,26 @@ const updateTimer = useCallback((timerId: number, updates: Partial<TimerData>) =
 
   // Send to server
   wsServiceRef.current?.updateTimer(timerId, updates);
-}, []);
+
+  // Failsafe: clear pending state after 10 seconds
+  setTimeout(() => removePendingOperation(`timer_update_${timerId}`), 10000);
+}, [addPendingOperation, removePendingOperation]);
 
 const bulkUpdateTimers = useCallback((updates: Array<{ timer_id: number; room_sequence_order: number }>) => {
+  addPendingOperation('timer_bulk_update');
   wsServiceRef.current?.bulkUpdateTimers(updates);
-}, []);
+
+  // Failsafe: clear pending state after 10 seconds
+  setTimeout(() => removePendingOperation('timer_bulk_update'), 10000);
+}, [addPendingOperation, removePendingOperation]);
 
 const deleteTimer = useCallback((timerId: number) => {
+  addPendingOperation(`timer_delete_${timerId}`);
   wsServiceRef.current?.deleteTimer(timerId);
-}, []);
+
+  // Failsafe: clear pending state after 10 seconds
+  setTimeout(() => removePendingOperation(`timer_delete_${timerId}`), 10000);
+}, [addPendingOperation, removePendingOperation]);
 
 const selectTimer = useCallback((timerId: number, timerData?: Partial<TimerData>) => {
   if (!wsServiceRef.current) return;
@@ -728,8 +798,12 @@ const updateRoom = useCallback((settings: Record<string, any>) => {
 
 
 const createTimer = useCallback((timerData: Partial<TimerData>) => {
+  addPendingOperation('timer_create');
   wsServiceRef.current?.createTimer(timerData);
-}, []);
+
+  // Failsafe: clear pending state after 10 seconds
+  setTimeout(() => removePendingOperation('timer_create'), 10000);
+}, [addPendingOperation, removePendingOperation]);
 
 // Display management
 const createDisplay = useCallback((displayData: any) => {
@@ -770,6 +844,11 @@ const updateMessage = useCallback((messageId: string, updateData: Partial<Messag
 
 const deleteMessage = useCallback((messageId: string) => {
   console.log('📤 Deleting message:', messageId);
+
+  // Immediately remove from local state (trust the delete request)
+  setMessages(prevMessages => prevMessages.filter(msg => msg.id !== messageId));
+
+  // Send delete request to backend - backend will confirm with messages_list
   wsServiceRef.current?.deleteMessage(messageId);
 }, []);
 
@@ -796,6 +875,8 @@ const deleteMessage = useCallback((messageId: string) => {
     messages,
     lastError,
     lastSuccess,
+    pendingOperations,
+    isOperationPending,
     wsService: wsServiceRef.current,
     connect,
     disconnect,
