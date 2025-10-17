@@ -32,7 +32,7 @@ import {
   IconFile,
   IconCheck,
 } from '@tabler/icons-react';
-import { useAskAI } from '@/hooks/api/ai-chat';
+import { useWebSocketContext } from '@/providers/websocket-provider';
 import { notifications } from '@mantine/notifications';
 import { extractFileContent, formatFileSize } from '@/utils/file-parser';
 
@@ -80,27 +80,43 @@ export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerC
     }
   }, [messages, isThinking]);
 
-  const askAIMutation = useAskAI({
-    onSuccess: (data) => {
-      setSessionId(data.session_id);
+  const { wsService } = useWebSocketContext();
+
+  // Set up WebSocket event handlers
+  useEffect(() => {
+    if (!wsService) return;
+
+    const handleAIResponse = (message: any) => {
+      setSessionId(message.session_id);
       const aiResponse: Message = {
         id: Date.now().toString(),
         role: 'assistant',
-        content: data.answer,
+        content: message.answer,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, aiResponse]);
       setIsThinking(false);
-    },
-    onError: (error) => {
+    };
+
+    const handleAIError = (message: any) => {
       setIsThinking(false);
       notifications.show({
         title: 'Error',
-        message: error.message || 'Failed to get response from AI',
+        message: message.message || 'Failed to get response from AI',
         color: 'red',
       });
-    },
-  });
+    };
+
+    // Register event handlers
+    wsService.on('agent_response', handleAIResponse);
+    wsService.on('agent_error', handleAIError);
+
+    // Cleanup function
+    return () => {
+      wsService.off('agent_response', handleAIResponse);
+      wsService.off('agent_error', handleAIError);
+    };
+  }, [wsService]);
 
   const handleSendMessage = () => {
     if (!inputValue.trim() && !extractedFileContent) return;
@@ -126,18 +142,19 @@ export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerC
     setInputValue('');
     setIsThinking(true);
 
-    const requestData = {
-      question,
-      current_room_id: roomId,
-      session_id: sessionId,
-      ...((!hasFileSent && extractedFileContent) ? { file_content: extractedFileContent } : {}),
-    };
-
-    if (!hasFileSent && extractedFileContent) {
+    if (hasFileSent && extractedFileContent) {
       setHasFileSent(true);
     }
 
-    askAIMutation.mutate(requestData);
+    // Send WebSocket message
+    const wsMessage = {
+      type: 'agent_query',
+      question,
+      ...(sessionId && { session_id: sessionId }),
+      ...((!hasFileSent && extractedFileContent) && { file_content: extractedFileContent }),
+    };
+
+    wsService?.send(wsMessage);
   };
 
   const handleKeyPress = (event: React.KeyboardEvent) => {
