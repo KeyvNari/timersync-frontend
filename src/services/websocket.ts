@@ -53,7 +53,8 @@ export interface ConnectionInfo {
   ip_address: string;
   connected_at: string;
   is_self?: boolean;
-  access_token_id?: number;
+  access_token_id?: number | string;
+  access_token_name?: string;
 }
 
 export interface DisplayConfig {
@@ -577,6 +578,13 @@ export class SimpleWebSocketService {
 
   listRoomAccessTokens(): void {
     this.send({ type: 'room_access_token_list' });
+  }
+
+  revokeAccessToken(tokenId: number): void {
+    this.send({
+      type: 'room_access_token_revoke',
+      token_id: tokenId,
+    });
   }
 
   // System

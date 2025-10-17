@@ -1,18 +1,20 @@
 import { useState, useEffect } from 'react';
-import { 
-  Paper, 
-  Title, 
-  Text, 
-  Group, 
-  Badge, 
-  Stack, 
-  Avatar, 
+import {
+  Paper,
+  Title,
+  Text,
+  Group,
+  Badge,
+  Stack,
+  Avatar,
   Tooltip,
   ActionIcon,
   ScrollArea,
   Divider,
   Box,
-  Indicator
+  Indicator,
+  Collapse,
+  Button
 } from '@mantine/core';
 import {
   PiDevices as DeviceIcon,
@@ -21,7 +23,11 @@ import {
   PiCrown as AdminIcon,
   PiCircle as OnlineIcon,
   PiSignOut as DisconnectIcon,
-  PiDotsThreeOutline as DetailsIcon
+  PiDotsThreeOutline as DetailsIcon,
+  PiCaretDown as CaretDownIcon,
+  PiCaretRight as CaretRightIcon,
+  PiKey as TokenIcon,
+  PiTrash as RevokeIcon
 } from 'react-icons/pi';
 
 // Types based on the backend structure
@@ -36,7 +42,8 @@ interface ConnectionInfo {
   access_level: 'viewer' | 'full';
   connection_name: string;
   identity_info?: string | null;
-  access_token_id?: number | null;
+  access_token_id?: number | string | null;
+  access_token_name?: string | null;
   is_self?: boolean;
 }
 
@@ -47,6 +54,8 @@ interface ConnectedDevicesProps {
   currentUserAccess?: 'viewer' | 'full';
   /** Callback when user wants to disconnect a device */
   onDisconnectDevice?: (connectionId: string) => void;
+  /** Callback when user wants to revoke an access token */
+  onRevokeAccessToken?: (tokenId: number) => void;
   /** Show only basic connection count */
   compactMode?: boolean;
   /** Custom styles */
@@ -136,14 +145,126 @@ function getDeviceType(userAgent?: string | null): string {
   return 'Browser';
 }
 
+// Group of connections sharing the same access token
+interface ConnectionGroup {
+  tokenId: number | string | null;
+  tokenName: string;
+  connections: ConnectionInfo[];
+}
+
+function ConnectionGroupItem({
+  group,
+  currentUserAccess,
+  onDisconnect,
+  onRevokeToken
+}: {
+  group: ConnectionGroup;
+  currentUserAccess: 'viewer' | 'full';
+  onDisconnect?: (connectionId: string) => void;
+  onRevokeToken?: (tokenId: number) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const connectionCount = group.connections.length;
+  const onlineCount = group.connections.filter(c => {
+    if (!c.last_ping) return true;
+    return (new Date().getTime() - new Date(c.last_ping).getTime()) < 300000;
+  }).length;
+
+  // Check if any connection in the group is self
+  const hasSelfConnection = group.connections.some(
+    c => c.is_self === true || (c as any).self === true
+  );
+
+  return (
+    <Box>
+      <Box p="sm">
+        <Group justify="space-between" wrap="nowrap">
+          <Group wrap="nowrap" gap="sm" style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => setExpanded(!expanded)}>
+            <ActionIcon variant="subtle" size="sm">
+              {expanded ? <CaretDownIcon size="1rem" /> : <CaretRightIcon size="1rem" />}
+            </ActionIcon>
+
+            <Indicator
+              color="teal"
+              size={6}
+              offset={2}
+              processing
+              disabled={onlineCount === 0}
+            >
+              <Avatar size="sm" color="violet">
+                <TokenIcon size="1rem" />
+              </Avatar>
+            </Indicator>
+
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <Group gap="xs" wrap="nowrap" align="center">
+                <Text size="sm" fw={500} truncate>
+                  {group.tokenName}
+                </Text>
+                <Badge size="xs" color="gray" variant="light">
+                  {connectionCount} {connectionCount === 1 ? 'device' : 'devices'}
+                </Badge>
+                {hasSelfConnection && (
+                  <Badge size="xs" color="green" variant="dot">
+                    You
+                  </Badge>
+                )}
+              </Group>
+              <Text size="xs" c="dimmed">
+                {onlineCount} online
+              </Text>
+            </div>
+          </Group>
+
+          {currentUserAccess === 'full' && group.tokenId && !hasSelfConnection && onRevokeToken && (
+            <Tooltip label="Revoke access token (disconnects all devices)" withinPortal>
+              <ActionIcon
+                variant="subtle"
+                color="red"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (window.confirm(`Revoke token "${group.tokenName}"? This will disconnect all ${connectionCount} device(s) using this token.`)) {
+                    onRevokeToken(group.tokenId!);
+                  }
+                }}
+              >
+                <RevokeIcon size="0.9rem" />
+              </ActionIcon>
+            </Tooltip>
+          )}
+        </Group>
+
+        <Collapse in={expanded}>
+          <Stack gap={0} mt="sm" ml="xl">
+            {group.connections.map((connection, index) => (
+              <Box key={connection.connection_id}>
+                <ConnectionItem
+                  connection={connection}
+                  currentUserAccess={currentUserAccess}
+                  onDisconnect={onDisconnect}
+                  isGrouped={true}
+                />
+                {index < group.connections.length - 1 && <Divider ml="xl" />}
+              </Box>
+            ))}
+          </Stack>
+        </Collapse>
+      </Box>
+    </Box>
+  );
+}
+
 function ConnectionItem({
   connection,
   currentUserAccess,
-  onDisconnect
+  onDisconnect,
+  isGrouped = false
 }: {
   connection: ConnectionInfo;
   currentUserAccess: 'viewer' | 'full';
   onDisconnect?: (connectionId: string) => void;
+  isGrouped?: boolean;
 }) {
   console.log('Rendering connection:', connection.connection_name, 'Full connection object:', connection);
   const [expanded, setExpanded] = useState(false);
@@ -245,16 +366,29 @@ export function ConnectedDevices({
   connections = mockConnections,
   currentUserAccess = 'full',
   onDisconnectDevice,
+  onRevokeAccessToken,
   compactMode = false,
   className
 }: ConnectedDevicesProps) {
   const [connectionList, setConnectionList] = useState<ConnectionInfo[]>(connections);
-  
+
   useEffect(() => {
-    console.log('ConnectedDevices received connections:', connections);
+    console.log('=== ConnectedDevices Update ===');
+    console.log('Raw connections:', JSON.stringify(connections, null, 2));
+    console.log('Connection details:', connections.map(c => ({
+      name: c.connection_name,
+      access_token_id: c.access_token_id,
+      access_token_name: c.access_token_name,
+      type_of_token_id: typeof c.access_token_id,
+      is_null: c.access_token_id === null,
+      is_undefined: c.access_token_id === undefined,
+      is_empty_string: c.access_token_id === '',
+      hasToken_check: c.access_token_id != null && c.access_token_id !== '',
+      all_keys: Object.keys(c)
+    })));
     setConnectionList(connections);
   }, [connections]);
-  
+
   const handleDisconnect = (connectionId: string) => {
     if (onDisconnectDevice) {
       onDisconnectDevice(connectionId);
@@ -262,7 +396,56 @@ export function ConnectedDevices({
       setConnectionList(prev => prev.filter(conn => conn.connection_id !== connectionId));
     }
   };
-  
+
+  const handleRevokeToken = (tokenId: number) => {
+    if (onRevokeAccessToken) {
+      onRevokeAccessToken(tokenId);
+      // Optimistically remove all connections with this token from local state
+      setConnectionList(prev => prev.filter(conn => conn.access_token_id !== tokenId));
+    }
+  };
+
+  // Group connections by access_token_id
+  const connectionGroups = connectionList.reduce<Map<string, ConnectionGroup>>((groups, connection) => {
+    // Create a unique key for grouping - handle null/undefined/empty string consistently
+    const hasToken = connection.access_token_id != null && connection.access_token_id !== '';
+    const tokenKey = hasToken ? `token_${connection.access_token_id}` : 'direct';
+
+    console.log('Grouping connection:', {
+      connection_name: connection.connection_name,
+      access_token_id: connection.access_token_id,
+      access_token_name: connection.access_token_name,
+      tokenKey
+    });
+
+    if (!groups.has(tokenKey)) {
+      // Determine the token name with priority: access_token_name > fallback
+      let tokenName: string;
+      if (hasToken) {
+        if (connection.access_token_name) {
+          // Use the access token name if available
+          tokenName = connection.access_token_name;
+        } else {
+          // Fallback to a generic identifier
+          tokenName = `Shared Link ${connection.access_token_id}`;
+        }
+      } else {
+        tokenName = 'Direct Access';
+      }
+
+      groups.set(tokenKey, {
+        tokenId: connection.access_token_id ?? null,
+        tokenName,
+        connections: []
+      });
+    }
+
+    groups.get(tokenKey)!.connections.push(connection);
+    return groups;
+  }, new Map());
+
+  const groupsArray = Array.from(connectionGroups.values());
+
   const totalConnections = connectionList.length;
   const fullAccessCount = connectionList.filter(c => c.access_level === 'full').length;
   const viewerCount = connectionList.filter(c => c.access_level === 'viewer').length;
@@ -325,28 +508,32 @@ export function ConnectedDevices({
               <Text size="sm" c="dimmed">
                 {viewerCount} viewer{viewerCount !== 1 ? 's' : ''}
               </Text>
+              <Text size="sm" c="dimmed">
+                {groupsArray.length} token{groupsArray.length !== 1 ? 's' : ''}
+              </Text>
             </Group>
           </div>
         </Group>
       </Box>
-      
+
       <Divider />
-      
+
       <ScrollArea mah={400}>
         <Stack gap={0}>
-          {connectionList.map((connection, index) => (
-            <Box key={connection.connection_id}>
-              <ConnectionItem 
-                connection={connection}
+          {groupsArray.map((group, index) => (
+            <Box key={group.tokenId != null ? `token_${group.tokenId}` : 'direct'}>
+              <ConnectionGroupItem
+                group={group}
                 currentUserAccess={currentUserAccess}
                 onDisconnect={handleDisconnect}
+                onRevokeToken={handleRevokeToken}
               />
-              {index < connectionList.length - 1 && <Divider />}
+              {index < groupsArray.length - 1 && <Divider />}
             </Box>
           ))}
         </Stack>
       </ScrollArea>
-      
+
       {totalConnections === 0 && (
         <Box p="xl" ta="center">
           <Text size="sm" c="dimmed">

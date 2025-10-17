@@ -48,6 +48,7 @@ export default function RoomController({
     connectionStatus,
     connectionMessage,
     disconnectedByHost,
+    revokedToken,
     connect,
     disconnect,
     displays,
@@ -59,6 +60,7 @@ export default function RoomController({
     updateDisplay,
     deleteDisplay,
     disconnectClient,
+    revokeAccessToken,
     updateRoom,
   } = useWebSocketContext();
 
@@ -353,6 +355,7 @@ export default function RoomController({
             onUpdateDisplay={updateDisplay}
             onDeleteDisplay={deleteDisplay}
             onDisconnectDevice={disconnectClient}
+            onRevokeAccessToken={revokeAccessToken}
             showBackButton={false}
             showShareButton={true}
             showActionButtons={true}
@@ -401,6 +404,54 @@ export default function RoomController({
           <Text size="sm" c="dimmed" ta="center">
             {disconnectedByHost?.message || 'You are being disconnected by the host'}
           </Text>
+
+          <Group mt="lg">
+            <Button variant="outline" onClick={() => window.history.back()}>
+              Go to TimerSync
+            </Button>
+            <Button color="blue" onClick={handleRetryConnection}>
+              Try Again
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
+      {/* Token Revocation Modal */}
+      <Modal
+        opened={!!revokedToken && roomId !== null}
+        onClose={() => {}} // Modal cannot be closed by user
+        centered
+        size="md"
+        title="Access Revoked"
+        closeOnClickOutside={false}
+        closeOnEscape={false}
+        withCloseButton={false}
+        styles={{
+          header: { backgroundColor: '#f59f00', color: 'white', borderRadius: '8px 8px 0 0' },
+          content: { borderRadius: '8px' },
+          title: { fontWeight: 'bold' }
+        }}
+      >
+        <Stack gap="md" align="center">
+          <Text size="lg" ta="center">
+            Your access has been revoked
+          </Text>
+
+          {revokedToken?.token_name && (
+            <Text size="sm" c="dimmed" ta="center">
+              Token: {revokedToken.token_name}
+            </Text>
+          )}
+
+          <Text size="sm" c="dimmed" ta="center">
+            {revokedToken?.message || 'Your access token has been revoked'}
+          </Text>
+
+          {revokedToken?.reason && (
+            <Text size="xs" c="dimmed" ta="center" fs="italic">
+              {revokedToken.reason}
+            </Text>
+          )}
 
           <Group mt="lg">
             <Button variant="outline" onClick={() => window.history.back()}>

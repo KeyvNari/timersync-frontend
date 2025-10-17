@@ -33,6 +33,14 @@ interface WebSocketContextValue {
     };
   } | null;
 
+  // Token revocation
+  revokedToken: {
+    message: string;
+    token_id: number;
+    token_name?: string | null;
+    reason?: string;
+  } | null;
+
   // Timer state
   timers: TimerData[];
   selectedTimerId: number | null;
@@ -86,6 +94,7 @@ interface WebSocketContextValue {
   // Connections
   requestConnections: () => void;
   disconnectClient: (targetConnectionId: string) => void;
+  revokeAccessToken: (tokenId: number) => void;
 
   // Message management
   addMessage: (messageData: Omit<MessageData, 'id'>) => void;
@@ -117,6 +126,14 @@ export function WebSocketProvider({
       connection_id: string;
       connection_name: string;
     };
+  } | null>(null);
+
+  // Token revocation state
+  const [revokedToken, setRevokedToken] = useState<{
+    message: string;
+    token_id: number;
+    token_name?: string | null;
+    reason?: string;
   } | null>(null);
 
   const [timers, setTimers] = useState<TimerData[]>([]);
@@ -448,6 +465,12 @@ wsService.on('error', (message: any) => {
 
     // Connection events
     wsService.on('connection_count', (message: any) => {
+      console.log('📡 connection_count event:', {
+        count: message.count,
+        has_current_connections: !!message.current_connections,
+        connections_sample: message.current_connections?.[0],
+        has_disconnected: !!message.disconnected_connection
+      });
       setConnectionCount(message.count || 0);
       if (message.current_connections) {
         setConnections(message.current_connections);
@@ -459,10 +482,18 @@ wsService.on('error', (message: any) => {
     });
 
     wsService.on('CONNECTION_UPDATE', (message: any) => {
+      console.log('📡 CONNECTION_UPDATE event:', {
+        connections_count: message.connections?.length,
+        connections_sample: message.connections?.[0]
+      });
       setConnections(message.connections || []);
     });
 
     wsService.on('CONNECTIONS_LIST', (message: any) => {
+      console.log('📡 CONNECTIONS_LIST event:', {
+        connections_count: message.connections?.length,
+        connections_sample: message.connections?.[0]
+      });
       setConnections(message.connections || []);
     });
 
@@ -534,6 +565,24 @@ wsService.on('error', (message: any) => {
       setMessages([]);
       setLastError(null);
       setLastSuccess(null);
+    });
+
+    // Token revocation event
+    wsService.on('room_access_token_revoked', (message: any) => {
+      console.log('Received room_access_token_revoked event:', message);
+
+      // Store revocation details
+      setRevokedToken({
+        message: message.message || 'Your access token has been revoked',
+        token_id: message.token_id,
+        token_name: message.token_name,
+        reason: message.reason || 'Token revoked by room administrator'
+      });
+
+      // The connection will be closed by the server shortly,
+      // but we prepare for disconnection
+      setConnectionStatus('disconnected');
+      setConnectionMessage('Access token revoked');
     });
 
     // Message events
@@ -831,6 +880,12 @@ const disconnectClient = useCallback((targetConnectionId: string) => {
   wsServiceRef.current?.disconnectClient(targetConnectionId);
 }, []);
 
+const revokeAccessToken = useCallback((tokenId: number) => {
+  wsServiceRef.current?.revokeAccessToken(tokenId);
+  // Optimistically remove all connections with this token
+  setConnections(prev => prev.filter(conn => conn.access_token_id !== tokenId));
+}, []);
+
 // Message management
 const addMessage = useCallback((messageData: Omit<MessageData, 'id'>) => {
   console.log('📤 Adding message:', messageData);
@@ -865,6 +920,7 @@ const deleteMessage = useCallback((messageId: string) => {
     connectionStatus,
     connectionMessage,
     disconnectedByHost,
+    revokedToken,
     timers,
     selectedTimerId,
     roomInfo,
@@ -899,6 +955,7 @@ const deleteMessage = useCallback((messageId: string) => {
     updateRoom,
     requestConnections,
     disconnectClient,
+    revokeAccessToken,
     addMessage,
     updateMessage,
     deleteMessage,

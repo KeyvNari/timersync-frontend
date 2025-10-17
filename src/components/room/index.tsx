@@ -41,6 +41,7 @@ export interface RoomComponentProps {
   onUpdateDisplay?: (displayId: number, updateData: any) => void;
   onDeleteDisplay?: (displayId: number) => void;
   onDisconnectDevice?: (connectionId: string) => void;
+  onRevokeAccessToken?: (tokenId: number) => void;
   onMessagesChange?: (messages: Message[]) => void;
   showBackButton?: boolean;
   showShareButton?: boolean;
@@ -74,6 +75,7 @@ export default function RoomComponent({
   onUpdateDisplay,
   onDeleteDisplay,
   onDisconnectDevice,
+  onRevokeAccessToken,
   onMessagesChange,
   showBackButton = false,
   showShareButton = true,
@@ -315,6 +317,7 @@ export default function RoomComponent({
         currentUserAccess={userAccessLevel}
         compactMode={false}
         onDisconnectDevice={onDisconnectDevice}
+        onRevokeAccessToken={onRevokeAccessToken}
       />
     </Paper>
   );
