@@ -99,7 +99,8 @@ export default function ViewerPage() {
     lastSuccess,
     refreshTimers,
     requestConnections,
-    displays
+    displays,
+    revokedToken
   } = useWebSocketContext();
 
   const {
@@ -284,6 +285,62 @@ useEffect(() => {
     disconnect(); // Clean up WebSocket connection
     navigate(-1); // Go back to previous page
   };
+
+  // Show token revocation message if token has been revoked
+  if (revokedToken) {
+    return (
+      <Box
+        style={{
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: '#000000',
+          margin: 0,
+          padding: 0,
+          overflow: 'hidden',
+        }}
+      >
+        <Center h="100%">
+          <Paper shadow="xl" p="xl" radius="md" maw={500} w="90%">
+            <Stack gap="lg">
+              <Center>
+                <IconAlertCircle size={64} color="var(--mantine-color-red-6)" />
+              </Center>
+
+              <div>
+                <Title order={2} ta="center" mb="xs" c="red">
+                  Access Revoked
+                </Title>
+                <Text size="md" ta="center" mb="md">
+                  {revokedToken.message}
+                </Text>
+                {revokedToken.reason && (
+                  <Alert color="red" variant="light" mb="md">
+                    <Text size="sm" fw={500}>
+                      Reason: {revokedToken.reason}
+                    </Text>
+                  </Alert>
+                )}
+                {revokedToken.token_name && (
+                  <Text size="sm" c="dimmed" ta="center">
+                    Token: {revokedToken.token_name}
+                  </Text>
+                )}
+              </div>
+
+              <Button
+                variant="light"
+                size="md"
+                onClick={handleGoBack}
+                fullWidth
+              >
+                Go Back
+              </Button>
+            </Stack>
+          </Paper>
+        </Center>
+      </Box>
+    );
+  }
 
   // Show password form if required and not authenticated
   if (requiresPassword && !isAuthenticated) {
