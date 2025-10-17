@@ -563,6 +563,22 @@ export class SimpleWebSocketService {
     });
   }
 
+  // Room access tokens
+  createRoomAccessToken(tokenData: {
+    access_level: 'full' | 'viewer' | 'plan_view';
+    name?: string;
+    password?: string;
+  }): void {
+    this.send({
+      type: 'room_access_token_create',
+      token_data: tokenData,
+    });
+  }
+
+  listRoomAccessTokens(): void {
+    this.send({ type: 'room_access_token_list' });
+  }
+
   // System
   identify(clientInfo: Record<string, any>): void {
     this.send({ type: 'identify_response', ...clientInfo });

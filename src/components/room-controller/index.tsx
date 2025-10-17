@@ -10,6 +10,7 @@ import { app } from '@/config';
 import { useDisclosure } from '@mantine/hooks';
 import { AITimerChat } from '@/components/ai-timer-chat';
 import { Modal, Button, Text, Group, Stack, Box } from '@mantine/core';
+import ShareRoomModal from '@/components/share-room-modal';
 
 export interface RoomControllerProps {
   authMode: 'authGuard' | 'urlToken';
@@ -216,8 +217,11 @@ export default function RoomController({
     });
   };
 
+  const [shareOpened, { open: openShare, close: closeShare }] = useDisclosure(false);
+
   const handleShare = () => {
     console.log('Share room:', roomId);
+    openShare();
   };
 
   const handleAddTimer = useCallback(() => {
@@ -408,6 +412,14 @@ export default function RoomController({
           </Group>
         </Stack>
       </Modal>
+
+      {/* Share Room Modal */}
+      <ShareRoomModal
+        opened={shareOpened}
+        onClose={closeShare}
+        roomId={roomId!}
+        roomName={roomInfo?.name || `Room ${roomId}`}
+      />
     </Page>
   );
 }
