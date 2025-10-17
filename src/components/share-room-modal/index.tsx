@@ -6,7 +6,6 @@ import {
   Stack,
   Group,
   TextInput,
-  Select,
   PasswordInput,
   Checkbox,
   Divider,
@@ -16,17 +15,23 @@ import {
   Box,
   Tabs,
   Alert,
+  Paper,
+  List,
+  ThemeIcon,
 } from '@mantine/core';
 import {
   IconCopy,
   IconCheck,
-  IconUsers,
   IconEye,
-  IconEyeOff,
   IconQrcode,
-  IconLink,
   IconDeviceDesktop,
-  IconX,
+  IconTrash,
+  IconCircleCheck,
+  IconEdit,
+  IconClock,
+  IconMessages,
+  IconSettings,
+  IconUsers,
 } from '@tabler/icons-react';
 import { useWebSocketContext } from '@/providers/websocket-provider';
 import { useDisclosure } from '@mantine/hooks';
@@ -45,8 +50,11 @@ interface RoomAccessToken {
   name?: string;
   token: string;
   password_protected?: boolean;
+  is_password_protected?: boolean;
   created_at: string;
 }
+
+type AccessLevel = 'full' | 'viewer';
 
 const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
   opened,
@@ -54,14 +62,13 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
   roomId,
   roomName,
 }) => {
-  const [activeTab, setActiveTab] = useState<'create' | 'manage'>('create');
-  const [accessLevel, setAccessLevel] = useState<'full' | 'viewer' | 'plan_view'>('viewer');
+  const [activeTab, setActiveTab] = useState<AccessLevel>('viewer');
   const [tokenName, setTokenName] = useState('');
   const [password, setPassword] = useState('');
   const [isPasswordProtected, setIsPasswordProtected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [createdTokens, setCreatedTokens] = useState<RoomAccessToken[]>([]);
-  const [copySuccess, setCopySuccess] = useState<string | null>(null);
+  const [currentToken, setCurrentToken] = useState<{ [key in AccessLevel]?: RoomAccessToken }>({});
   const [qrCodes, setQrCodes] = useState<Map<string, string>>(new Map());
 
   const { wsService } = useWebSocketContext();
@@ -71,10 +78,10 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
   const [currentQrToken, setCurrentQrToken] = useState<RoomAccessToken | null>(null);
 
   useEffect(() => {
-    if (opened && activeTab === 'manage') {
+    if (opened) {
       loadTokens();
     }
-  }, [opened, activeTab]);
+  }, [opened]);
 
   const loadTokens = () => {
     if (!wsService) return;
@@ -84,6 +91,15 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
     const handleTokenList = (message: any) => {
       if (message.tokens) {
         setCreatedTokens(message.tokens);
+
+        // Set current token for each access level (most recent)
+        const fullToken = message.tokens.find((t: RoomAccessToken) => t.access_level === 'full');
+        const viewerToken = message.tokens.find((t: RoomAccessToken) => t.access_level === 'viewer');
+
+        setCurrentToken({
+          full: fullToken,
+          viewer: viewerToken,
+        });
       }
       wsService.off('success', handleTokenList);
     };
@@ -91,25 +107,26 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
     wsService.on('success', handleTokenList);
   };
 
-  const generateLink = (token: string, accessLevel: 'full' | 'viewer' | 'plan_view') => {
+  const generateLink = (token: string, accessLevel: AccessLevel, isPasswordProtected: boolean = false) => {
     const baseUrl = window.location.origin;
-    if (accessLevel === 'plan_view') {
-      // Plan view not implemented yet, default to viewer
-      accessLevel = 'viewer';
-    }
-
     const route = accessLevel === 'full' ? 'controller' : 'viewer';
-    return `${baseUrl}/${route}/${roomId}/${token}`;
+    const pwdSuffix = isPasswordProtected ? '/pwd' : '';
+    return `${baseUrl}/${route}/${roomId}/${token}${pwdSuffix}`;
   };
 
   const handleCreateToken = async () => {
-    if (!wsService || !tokenName.trim()) return;
+    if (!wsService) return;
+
+    // Validate password length
+    if (isPasswordProtected && password.length < 6) {
+      return;
+    }
 
     setIsLoading(true);
 
     const tokenData: any = {
-      access_level: accessLevel,
-      name: tokenName.trim(),
+      access_level: activeTab,
+      name: tokenName.trim() || undefined, // Make name optional
       is_password_protected: isPasswordProtected,
     };
 
@@ -119,8 +136,20 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
 
     const handleTokenCreate = async (message: any) => {
       if (message.token) {
+        // Debug logging
+        console.log('📝 Token created:', message.token);
+        console.log('🔒 Password protected fields:', {
+          password_protected: message.token.password_protected,
+          is_password_protected: message.token.is_password_protected
+        });
+
+        // Check both field names for password protection
+        const isProtected = message.token.password_protected ?? message.token.is_password_protected ?? false;
+        console.log('🔐 Final isProtected value:', isProtected);
+
         // Generate QR code for the new token
-        const link = generateLink(message.token.token, message.token.access_level);
+        const link = generateLink(message.token.token, message.token.access_level as AccessLevel, isProtected);
+        console.log('🔗 Generated link:', link);
         try {
           const qrCodeDataUrl = await QRCode.toDataURL(link);
           setQrCodes(prev => new Map(prev.set(message.token.token, qrCodeDataUrl)));
@@ -129,7 +158,14 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
         }
 
         setCreatedTokens(prev => [...prev, message.token]);
-        setActiveTab('manage');
+
+        // Update current token for this access level
+        setCurrentToken(prev => ({
+          ...prev,
+          [activeTab]: message.token,
+        }));
+
+        // Reset form
         setTokenName('');
         setPassword('');
         setIsPasswordProtected(false);
@@ -142,11 +178,22 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
     wsService.createRoomAccessToken(tokenData);
   };
 
-  const handleCopyLink = (token: RoomAccessToken) => {
-    const link = generateLink(token.token, token.access_level);
-    navigator.clipboard.writeText(link);
-    setCopySuccess(token.token);
-    setTimeout(() => setCopySuccess(null), 2000);
+  const handleDeleteToken = (tokenId: number) => {
+    if (!wsService) return;
+
+    wsService.revokeAccessToken(tokenId);
+
+    // Remove from local state
+    setCreatedTokens(prev => prev.filter(t => t.id !== tokenId));
+
+    // Update current token if deleted
+    const deletedToken = createdTokens.find(t => t.id === tokenId);
+    if (deletedToken && currentToken[deletedToken.access_level as AccessLevel]?.id === tokenId) {
+      setCurrentToken(prev => ({
+        ...prev,
+        [deletedToken.access_level]: undefined,
+      }));
+    }
   };
 
   const showQrCode = (token: RoomAccessToken) => {
@@ -154,30 +201,187 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
     openQr();
   };
 
-  const getAccessLevelIcon = (level: 'full' | 'viewer' | 'plan_view') => {
-    switch (level) {
-      case 'full':
-        return <IconDeviceDesktop size={16} />;
-      case 'viewer':
-        return <IconEye size={16} />;
-      case 'plan_view':
-        return <IconEyeOff size={16} />;
-      default:
-        return <IconUsers size={16} />;
+  const getPermissionsList = (level: AccessLevel) => {
+    if (level === 'full') {
+      return [
+        { icon: IconEdit, text: 'Full control over all timers' },
+        { icon: IconClock, text: 'Start, pause, and stop timers' },
+        { icon: IconSettings, text: 'Create, edit, and delete timers' },
+        { icon: IconDeviceDesktop, text: 'Manage displays and connections' },
+        { icon: IconMessages, text: 'Access room chat' },
+        { icon: IconUsers, text: 'Disconnect other viewers' },
+      ];
+    } else {
+      return [
+        { icon: IconEye, text: 'View all timers in real-time' },
+        { icon: IconMessages, text: 'Access room chat' },
+        { icon: IconCircleCheck, text: 'Read-only access - cannot control timers' },
+      ];
     }
   };
 
-  const getAccessLevelLabel = (level: 'full' | 'viewer' | 'plan_view') => {
-    switch (level) {
-      case 'full':
-        return 'Full Control';
-      case 'viewer':
-        return 'View Only';
-      case 'plan_view':
-        return 'Plan View';
-      default:
-        return level;
-    }
+  const getAccessLevelIcon = (level: AccessLevel) => {
+    return level === 'full' ? <IconDeviceDesktop size={16} /> : <IconEye size={16} />;
+  };
+
+  const getAccessLevelLabel = (level: AccessLevel) => {
+    return level === 'full' ? 'Full Control' : 'View Only';
+  };
+
+  const renderTabContent = (level: AccessLevel) => {
+    const token = currentToken[level];
+    const permissions = getPermissionsList(level);
+
+    // Check both field names for password protection
+    const isProtected = token ? (token.password_protected ?? token.is_password_protected ?? false) : false;
+
+    return (
+      <Stack gap="lg" mt="md">
+        {/* Permissions Section */}
+        <Paper p="md" withBorder>
+          <Text size="sm" fw={600} mb="sm">
+            What can {level === 'full' ? 'controllers' : 'viewers'} do?
+          </Text>
+          <List spacing="xs" size="sm" center>
+            {permissions.map((perm, idx) => (
+              <List.Item
+                key={idx}
+                icon={
+                  <ThemeIcon color={level === 'full' ? 'blue' : 'teal'} size={20} radius="xl">
+                    <perm.icon size={12} />
+                  </ThemeIcon>
+                }
+              >
+                {perm.text}
+              </List.Item>
+            ))}
+          </List>
+        </Paper>
+
+        <Divider />
+
+        {/* Current Link Display */}
+        {token && (
+          <Box>
+            <Text size="sm" fw={600} mb="sm">
+              Current Link
+            </Text>
+            <Paper p="md" withBorder>
+              <Stack gap="sm">
+                <Group justify="space-between">
+                  <Group gap="xs">
+                    {token.name && (
+                      <Text size="sm" fw={500}>
+                        {token.name}
+                      </Text>
+                    )}
+                    {isProtected && (
+                      <Badge color="orange" variant="dot" size="sm">
+                        Protected
+                      </Badge>
+                    )}
+                  </Group>
+                  <Text size="xs" c="dimmed">
+                    {new Date(token.created_at).toLocaleDateString()}
+                  </Text>
+                </Group>
+
+                <Group gap="xs">
+                  <Text
+                    size="xs"
+                    c="dimmed"
+                    style={{
+                      flex: 1,
+                      wordBreak: 'break-all',
+                      fontFamily: 'monospace',
+                    }}
+                  >
+                    {generateLink(token.token, token.access_level as AccessLevel, isProtected)}
+                  </Text>
+                  <CopyButton value={generateLink(token.token, token.access_level as AccessLevel, isProtected)}>
+                    {({ copied, copy }) => (
+                      <ActionIcon
+                        size="sm"
+                        color={copied ? 'teal' : 'blue'}
+                        onClick={copy}
+                        variant="subtle"
+                        title="Copy link"
+                      >
+                        {copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
+                      </ActionIcon>
+                    )}
+                  </CopyButton>
+                  <ActionIcon
+                    size="sm"
+                    variant="subtle"
+                    color="blue"
+                    onClick={() => showQrCode(token)}
+                    title="Show QR code"
+                  >
+                    <IconQrcode size={16} />
+                  </ActionIcon>
+                  <ActionIcon
+                    size="sm"
+                    variant="subtle"
+                    color="red"
+                    onClick={() => handleDeleteToken(token.id)}
+                    title="Delete link"
+                  >
+                    <IconTrash size={16} />
+                  </ActionIcon>
+                </Group>
+              </Stack>
+            </Paper>
+          </Box>
+        )}
+
+        <Divider />
+
+        {/* Generate New Link Section */}
+        <Box>
+          <Text size="sm" fw={600} mb="sm">
+            Generate New Link
+          </Text>
+          <Stack gap="md">
+            <TextInput
+              label="Link Name (Optional)"
+              placeholder="e.g., John's Link, Team Meeting Access"
+              value={tokenName}
+              onChange={(e) => setTokenName(e.target.value)}
+              description="Give this link a name to identify it later"
+            />
+
+            <Checkbox
+              label="Password protect this link"
+              checked={isPasswordProtected}
+              onChange={(e) => setIsPasswordProtected(e.currentTarget.checked)}
+            />
+
+            {isPasswordProtected && (
+              <PasswordInput
+                label="Password"
+                placeholder="Enter password (min 6 characters)"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                error={password.length > 0 && password.length < 6 ? 'Password must be at least 6 characters' : null}
+                description="Users will need this password to access the room"
+              />
+            )}
+
+            <Button
+              onClick={handleCreateToken}
+              loading={isLoading}
+              fullWidth
+              disabled={isPasswordProtected && password.length < 6}
+              leftSection={level === 'full' ? <IconDeviceDesktop size={18} /> : <IconEye size={18} />}
+            >
+              Generate {level === 'full' ? 'Controller' : 'Viewer'} Link
+            </Button>
+          </Stack>
+        </Box>
+      </Stack>
+    );
   };
 
   return (
@@ -189,135 +393,28 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
         size="lg"
         centered
       >
-        <Tabs value={activeTab} onChange={(value) => setActiveTab(value as any)}>
-          <Tabs.List>
-            <Tabs.Tab value="create">Create Link</Tabs.Tab>
-            <Tabs.Tab value="manage">
-              Manage Links {createdTokens.length > 0 && `(${createdTokens.length})`}
+        <Tabs value={activeTab} onChange={(value) => setActiveTab(value as AccessLevel)}>
+          <Tabs.List grow>
+            <Tabs.Tab
+              value="viewer"
+              leftSection={<IconEye size={16} />}
+            >
+              Viewer
+            </Tabs.Tab>
+            <Tabs.Tab
+              value="full"
+              leftSection={<IconDeviceDesktop size={16} />}
+            >
+              Full Control
             </Tabs.Tab>
           </Tabs.List>
 
-          <Tabs.Panel value="create" pt="md">
-            <Stack gap="md">
-              <Text size="sm" c="dimmed">
-                Create a new access link for others to join this room.
-              </Text>
-
-              <Select
-                label="Access Level"
-                data={[
-                  { value: 'viewer', label: 'View Only - Can see timers and chat' },
-                  { value: 'full', label: 'Full Control - Can control timers and manage room' },
-                  // { value: 'plan_view', label: 'Plan View (Coming Soon)' }, // Not implemented yet
-                ]}
-                value={accessLevel}
-                onChange={(value) => setAccessLevel(value as any)}
-                required
-              />
-
-              <TextInput
-                label="Link Name"
-                placeholder="e.g., John's Viewer Link, Team Meeting Access"
-                value={tokenName}
-                onChange={(e) => setTokenName(e.target.value)}
-                required
-              />
-
-              <Checkbox
-                label="Password protect this link"
-                checked={isPasswordProtected}
-                onChange={(e) => setIsPasswordProtected(e.currentTarget.checked)}
-              />
-
-              {isPasswordProtected && (
-                <PasswordInput
-                  label="Password"
-                  placeholder="Enter password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              )}
-
-              <Group justify="right" mt="md">
-                <Button variant="light" onClick={onClose}>
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleCreateToken}
-                  loading={isLoading}
-                  disabled={!tokenName.trim()}
-                >
-                  Create Link
-                </Button>
-              </Group>
-            </Stack>
+          <Tabs.Panel value="viewer">
+            {renderTabContent('viewer')}
           </Tabs.Panel>
 
-          <Tabs.Panel value="manage" pt="md">
-            <Stack gap="md">
-              <Text size="sm" c="dimmed">
-                Manage your created access links.
-              </Text>
-
-              {createdTokens.length === 0 ? (
-                <Alert title="No links created yet">
-                  Create your first access link to get started.
-                </Alert>
-              ) : (
-                createdTokens.map((token) => (
-                  <Box key={token.id}>
-                    <Group justify="space-between" mb="xs">
-                      <Group>
-                        <Badge
-                          leftSection={getAccessLevelIcon(token.access_level)}
-                          variant="light"
-                        >
-                          {getAccessLevelLabel(token.access_level)}
-                        </Badge>
-                        <Text fw={500}>{token.name}</Text>
-                        {token.password_protected && (
-                          <Badge color="orange" variant="dot">
-                            Protected
-                          </Badge>
-                        )}
-                      </Group>
-                      <Text size="xs" c="dimmed">
-                        Created: {new Date(token.created_at).toLocaleDateString()}
-                      </Text>
-                    </Group>
-
-                    <Group>
-                      <Text size="sm" c="dimmed" style={{ flex: 1 }}>
-                        {generateLink(token.token, token.access_level)}
-                      </Text>
-                      <CopyButton value={generateLink(token.token, token.access_level)}>
-                        {({ copied, copy }) => (
-                          <ActionIcon
-                            size="sm"
-                            color={copied ? 'teal' : 'blue'}
-                            onClick={copy}
-                            variant="subtle"
-                            title="Copy link"
-                          >
-                            {copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
-                          </ActionIcon>
-                        )}
-                      </CopyButton>
-                      <ActionIcon
-                        size="sm"
-                        variant="subtle"
-                        color="blue"
-                        onClick={() => showQrCode(token)}
-                        title="Show QR code"
-                      >
-                        <IconQrcode size={16} />
-                      </ActionIcon>
-                    </Group>
-                    <Divider mt="sm" />
-                  </Box>
-                ))
-              )}
-            </Stack>
+          <Tabs.Panel value="full">
+            {renderTabContent('full')}
           </Tabs.Panel>
         </Tabs>
       </Modal>
@@ -327,15 +424,15 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
         <Modal
           opened={qrOpened}
           onClose={closeQr}
-          title={`QR Code - ${currentQrToken.name}`}
+          title={`QR Code - ${currentQrToken.name || 'Access Link'}`}
           size="sm"
           centered
         >
           <Stack align="center">
             <Text size="sm" c="dimmed" ta="center">
-              Scan this QR code to join as {getAccessLevelLabel(currentQrToken.access_level).toLowerCase()}:
+              Scan this QR code to join as {getAccessLevelLabel(currentQrToken.access_level as AccessLevel).toLowerCase()}:
             </Text>
-          {qrCodes.has(currentQrToken.token) ? (
+            {qrCodes.has(currentQrToken.token) ? (
               <div style={{ display: 'flex', justifyContent: 'center' }}>
                 <img
                   src={qrCodes.get(currentQrToken.token)}
@@ -354,7 +451,7 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
               <Text>Loading QR code...</Text>
             )}
             <Group>
-              <CopyButton value={generateLink(currentQrToken.token, currentQrToken.access_level)}>
+              <CopyButton value={generateLink(currentQrToken.token, currentQrToken.access_level as AccessLevel, currentQrToken.password_protected ?? currentQrToken.is_password_protected ?? false)}>
                 {({ copied, copy }) => (
                   <Button
                     variant="light"
