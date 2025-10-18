@@ -445,6 +445,14 @@ export class SimpleWebSocketService {
     this.send({ type: 'timer_reset', timer_id: timerId });
   }
 
+  adjustTimer(timerId: number, newTimeSeconds: number): void {
+    this.send({
+      type: 'timer_adjust',
+      timer_id: timerId,
+      current_time_seconds: newTimeSeconds
+    });
+  }
+
   updateTimer(timerId: number, updates: Partial<TimerData>): void {
     this.send({
       type: 'timer_update',

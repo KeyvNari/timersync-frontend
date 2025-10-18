@@ -73,6 +73,7 @@ interface WebSocketContextValue {
   pauseTimer: (timerId: number) => void;
   stopTimer: (timerId: number) => void;
   resetTimer: (timerId: number) => void;
+  adjustTimer: (timerId: number, newTimeSeconds: number) => void;
   updateTimer: (timerId: number, updates: Partial<TimerData>) => void;
   bulkUpdateTimers: (updates: Array<{ timer_id: number; room_sequence_order: number; linked_timer_id?: number | null }>) => void;
   deleteTimer: (timerId: number) => void;
@@ -317,12 +318,12 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
   });
     // Timer events
  wsService.on('timer_update', (message: any) => {
-  // console.log('📍 TIMER_UPDATE received:', {
-  //   timer_id: message.timer_data?.id,
-  //   current_time: message.timer_data?.current_time_seconds,
-  //   is_active: message.timer_data?.is_active,
-  //   full_data: message.timer_data
-  // });
+  console.log('📍 TIMER_UPDATE received:', {
+    timer_id: message.timer_data?.id,
+    current_time: message.timer_data?.current_time_seconds,
+    is_active: message.timer_data?.is_active,
+    full_data: message.timer_data
+  });
 
   setTimers((prev) => {
     const timerData = message.timer_data;
@@ -752,6 +753,49 @@ const resetTimer = useCallback((timerId: number) => {
   setTimeout(() => removePendingOperation(`timer_${timerId}`), 10000);
 }, [addPendingOperation, removePendingOperation]);
 
+const adjustTimer = useCallback((timerId: number, newTimeSeconds: number) => {
+  addPendingOperation(`timer_adjust_${timerId}`);
+
+  // Apply optimistic update immediately
+  setTimers(prev => {
+    const index = prev.findIndex(t => t.id === timerId);
+    if (index === -1) return prev;
+
+    const currentTimer = prev[index];
+
+    // Store previous state for rollback
+    const rollbackTimeout = setTimeout(() => {
+      // Rollback if no confirmation after 5 seconds
+      console.warn(`No confirmation for timer ${timerId} adjustment, rolling back...`);
+      setTimers(rollbackPrev => {
+        const rollbackIndex = rollbackPrev.findIndex(t => t.id === timerId);
+        if (rollbackIndex === -1) return rollbackPrev;
+        const newTimers = [...rollbackPrev];
+        newTimers[rollbackIndex] = currentTimer;
+        return newTimers;
+      });
+      optimisticUpdatesRef.current.delete(timerId);
+      removePendingOperation(`timer_adjust_${timerId}`);
+    }, 5000);
+
+    optimisticUpdatesRef.current.set(timerId, {
+      previous: currentTimer,
+      timeout: rollbackTimeout
+    });
+
+    // Apply optimistic update
+    const newTimers = [...prev];
+    newTimers[index] = { ...currentTimer, current_time_seconds: newTimeSeconds };
+    return newTimers;
+  });
+
+  // Send to server
+  wsServiceRef.current?.adjustTimer(timerId, newTimeSeconds);
+
+  // Failsafe: clear pending state after 10 seconds
+  setTimeout(() => removePendingOperation(`timer_adjust_${timerId}`), 10000);
+}, [addPendingOperation, removePendingOperation]);
+
 const updateTimer = useCallback((timerId: number, updates: Partial<TimerData>) => {
   addPendingOperation(`timer_update_${timerId}`);
 
@@ -940,6 +984,7 @@ const deleteMessage = useCallback((messageId: string) => {
     pauseTimer,
     stopTimer,
     resetTimer,
+    adjustTimer,
     updateTimer,
     bulkUpdateTimers,
     deleteTimer,

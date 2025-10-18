@@ -8,6 +8,7 @@ import { Timers } from '@/components/timer-panel';
 import TimerDisplay from '@/components/timer-display';
 import { ConnectedDevices } from '@/components/connected-devices';
 import { ResizableDashboard } from '@/components/resizable-dashboard';
+import TimerAdjustmentControls from '@/components/timer-adjustment-controls';
 import { useWebSocketContext, useTimerContext } from '@/providers/websocket-provider';
 
 export default function RoomPage() {
@@ -24,6 +25,7 @@ export default function RoomPage() {
     connectionCount,
     connections,
     roomInfo,
+    adjustTimer,
   } = useWebSocketContext();
 
   const { timers, selectedTimerId, getSelectedTimer } = useTimerContext();
@@ -213,15 +215,35 @@ export default function RoomPage() {
     </Paper>
   );
 
+  // Handler for timer adjustment
+  const handleAdjustTime = (timerId: number, newTimeSeconds: number) => {
+    adjustTimer(timerId, newTimeSeconds);
+  };
+
   // Top Right Panel: Timer Display
   const topRightPanel = (
     <Paper withBorder p="md" h="100%">
       {convertedTimer && matchedDisplay ? (
-        <TimerDisplay
-          key={`${displayTimer?.id}-${displayTimer?.current_time_seconds}`}
-          display={matchedDisplay}
-          timer={convertedTimer}
-        />
+        <Stack gap="md" style={{ height: '100%' }}>
+          <Box style={{ flex: 1 }}>
+            <TimerDisplay
+              key={`${displayTimer?.id}-${displayTimer?.current_time_seconds}`}
+              display={matchedDisplay}
+              timer={convertedTimer}
+            />
+          </Box>
+          {displayTimer && (
+            <TimerAdjustmentControls
+              timerId={displayTimer.id}
+              currentTimeSeconds={displayTimer.current_time_seconds}
+              isActive={displayTimer.is_active}
+              isPaused={displayTimer.is_paused}
+              isFinished={displayTimer.is_finished}
+              isStopped={displayTimer.is_stopped}
+              onAdjustTime={handleAdjustTime}
+            />
+          )}
+        </Stack>
       ) : (
         <Center h="100%">
           <Stack align="center" gap="md">

@@ -1,7 +1,7 @@
 // src/components/room/index.tsx
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Paper, Group, Button, Box, Modal, Tabs, Text } from '@mantine/core';
+import { Paper, Group, Button, Box, Modal, Tabs, Text, Stack } from '@mantine/core';
 import { IconShare, IconArrowLeft, IconPlus, IconSparkles, IconSettings, IconClock, IconMessage } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
 import { StickyHeader } from '@/components/sticky-header';
@@ -13,6 +13,7 @@ import { ConnectedDevices } from '@/components/connected-devices';
 import { ResizableDashboard } from '@/components/resizable-dashboard';
 import TimerDisplayEditor from '@/components/timer-display-editor';
 import { Messages, Message } from '@/components/messages';
+import TimerAdjustmentControls from '@/components/timer-adjustment-controls';
 import { useWebSocketContext } from '@/providers/websocket-provider';
 import classes from './room.module.css';
 
@@ -84,7 +85,7 @@ export default function RoomComponent({
   showCurrentUser = true,
 }: RoomComponentProps) {
   const navigate = useNavigate();
-  const { defaultDisplayId } = useWebSocketContext();
+  const { defaultDisplayId, adjustTimer } = useWebSocketContext();
 
   // Display Editor state
   const [editorOpened, { open: openEditor, close: closeEditor }] = useDisclosure(false);
@@ -283,15 +284,35 @@ export default function RoomComponent({
     </Paper>
   );
 
+  // Handler for timer adjustment
+  const handleAdjustTime = (timerId: number, newTimeSeconds: number) => {
+    adjustTimer(timerId, newTimeSeconds);
+  };
+
   // Top Right Panel: Timer Display
   const topRightPanel = (
     <Paper withBorder p="md" h="100%">
       {convertedTimer && matchedDisplay ? (
-        <TimerDisplay
-          key={`${displayTimer?.id}`}
-          display={matchedDisplay}
-          timer={convertedTimer}
-        />
+        <Stack gap="md" style={{ height: '100%' }}>
+          <Box style={{ flex: 1 }}>
+            <TimerDisplay
+              key={`${displayTimer?.id}`}
+              display={matchedDisplay}
+              timer={convertedTimer}
+            />
+          </Box>
+          {displayTimer && (
+            <TimerAdjustmentControls
+              timerId={displayTimer.id}
+              currentTimeSeconds={displayTimer.current_time_seconds}
+              isActive={displayTimer.is_active}
+              isPaused={displayTimer.is_paused}
+              isFinished={displayTimer.is_finished}
+              isStopped={displayTimer.is_stopped}
+              onAdjustTime={handleAdjustTime}
+            />
+          )}
+        </Stack>
       ) : roomId ? (
         <Box style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
           <Group gap="md" style={{ flexDirection: 'column', textAlign: 'center' }}>
