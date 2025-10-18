@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Group, Button, NumberInput, Box } from '@mantine/core';
+import { Group, Button, NumberInput, Box, Tooltip } from '@mantine/core';
 import { IconMinus, IconPlus } from '@tabler/icons-react';
 
 interface TimerAdjustmentControlsProps {
@@ -10,6 +10,7 @@ interface TimerAdjustmentControlsProps {
   isFinished: boolean;
   isStopped: boolean;
   onAdjustTime: (timerId: number, newTimeSeconds: number) => void;
+  isAdjusting?: boolean;
 }
 
 export function TimerAdjustmentControls({
@@ -20,10 +21,16 @@ export function TimerAdjustmentControls({
   isFinished,
   isStopped,
   onAdjustTime,
+  isAdjusting = false,
 }: TimerAdjustmentControlsProps) {
   const [customValue, setCustomValue] = useState<number>(60); // Default 60 seconds (1 minute)
 
-  // Always show controls as long as there's a timer (allow adjustments even when paused/stopped)
+  // Timer is running only when it's active and not paused
+  const isTimerRunning = isActive && !isPaused && !isFinished && !isStopped;
+
+  // Disable controls when timer is not running
+  const controlsDisabled = !isTimerRunning;
+  const tooltipLabel = !isTimerRunning ? 'Timer must be running to adjust time' : '';
 
   const handleAdjust = (adjustmentSeconds: number) => {
     const newTime = currentTimeSeconds + adjustmentSeconds;
@@ -40,64 +47,79 @@ export function TimerAdjustmentControls({
     <Box>
       <Group justify="center" gap="xs" wrap="nowrap">
         {/* -Custom Button */}
-        <Button
-          variant="light"
-          color="red"
-          leftSection={<IconMinus size={16} />}
-          onClick={() => handleAdjust(-customValue)}
-          size="sm"
-        >
-          {Math.abs(customValue)}s
-        </Button>
+        <Tooltip label={tooltipLabel} disabled={!controlsDisabled}>
+          <Button
+            variant="light"
+            color="red"
+            // leftSection={<IconMinus size={16} />}
+            onClick={() => handleAdjust(-customValue)}
+            size="sm"
+            disabled={controlsDisabled}
+          >
+            -{Math.abs(customValue)}s
+          </Button>
+        </Tooltip>
 
         {/* -2min Button */}
-        <Button
-          variant="light"
-          color="orange"
-          leftSection={<IconMinus size={16} />}
-          onClick={() => handleAdjust(-120)}
-          size="sm"
-        >
-          2min
-        </Button>
+        <Tooltip label={tooltipLabel} disabled={!controlsDisabled}>
+          <Button
+            variant="light"
+            color="orange"
+            // leftSection={<IconMinus size={16} />}
+            onClick={() => handleAdjust(-120)}
+            size="sm"
+            disabled={controlsDisabled}
+          >
+            -2m
+          </Button>
+        </Tooltip>
 
         {/* Middle Spacer / Custom Value Input */}
-        <NumberInput
-          value={customValue}
-          onChange={(val) => setCustomValue(typeof val === 'number' ? val : 60)}
-          min={1}
-          max={3600}
-          step={5}
-          size="sm"
-          w={100}
-          suffix="s"
-          hideControls={false}
-          styles={{
-            input: { textAlign: 'center' }
-          }}
-        />
+        <Tooltip label={tooltipLabel} disabled={!controlsDisabled}>
+          <NumberInput
+            value={customValue}
+            onChange={(val) => setCustomValue(typeof val === 'number' ? val : 60)}
+            min={1}
+            max={3600}
+            step={5}
+            size="sm"
+            w={100}
+            suffix="s"
+            hideControls={false}
+            disabled={controlsDisabled}
+            styles={{
+              input: { textAlign: 'center' }
+            }}
+          />
+        </Tooltip>
 
         {/* +2min Button */}
-        <Button
-          variant="light"
-          color="teal"
-          rightSection={<IconPlus size={16} />}
-          onClick={() => handleAdjust(120)}
-          size="sm"
-        >
-          2min
-        </Button>
+        <Tooltip label={tooltipLabel} disabled={!controlsDisabled}>
+          <Button
+            variant="light"
+            color="teal"
+            // rightSection={<IconPlus size={16} />}
+            onClick={() => handleAdjust(120)}
+            size="sm"
+            disabled={controlsDisabled}
+          >
+            +2m
+          </Button>
+        </Tooltip>
 
         {/* +Custom Button */}
-        <Button
-          variant="light"
-          color="green"
-          rightSection={<IconPlus size={16} />}
-          onClick={() => handleAdjust(customValue)}
-          size="sm"
-        >
-          {customValue}s
-        </Button>
+        <Tooltip label={tooltipLabel} disabled={!controlsDisabled}>
+          <Button
+            variant="light"
+            color="green"
+            rightSection={<IconPlus size={16} />}
+            onClick={() => handleAdjust(customValue)}
+            size="sm"
+            disabled={controlsDisabled}
+          >
+            {customValue}s
+          </Button>
+        </Tooltip>
       </Group>
     </Box>
   );
