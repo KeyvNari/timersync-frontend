@@ -279,6 +279,11 @@ useEffect(() => {
     warning_time: displayTimer.warning_time,
     critical_time: displayTimer.critical_time,
     timer_format: displayTimer.timer_format,
+    // Fields needed for client-side calculation
+    started_at: displayTimer.started_at,
+    actual_start_time: displayTimer.actual_start_time,
+    paused_at: displayTimer.paused_at,
+    accumulated_seconds: displayTimer.accumulated_seconds,
   } : undefined;
   // Handle going back or disconnecting
   const handleGoBack = () => {
@@ -538,7 +543,7 @@ return connected && displayTimer ? (
     }}
   >
     <TimerDisplay
-      key={`${displayTimer.id}-${displayTimer.current_time_seconds}-${displayTimer.timer_format}`}
+      key={`${displayTimer.id}-${displayTimer.timer_format}`}
       display={displayConfig}
       timer={convertedTimer}
       in_view_mode={true}

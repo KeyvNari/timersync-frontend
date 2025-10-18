@@ -59,6 +59,11 @@ type Timer = {
   warning_time?: number | null;
   critical_time?: number | null;
   timer_format?: string | null;
+  // Fields needed for client-side calculation
+  started_at?: string | null;
+  actual_start_time?: string | null;
+  paused_at?: string | null;
+  accumulated_seconds?: number;
 };
 
 
@@ -126,6 +131,14 @@ function TimerDisplay({
     current_time_seconds: 0,
   };
 
+  // Local state for client-side timer calculation
+  const [localCurrentTime, setLocalCurrentTime] = useState(0);
+  const [calculationBase, setCalculationBase] = useState<{
+    actual_start_time: Date | null;
+    accumulated_seconds: number;
+    paused_at: Date | null;
+  } | null>(null);
+
   useEffect(() => {
     console.log('⏱️ TimerDisplay received update:', {
       current_time: timer?.current_time_seconds,
@@ -136,12 +149,105 @@ function TimerDisplay({
   const safeDisplay = display ?? defaultDisplay;
   const safeTimer = timer ?? defaultTimer;
 
-  const currentTimeSeconds = safeTimer.current_time_seconds;
-
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showControls, setShowControls] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hideTimeout, setHideTimeout] = useState<NodeJS.Timeout | null>(null);
+
+  // Sync with backend ONLY on state changes (not on current_time updates)
+  useEffect(() => {
+    if (!timer) return;
+
+    // Update calculation base for running timer
+    if (timer.is_active && !timer.is_paused) {
+      const newBase = {
+        actual_start_time: timer.actual_start_time
+          ? new Date(timer.actual_start_time)
+          : null,
+        accumulated_seconds: timer.accumulated_seconds || 0,
+        paused_at: null
+      };
+
+      // Only update if base has actually changed (start/resume/adjust)
+      const baseChanged = !calculationBase ||
+          calculationBase.actual_start_time?.toISOString() !== newBase.actual_start_time?.toISOString() ||
+          calculationBase.accumulated_seconds !== newBase.accumulated_seconds;
+
+      if (baseChanged) {
+        setCalculationBase(newBase);
+        // Force immediate sync to backend value after adjustment
+        setLocalCurrentTime(timer.current_time_seconds);
+        console.log('🔄 Timer adjusted, forcing sync to backend value:', timer.current_time_seconds);
+      }
+    } else if (timer.is_paused && timer.paused_at) {
+      setCalculationBase({
+        actual_start_time: timer.actual_start_time
+          ? new Date(timer.actual_start_time)
+          : null,
+        accumulated_seconds: timer.accumulated_seconds || 0,
+        paused_at: new Date(timer.paused_at)
+      });
+      // Use backend value for paused timer
+      setLocalCurrentTime(timer.current_time_seconds);
+    } else {
+      // Stopped/inactive - use backend value directly
+      setLocalCurrentTime(timer.current_time_seconds);
+      setCalculationBase(null);
+    }
+  }, [timer?.is_active, timer?.is_paused, timer?.actual_start_time, timer?.accumulated_seconds, timer?.paused_at]);
+
+  // Client-side calculation (runs every 100ms for smooth display)
+  useEffect(() => {
+    // Only calculate if timer is active and not paused
+    if (!timer?.is_active || timer.is_paused || !calculationBase?.actual_start_time) {
+      // Use backend value for stopped/paused timers
+      setLocalCurrentTime(timer?.current_time_seconds || 0);
+      return;
+    }
+
+    const intervalId = setInterval(() => {
+      const now = new Date();
+
+      // Calculate session seconds since actual_start_time
+      const sessionSeconds = Math.floor(
+        (now.getTime() - calculationBase.actual_start_time!.getTime()) / 1000
+      );
+
+      // Total elapsed = accumulated + current session
+      const totalElapsed = calculationBase.accumulated_seconds + sessionSeconds;
+
+      // Calculate current_time based on timer_type
+      let calculatedTime: number;
+      if (timer.timer_type === 'countdown') {
+        // countdown: current_time = duration - total_elapsed
+        calculatedTime = (timer.duration_seconds || 0) - totalElapsed;
+      } else {
+        // countup: current_time = total_elapsed
+        calculatedTime = totalElapsed;
+      }
+
+      // Check drift against backend value
+      const backendTime = timer.current_time_seconds;
+      const drift = Math.abs(calculatedTime - backendTime);
+
+      // Only resync if drift > 3 seconds
+      if (drift > 3) {
+        console.warn(`⚠️ Timer drift detected: ${drift.toFixed(2)}s, resyncing to backend value`);
+        setLocalCurrentTime(backendTime);
+      } else {
+        setLocalCurrentTime(calculatedTime);
+      }
+    }, 100); // Update every 100ms for smooth display
+
+    return () => clearInterval(intervalId);
+  }, [
+    timer?.is_active,
+    timer?.is_paused,
+    timer?.timer_type,
+    timer?.duration_seconds,
+    timer?.current_time_seconds,
+    calculationBase
+  ]);
 
   // Separate interval only for date/clock updates
   useEffect(() => {
@@ -265,6 +371,9 @@ function TimerDisplay({
 
     return progressColor;
   };
+
+  // Use localCurrentTime for display instead of backend current_time_seconds
+  const currentTimeSeconds = localCurrentTime;
 
   const timerText = formatTime(currentTimeSeconds, safeTimer.timer_format || safeDisplay.timer_format || 'mm:ss');
   const clockText = formatClock();

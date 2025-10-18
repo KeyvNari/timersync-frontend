@@ -85,7 +85,7 @@ export default function RoomComponent({
   showCurrentUser = true,
 }: RoomComponentProps) {
   const navigate = useNavigate();
-  const { defaultDisplayId, adjustTimer } = useWebSocketContext();
+  const { defaultDisplayId, adjustTimer, isOperationPending } = useWebSocketContext();
 
   // Display Editor state
   const [editorOpened, { open: openEditor, close: closeEditor }] = useDisclosure(false);
@@ -310,6 +310,7 @@ export default function RoomComponent({
               isFinished={displayTimer.is_finished}
               isStopped={displayTimer.is_stopped}
               onAdjustTime={handleAdjustTime}
+              isAdjusting={isOperationPending(`timer_adjust_${displayTimer.id}`)}
             />
           )}
         </Stack>
