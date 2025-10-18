@@ -587,6 +587,13 @@ export class SimpleWebSocketService {
     });
   }
 
+  verifyRoomAccessToken(token: string): void {
+    this.send({
+      type: 'room_access_token_verify',
+      token: token,
+    });
+  }
+
   // System
   identify(clientInfo: Record<string, any>): void {
     this.send({ type: 'identify_response', ...clientInfo });

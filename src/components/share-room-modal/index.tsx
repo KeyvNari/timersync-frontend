@@ -18,6 +18,7 @@ import {
   Grid,
   Card,
   Title,
+  Alert,
 } from '@mantine/core';
 import {
   IconCopy,
@@ -33,6 +34,8 @@ import {
   IconSettings,
   IconUsers,
   IconDownload,
+  IconAlertCircle,
+  IconRefresh,
 } from '@tabler/icons-react';
 import { useWebSocketContext } from '@/providers/websocket-provider';
 import { useDisclosure } from '@mantine/hooks';
@@ -71,6 +74,7 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
   const [createdTokens, setCreatedTokens] = useState<RoomAccessToken[]>([]);
   const [currentToken, setCurrentToken] = useState<{ [key in AccessLevel]?: RoomAccessToken }>({});
   const [qrCodes, setQrCodes] = useState<Map<string, string>>(new Map());
+  const [revokedTokens, setRevokedTokens] = useState<Set<string>>(new Set());
 
   const { wsService } = useWebSocketContext();
 
@@ -78,11 +82,67 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
   const [qrOpened, { open: openQr, close: closeQr }] = useDisclosure(false);
   const [currentQrToken, setCurrentQrToken] = useState<RoomAccessToken | null>(null);
 
+  // Handler for token verification results
+  const handleTokenVerification = (message: any) => {
+    console.log('🔍 Token verification result:', message);
+
+    if (message.type === 'room_access_token_verify_result') {
+      // Backend now includes the token string in the response
+      const verifiedToken = message.token;
+
+      if (!message.valid && verifiedToken) {
+        // Only mark tokens that are currently displayed (viewer or full)
+        const isCurrentToken = Object.values(currentToken).some(
+          token => token && token.token === verifiedToken
+        );
+
+        if (isCurrentToken) {
+          // Mark this token as revoked (UI will update automatically)
+          setRevokedTokens(prev => new Set(prev).add(verifiedToken));
+          console.log('Current token revoked:', message.message);
+        }
+      }
+    }
+  };
+
+  // Setup listener for token verification
+  const setupTokenVerificationListener = () => {
+    if (!wsService) return;
+    wsService.on('room_access_token_verify_result', handleTokenVerification);
+  };
+
+  // Verify all current tokens
+  const verifyCurrentTokens = () => {
+    if (!wsService) return;
+
+    // Verify the current token for each access level
+    Object.values(currentToken).forEach(token => {
+      if (token) {
+        wsService.verifyRoomAccessToken(token.token);
+      }
+    });
+  };
+
   useEffect(() => {
     if (opened) {
       loadTokens();
+      setupTokenVerificationListener();
     }
+
+    return () => {
+      // Cleanup listeners when modal closes
+      if (wsService) {
+        wsService.off('room_access_token_verify_result', handleTokenVerification);
+      }
+    };
   }, [opened]);
+
+  // Verify tokens when modal opens and tokens are loaded
+  useEffect(() => {
+    if (opened && Object.keys(currentToken).length > 0) {
+      verifyCurrentTokens();
+    }
+  }, [opened, currentToken]);
 
   const loadTokens = async () => {
     if (!wsService) return;
@@ -263,6 +323,9 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
     // Check both field names for password protection
     const isProtected = token ? (token.password_protected ?? token.is_password_protected ?? false) : false;
 
+    // Check if current token is revoked
+    const isTokenRevoked = token ? revokedTokens.has(token.token) : false;
+
     return (
       <Grid gutter="xl" mt="md">
         {/* Left Column - Generate New Link */}
@@ -335,8 +398,40 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
               </List>
             </Card>
 
+            {/* Revoked Token Alert */}
+            {isTokenRevoked && token && (
+              <Alert
+                icon={<IconAlertCircle size={16} />}
+                title="Token Revoked"
+                color="red"
+                variant="light"
+              >
+                <Text size="sm" mb="sm">
+                  This access token has been revoked and is no longer valid. Please generate a new link.
+                </Text>
+                <Button
+                  size="xs"
+                  leftSection={<IconRefresh size={14} />}
+                  onClick={() => {
+                    // Clear the revoked state and remove from current token
+                    setRevokedTokens(prev => {
+                      const newSet = new Set(prev);
+                      newSet.delete(token.token);
+                      return newSet;
+                    });
+                    setCurrentToken(prev => ({
+                      ...prev,
+                      [level]: undefined,
+                    }));
+                  }}
+                >
+                  Generate New Link
+                </Button>
+              </Alert>
+            )}
+
             {/* Current Link Display */}
-            {token && (
+            {token && !isTokenRevoked && (
               <Card withBorder style={{ flex: 1 }}>
                 <Group justify="space-between" mb="sm">
                   <Title order={5}>Current Link</Title>
