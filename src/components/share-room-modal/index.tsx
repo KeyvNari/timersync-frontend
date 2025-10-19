@@ -19,6 +19,8 @@ import {
   Card,
   Title,
   Alert,
+  Loader,
+  Center,
 } from '@mantine/core';
 import {
   IconCopy,
@@ -75,6 +77,7 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
   const [currentToken, setCurrentToken] = useState<{ [key in AccessLevel]?: RoomAccessToken }>({});
   const [qrCodes, setQrCodes] = useState<Map<string, string>>(new Map());
   const [revokedTokens, setRevokedTokens] = useState<Set<string>>(new Set());
+  const [isVerifying, setIsVerifying] = useState(false);
 
   const { wsService } = useWebSocketContext();
 
@@ -102,6 +105,9 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
           console.log('Current token revoked:', message.message);
         }
       }
+
+      // Mark verification as complete
+      setIsVerifying(false);
     }
   };
 
@@ -115,18 +121,36 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
   const verifyCurrentTokens = () => {
     if (!wsService) return;
 
+    const tokensToVerify = Object.values(currentToken).filter(token => token);
+
+    // If there are tokens to verify, set loading state
+    if (tokensToVerify.length > 0) {
+      setIsVerifying(true);
+    }
+
     // Verify the current token for each access level
-    Object.values(currentToken).forEach(token => {
+    tokensToVerify.forEach(token => {
       if (token) {
         wsService.verifyRoomAccessToken(token.token);
       }
     });
+
+    // If no tokens to verify, mark as complete immediately
+    if (tokensToVerify.length === 0) {
+      setIsVerifying(false);
+    }
   };
 
   useEffect(() => {
     if (opened) {
+      // Reset states when modal opens
+      setIsVerifying(true);
+      setRevokedTokens(new Set());
       loadTokens();
       setupTokenVerificationListener();
+    } else {
+      // Reset verification state when modal closes
+      setIsVerifying(false);
     }
 
     return () => {
@@ -517,30 +541,39 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
         size="xl"
         centered
       >
-        <Tabs value={activeTab} onChange={(value) => setActiveTab(value as AccessLevel)}>
-          <Tabs.List grow>
-            <Tabs.Tab
-              value="viewer"
-              leftSection={<IconEye size={16} />}
-            >
-              Viewer
-            </Tabs.Tab>
-            <Tabs.Tab
-              value="full"
-              leftSection={<IconDeviceDesktop size={16} />}
-            >
-              Full Control
-            </Tabs.Tab>
-          </Tabs.List>
+        {isVerifying ? (
+          <Center py="xl">
+            <Stack align="center" gap="md">
+              <Loader size="lg" />
+              <Text size="sm" c="dimmed">Verifying access tokens...</Text>
+            </Stack>
+          </Center>
+        ) : (
+          <Tabs value={activeTab} onChange={(value) => setActiveTab(value as AccessLevel)}>
+            <Tabs.List grow>
+              <Tabs.Tab
+                value="viewer"
+                leftSection={<IconEye size={16} />}
+              >
+                Viewer
+              </Tabs.Tab>
+              <Tabs.Tab
+                value="full"
+                leftSection={<IconDeviceDesktop size={16} />}
+              >
+                Full Control
+              </Tabs.Tab>
+            </Tabs.List>
 
-          <Tabs.Panel value="viewer">
-            {renderTabContent('viewer')}
-          </Tabs.Panel>
+            <Tabs.Panel value="viewer">
+              {renderTabContent('viewer')}
+            </Tabs.Panel>
 
-          <Tabs.Panel value="full">
-            {renderTabContent('full')}
-          </Tabs.Panel>
-        </Tabs>
+            <Tabs.Panel value="full">
+              {renderTabContent('full')}
+            </Tabs.Panel>
+          </Tabs>
+        )}
       </Modal>
 
       {/* QR Code Modal */}

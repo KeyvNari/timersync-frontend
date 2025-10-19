@@ -143,7 +143,8 @@ export function WebSocketProvider({
   // Optimistic update tracking
   const optimisticUpdatesRef = useRef<Map<number, { previous: TimerData; timeout: NodeJS.Timeout }>>(new Map());
 
-  // Pending operations tracking
+  // Pending operations tracking (use ref for synchronous access in callbacks)
+  const pendingOperationsRef = useRef<Set<string>>(new Set());
   const [pendingOperations, setPendingOperations] = useState<Set<string>>(new Set());
 
   const [roomInfo, setRoomInfo] = useState<Record<string, any> | null>(null);
@@ -158,20 +159,18 @@ export function WebSocketProvider({
 
   // Helper functions for operation tracking
   const addPendingOperation = useCallback((key: string) => {
-    setPendingOperations(prev => new Set(prev).add(key));
+    pendingOperationsRef.current.add(key);
+    setPendingOperations(new Set(pendingOperationsRef.current));
   }, []);
 
   const removePendingOperation = useCallback((key: string) => {
-    setPendingOperations(prev => {
-      const next = new Set(prev);
-      next.delete(key);
-      return next;
-    });
+    pendingOperationsRef.current.delete(key);
+    setPendingOperations(new Set(pendingOperationsRef.current));
   }, []);
 
   const isOperationPending = useCallback((key: string) => {
-    return pendingOperations.has(key);
-  }, [pendingOperations]);
+    return pendingOperationsRef.current.has(key);
+  }, []);
 
   // Setup event handlers
 const setupEventHandlers = (wsService: SimpleWebSocketService) => {
@@ -322,6 +321,7 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
     timer_id: message.timer_data?.id,
     current_time: message.timer_data?.current_time_seconds,
     is_active: message.timer_data?.is_active,
+    is_manual_start: message.timer_data?.is_manual_start,
     full_data: message.timer_data
   });
 
@@ -332,33 +332,60 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
       return prev;
     }
 
-    // Clear pending operations for this timer
-    removePendingOperation(`timer_${timerData.id}`);
-    removePendingOperation(`timer_start_${timerData.id}`);
-    removePendingOperation(`timer_pause_${timerData.id}`);
-    removePendingOperation(`timer_stop_${timerData.id}`);
-    removePendingOperation(`timer_update_${timerData.id}`);
-
-    // Clear optimistic update if server confirms the change
-    const optimisticUpdate = optimisticUpdatesRef.current.get(timerData.id);
-    if (optimisticUpdate) {
-      clearTimeout(optimisticUpdate.timeout);
-      optimisticUpdatesRef.current.delete(timerData.id);
-    }
-
     const existingTimerIndex = prev.findIndex(timer => timer.id === timerData.id);
-    let newTimers;
-
-    if (existingTimerIndex !== -1) {
-      // Create a completely new array with the updated timer
-      newTimers = [...prev];
-      newTimers[existingTimerIndex] = { ...timerData };
-      // console.log('✅ Timer updated at index', existingTimerIndex, 'New value:', timerData.current_time_seconds);
-    } else {
-      newTimers = [...prev, timerData];
-      // console.log('➕ New timer added');
+    if (existingTimerIndex === -1) {
+      // New timer - just add it
+      return [...prev, timerData];
     }
 
+    const existingTimer = prev[existingTimerIndex];
+
+    // Check if we have a pending update for this timer (use ref for current value)
+    const hasPendingUpdate = pendingOperationsRef.current.has(`timer_update_${timerData.id}`);
+
+    // If there's a pending update, preserve the optimistic values for non-time fields
+    // Only update time-related and state fields from the server
+    let finalTimerData;
+    if (hasPendingUpdate) {
+      console.log(`⏳ Pending update for timer ${timerData.id}, preserving optimistic values`);
+      // Preserve all fields from the existing timer EXCEPT time/state fields that the server manages
+      finalTimerData = {
+        ...existingTimer,  // Keep optimistic updates
+        // Only override with server values for fields that change during runtime
+        current_time_seconds: timerData.current_time_seconds,
+        is_active: timerData.is_active,
+        is_paused: timerData.is_paused,
+        is_finished: timerData.is_finished,
+        is_stopped: timerData.is_stopped,
+        is_overtime: timerData.is_overtime,
+        overtime_seconds: timerData.overtime_seconds,
+        accumulated_seconds: timerData.accumulated_seconds,
+        started_at: timerData.started_at,
+        paused_at: timerData.paused_at,
+        completed_at: timerData.completed_at,
+        actual_start_time: timerData.actual_start_time,
+        last_calculated_at: timerData.last_calculated_at,
+      };
+    } else {
+      // No pending update - accept all server data
+      finalTimerData = { ...timerData };
+
+      // Clear pending operations for this timer (only if no update is pending)
+      removePendingOperation(`timer_${timerData.id}`);
+      removePendingOperation(`timer_start_${timerData.id}`);
+      removePendingOperation(`timer_pause_${timerData.id}`);
+      removePendingOperation(`timer_stop_${timerData.id}`);
+
+      // Clear optimistic update if server confirms the change
+      const optimisticUpdate = optimisticUpdatesRef.current.get(timerData.id);
+      if (optimisticUpdate) {
+        clearTimeout(optimisticUpdate.timeout);
+        optimisticUpdatesRef.current.delete(timerData.id);
+      }
+    }
+
+    const newTimers = [...prev];
+    newTimers[existingTimerIndex] = finalTimerData;
     return newTimers;
   });
 });
@@ -797,6 +824,7 @@ const adjustTimer = useCallback((timerId: number, newTimeSeconds: number) => {
 }, [addPendingOperation, removePendingOperation]);
 
 const updateTimer = useCallback((timerId: number, updates: Partial<TimerData>) => {
+  console.log(`🔄 updateTimer called for timer ${timerId}:`, updates);
   addPendingOperation(`timer_update_${timerId}`);
 
   // Apply optimistic update immediately
@@ -809,7 +837,7 @@ const updateTimer = useCallback((timerId: number, updates: Partial<TimerData>) =
     // Store previous state for rollback
     const rollbackTimeout = setTimeout(() => {
       // Rollback if no confirmation after 5 seconds
-      console.warn(`No confirmation for timer ${timerId} update, rolling back...`);
+      console.warn(`⚠️ No confirmation for timer ${timerId} update, rolling back...`);
       setTimers(rollbackPrev => {
         const rollbackIndex = rollbackPrev.findIndex(t => t.id === timerId);
         if (rollbackIndex === -1) return rollbackPrev;
@@ -829,14 +857,18 @@ const updateTimer = useCallback((timerId: number, updates: Partial<TimerData>) =
     // Apply optimistic update
     const newTimers = [...prev];
     newTimers[index] = { ...currentTimer, ...updates };
+    console.log(`✅ Applied optimistic update for timer ${timerId}:`, newTimers[index]);
     return newTimers;
   });
 
   // Send to server
   wsServiceRef.current?.updateTimer(timerId, updates);
 
-  // Failsafe: clear pending state after 10 seconds
-  setTimeout(() => removePendingOperation(`timer_update_${timerId}`), 10000);
+  // Extended failsafe: clear pending state after 15 seconds (increased from 10s)
+  setTimeout(() => {
+    console.log(`⏱️ Failsafe: Clearing pending operation for timer ${timerId}`);
+    removePendingOperation(`timer_update_${timerId}`);
+  }, 15000);
 }, [addPendingOperation, removePendingOperation]);
 
 const bulkUpdateTimers = useCallback((updates: Array<{ timer_id: number; room_sequence_order: number }>) => {
