@@ -238,10 +238,10 @@ export default function RoomComponent({
       withBorder
       p="xl"
       h="100%"
-      style={{ display: 'flex', flexDirection: 'column', overflow: 'auto' }}
+      style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
     >
-      <Tabs defaultValue="timers" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <Tabs.List>
+      <Tabs defaultValue="timers" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <Tabs.List style={{ flexShrink: 0 }}>
           <Tabs.Tab value="timers" leftSection={<IconClock size={16} />}>
             Timers
           </Tabs.Tab>
@@ -250,9 +250,9 @@ export default function RoomComponent({
           </Tabs.Tab>
         </Tabs.List>
 
-        <Tabs.Panel value="timers" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
+        <Tabs.Panel value="timers" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {showActionButtons && (
-            <Group justify="space-between" mt="md" mb="md" wrap="wrap">
+            <Group justify="space-between" wrap="wrap" className={classes.actionButtons}>
               <Group gap="xs">
                 <Button variant="default" size="sm" leftSection={<IconPlus size={16} />} onClick={onAddTimer}>
                   Add Timer
@@ -272,13 +272,15 @@ export default function RoomComponent({
             </Group>
           )}
 
-          <Box style={{ flex: 1, overflow: 'auto' }}>
+          <Box style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
             <Timers timers={timers} events={timerEvents} selectedTimerId={selectedTimerId} displays={displays} />
           </Box>
         </Tabs.Panel>
 
-        <Tabs.Panel value="messages" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto' }} pt="md">
-          <Messages messages={messages} onMessagesChange={onMessagesChange} />
+        <Tabs.Panel value="messages" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }} pt="md">
+          <Box style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+            <Messages messages={messages} onMessagesChange={onMessagesChange} />
+          </Box>
         </Tabs.Panel>
       </Tabs>
     </Paper>

@@ -18,3 +18,9 @@
   flex: 1;
   overflow: hidden;
 }
+
+.actionButtons {
+  flex-shrink: 0;
+  padding-top: var(--mantine-spacing-md);
+  padding-bottom: var(--mantine-spacing-md);
+}
