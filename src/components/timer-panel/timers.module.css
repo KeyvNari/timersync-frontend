@@ -2,9 +2,9 @@
   display: flex;
   align-items: center;
   border-radius: var(--mantine-radius-sm);
-  padding: var(--mantine-spacing-sm) var(--mantine-spacing-md);
+  padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
   background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6));
-  margin-bottom: var(--mantine-spacing-sm);
+  margin-bottom: var(--mantine-spacing-xs);
   position: relative;
   transition: all 0.2s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
@@ -73,7 +73,7 @@
   display: flex;
   align-items: center;
   gap: var(--mantine-spacing-xs);
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   flex-wrap: wrap;
 }
 
@@ -175,7 +175,7 @@
 .timerMeta {
   display: flex;
   align-items: center;
-  gap: var(--mantine-spacing-md);
+  gap: var(--mantine-spacing-sm);
   font-size: var(--mantine-font-size-xs);
   color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-gray-4));
   flex-wrap: wrap;

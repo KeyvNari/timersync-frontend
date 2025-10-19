@@ -1,7 +1,8 @@
 .root {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .header {
@@ -17,10 +18,11 @@
 .content {
   flex: 1;
   overflow: hidden;
+  min-height: 0;
 }
 
 .actionButtons {
   flex-shrink: 0;
-  padding-top: var(--mantine-spacing-md);
-  padding-bottom: var(--mantine-spacing-md);
+  padding-top: var(--mantine-spacing-sm);
+  padding-bottom: var(--mantine-spacing-xs);
 }

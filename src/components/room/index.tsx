@@ -236,7 +236,7 @@ export default function RoomComponent({
   const leftPanel = (
     <Paper
       withBorder
-      p="xl"
+      p="md"
       h="100%"
       style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
     >

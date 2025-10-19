@@ -75,9 +75,9 @@ export function ResizableDashboard({
       ref={containerRef}
       style={{
         display: 'flex',
-        height: 'calc(97vh - 7rem)',
+        height: '100%',
         minHeight: '400px',
-        maxHeight: '100vh',
+        maxHeight: '100%',
         padding: theme.spacing.md,
         gap: 0,
         overflow: 'hidden',
