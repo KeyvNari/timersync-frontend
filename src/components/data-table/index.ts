@@ -1,6 +1,6 @@
 import { DataTable as MantineDataTable } from 'mantine-datatable';
 import { capitalize } from '@/utilities/text';
-import { CardTitle } from '../card-title';
+import { CardTitle } from '../_stubs';
 import { DataTableActions } from './data-table-actions';
 import { DataTableContainer } from './data-table-container';
 import { DataTableContent } from './data-table-content';

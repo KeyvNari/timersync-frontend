@@ -1,0 +1,7 @@
+This component has been disabled to reduce bundle size.
+It requires: react-markdown, remark-gfm
+
+To re-enable:
+1. Run: npm install react-markdown remark-gfm
+2. Rename this file back to index.tsx
+3. Update the import in room-controller

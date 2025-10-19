@@ -60,7 +60,9 @@ export function useCreateRoom(options?: UseMutationOptions<Room, Error, CreateRo
       });
       console.log('[useCreateRoom] Refetch completed:', result);
       // Call the custom onSuccess if provided
-      await options?.onSuccess?.(data, variables, context);
+      if (options?.onSuccess) {
+        await (options.onSuccess as any)(data, variables, context);
+      }
     },
   });
 }
@@ -78,7 +80,9 @@ export function useUpdateRoom(options?: UseMutationOptions<Room, Error, { roomId
         type: 'active'
       });
       // Call the custom onSuccess if provided
-      await options?.onSuccess?.(data, variables, context);
+      if (options?.onSuccess) {
+        await (options.onSuccess as any)(data, variables, context);
+      }
     },
   });
 }
@@ -96,7 +100,9 @@ export function useDeleteRoom(options?: UseMutationOptions<void, Error, number>)
         type: 'active'
       });
       // Call the custom onSuccess if provided
-      await options?.onSuccess?.(data, variables, context);
+      if (options?.onSuccess) {
+        await (options.onSuccess as any)(data, variables, context);
+      }
     },
   });
 }

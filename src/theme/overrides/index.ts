@@ -2,7 +2,7 @@ import card from './card';
 import badge from './badge';
 import breadcrumbs from './breadcrumbs';
 import buttons from './buttons';
-import charts from './charts';
+// import charts from './charts'; // Disabled (uses @mantine/charts)
 import drawer from './drawer';
 import inputs from './inputs';
 import loadingOverlay from './loading-overlay';
@@ -17,7 +17,7 @@ export default {
   ...badge,
   ...breadcrumbs,
   ...buttons,
-  ...charts,
+  // ...charts, // Disabled
   ...drawer,
   ...inputs,
   ...loadingOverlay,

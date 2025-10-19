@@ -20,10 +20,8 @@ export function useMenuSections() {
   const [sections, setSections] = useState<Section[]>([]);
 
   useEffect(() => {
-    const files: Record<string, PostMetadata> = import.meta.glob('/src/pages/docs/**/*.mdx', {
-      eager: true,
-      import: 'metadata',
-    });
+    // MDX support disabled - return empty sections
+    const files: Record<string, PostMetadata> = {}; // import.meta.glob('/src/pages/docs/**/*.mdx', ...) disabled
 
     const newSections = Object.entries(files).reduce(
       (acc, [path, metadata]) => {

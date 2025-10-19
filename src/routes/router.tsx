@@ -89,6 +89,7 @@ const router = createBrowserRouter([
         element: LazyPage(() => import('@/pages/dashboard/home')),
       },
       /* ---------------------------------- APPS ---------------------------------- */
+      /* DISABLED: Demo apps removed to reduce bundle size
       {
         path: paths.dashboard.apps.root,
         children: [
@@ -103,7 +104,9 @@ const router = createBrowserRouter([
           },
         ],
       },
+      */
       /* ------------------------------- MANAGEMENT ------------------------------- */
+      /* DISABLED: Demo management pages removed to reduce bundle size
       {
         path: paths.dashboard.management.root,
         children: [
@@ -128,7 +131,9 @@ const router = createBrowserRouter([
           },
         ],
       },
+      */
       /* --------------------------------- WIDGETS -------------------------------- */
+      /* DISABLED: Demo widget pages removed to reduce bundle size
       {
         path: paths.dashboard.widgets.root,
         children: [
@@ -151,6 +156,7 @@ const router = createBrowserRouter([
           },
         ],
       },
+      */
     ],
   },
 ]);

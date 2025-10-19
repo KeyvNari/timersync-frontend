@@ -19,7 +19,7 @@ type Display = {
   time_of_day_color?: string | null;
   timer_text_style?: string | null;
   timer_size_percent?: number | null;
-  timer_position?: string | null;
+  timer_position?: 'top' | 'bottom' | 'center' | null;
   auto_hide_completed?: boolean;
   clock_format?: string | null;
   clock_font_family?: string | null;

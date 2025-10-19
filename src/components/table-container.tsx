@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { Card, CardProps } from '@mantine/core';
 
-import { CardTitle } from './card-title';
+import { CardTitle } from './_stubs';
 
 interface TableContainerProps extends CardProps {
   title?: string;

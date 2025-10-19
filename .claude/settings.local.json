@@ -1,7 +1,16 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(dir c:UserskeyvaDocumentscodestimersync_frontendsrc /s/b)",
+      "Bash(cat \"c:\\Users\\keyva\\Documents\\codes\\timersync_frontend\\package.json\")",
+      "Bash(dir \"c:\\Users\\keyva\\Documents\\codes\\timersync_frontend\\src\\__backend\\handlers\" /b)",
+      "Bash(npm install)",
+      "Bash(find src/pages/dashboard/{apps,management,widgets} -name \"*.tsx\" -type f)",
+      "Bash(node --version)",
+      "Bash(npm --version)",
+      "Bash(cat src/api/query-client.ts)",
+      "Bash(npm install react-markdown remark-gfm)"
     ],
     "deny": [],
     "ask": []

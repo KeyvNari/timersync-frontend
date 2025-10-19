@@ -1,5 +1,5 @@
 import { Group } from '@mantine/core';
-import { ColorSchemeToggler } from '@/components/color-scheme-toggler';
+// import { ColorSchemeToggler } from '@/components/color-scheme-toggler'; // Removed
 import { StickyHeader } from '@/components/sticky-header';
 import { CurrentUser } from './current-user';
 import { Notifications } from './notifications';

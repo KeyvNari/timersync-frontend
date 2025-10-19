@@ -105,17 +105,7 @@ export function ResizableDashboard({
           flexShrink: 0,
           transition: 'all 0.2s ease',
         }}
-        sx={{
-          '&:hover': {
-            width: '2px',
-            backgroundColor:
-              theme.colorScheme === 'dark' ? theme.colors.gray[6] : theme.colors.gray[4],
-          },
-          '&:active': {
-            width: '3px',
-            backgroundColor: theme.colors.blue[5],
-          },
-        }}
+        className="resizer"
       >
         {/* Invisible hit area */}
         <Box
@@ -138,17 +128,11 @@ export function ResizableDashboard({
             transform: 'translate(-50%, -50%)',
             width: '8px',
             height: '24px',
-            backgroundColor:
-              theme.colorScheme === 'dark' ? theme.colors.gray[7] : theme.colors.gray[3],
+            backgroundColor: theme.colors.gray[5],
             borderRadius: theme.radius.xs,
             opacity: 0,
             transition: 'opacity 0.2s ease',
             pointerEvents: 'none',
-          }}
-          sx={{
-            [`${containerRef.current}:hover &`]: {
-              opacity: 0.6,
-            },
           }}
         >
           <Box
@@ -159,7 +143,7 @@ export function ResizableDashboard({
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: '6px',
-              color: theme.colorScheme === 'dark' ? theme.colors.gray[5] : theme.colors.gray[6],
+              color: theme.colors.gray[6],
               lineHeight: 1,
             }}
           >

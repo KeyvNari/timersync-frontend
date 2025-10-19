@@ -6,7 +6,7 @@ import { NavLink } from 'react-router-dom';
 import { Anchor, Button, Divider, Group, Stack, Text, Title, Alert } from '@mantine/core';
 import { IconCheck } from '@tabler/icons-react';
 import { Page } from '@/components/page';
-import { UnderlineShape } from '@/components/underline-shape';
+import { UnderlineShape } from '@/components/_stubs';
 import { paths } from '@/routes';
 import { LoginForm } from './login-form';
 

@@ -2,7 +2,7 @@ import { PiGoogleLogoDuotone as GoogleIcon, PiXLogoDuotone as XIcon } from 'reac
 import { NavLink } from 'react-router-dom';
 import { Anchor, Button, Divider, Group, Stack, Text, Title } from '@mantine/core';
 import { Page } from '@/components/page';
-import { UnderlineShape } from '@/components/underline-shape';
+import { UnderlineShape } from '@/components/_stubs';
 import { paths } from '@/routes';
 import { RegisterForm } from './register-form';
 

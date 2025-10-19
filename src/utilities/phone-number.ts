@@ -1,13 +1,11 @@
+/**
+ * Phone number utilities - DISABLED
+ * Original file required libphonenumber-js which was removed to reduce bundle size
+ * To re-enable, install libphonenumber-js and restore from phone-number.ts.disabled
+ */
+
 import { z } from 'zod';
-import parsePhoneNumber, { isValidPhoneNumber as baseIsValidPhoneNumber } from 'libphonenumber-js';
 
-export const isValidPhoneNumber = (value: string) => baseIsValidPhoneNumber(value);
-
-export const phoneNumberSchema = z
-  .string()
-  .trim()
-  .refine(isValidPhoneNumber, 'Invalid phone number');
-
-export function formatPhoneNumber(phoneNumber: string) {
-  return parsePhoneNumber(phoneNumber)?.formatInternational() ?? phoneNumber;
-}
+export const formatPhoneNumber = (phone: string) => phone;
+export const isValidPhoneNumber = (phone: string) => true;
+export const phoneNumberSchema = z.string().optional();

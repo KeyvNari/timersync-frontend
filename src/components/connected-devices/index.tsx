@@ -33,7 +33,7 @@ import {
 // Types based on the backend structure
 interface ConnectionInfo {
   connection_id: string;
-  room_id: string;
+  room_id?: string; // Optional since it may not be provided in all contexts
   user_id: number;
   ip_address: string;
   connected_at: string;
@@ -224,8 +224,9 @@ function ConnectionGroupItem({
                 size="sm"
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (window.confirm(`Revoke token "${group.tokenName}"? This will disconnect all ${connectionCount} device(s) using this token.`)) {
-                    onRevokeToken(group.tokenId!);
+                  if (window.confirm(`Revoke token "${group.tokenName}"? This will disconnect all ${String(connectionCount)} device(s) using this token.`)) {
+                    const tokenId = typeof group.tokenId === 'number' ? group.tokenId : Number(group.tokenId);
+                    onRevokeToken(tokenId);
                   }
                 }}
               >

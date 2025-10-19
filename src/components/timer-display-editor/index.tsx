@@ -154,8 +154,8 @@ export default function TimerDisplayEditor({
     critical_time: 30,
   };
 
-  const updateDisplay = (key, value) => {
-    setDisplay(prev => ({ ...prev, [key]: value }));
+  const updateDisplay = (key: string, value: any) => {
+    setDisplay((prev: any) => ({ ...prev, [key]: value }));
   };
 
   // Watch for errors from WebSocket and capture display deletion errors
@@ -209,7 +209,7 @@ export default function TimerDisplayEditor({
     // If error, the error message will be shown in the modal
   };
 
-  const handleFileUpload = (file, key) => {
+  const handleFileUpload = (file: File, key: string) => {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -396,7 +396,7 @@ export default function TimerDisplayEditor({
                             label="Background Image"
                             placeholder="Click to upload image"
                             leftSection={<IconUpload size={16} />}
-                            onChange={(file) => handleFileUpload(file, 'background_image')}
+                            onChange={(file) => file && handleFileUpload(file, 'background_image')}
                           />
                           {display.background_image && (
                             <Group gap="xs" p="xs" style={{ background: 'var(--mantine-color-green-light)', borderRadius: '4px' }}>
@@ -451,7 +451,7 @@ export default function TimerDisplayEditor({
                         description="Upload a PNG or JPG file"
                         placeholder="Click to upload logo"
                         leftSection={<IconUpload size={16} />}
-                        onChange={(file) => handleFileUpload(file, 'logo_image')}
+                        onChange={(file) => file && handleFileUpload(file, 'logo_image')}
                       />
                       
                       {display.logo_image && (

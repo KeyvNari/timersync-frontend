@@ -1,7 +1,11 @@
-import { BarChart, BarChartProps } from '@mantine/charts';
+/**
+ * Metric Card Bar Chart - DISABLED
+ * Original file required @mantine/charts which was removed to reduce bundle size
+ * To re-enable, install @mantine/charts and restore from metric-card-bar-chart.tsx.disabled
+ */
 
-type MetricBarChartProps = BarChartProps;
-
-export function MetricCardBarChart(props: MetricBarChartProps) {
-  return <BarChart {...props} style={{ flexShrink: 0, ...props.style }} />;
+export function MetricCardBarChart() {
+  return null;
 }
+
+export default MetricCardBarChart;
