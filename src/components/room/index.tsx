@@ -1,8 +1,8 @@
 // src/components/room/index.tsx
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Paper, Group, Button, Box, Modal, Tabs, Text, Stack } from '@mantine/core';
-import { IconShare, IconArrowLeft, IconPlus, IconSparkles, IconSettings, IconClock, IconMessage } from '@tabler/icons-react';
+import { Paper, Group, Button, Box, Modal, Tabs, Text, Stack, ActionIcon, Tooltip } from '@mantine/core';
+import { IconShare, IconArrowLeft, IconPlus, IconSparkles, IconSettings, IconClock, IconMessage, IconMaximize } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
 import { StickyHeader } from '@/components/sticky-header';
 import { EditableRoomName } from '@/layouts/dashboard/header/editable-room-name';
@@ -91,6 +91,36 @@ export default function RoomComponent({
   const [editorOpened, { open: openEditor, close: closeEditor }] = useDisclosure(false);
   const [editingDisplay, setEditingDisplay] = useState<any>(null);
   const [displayNameError, setDisplayNameError] = useState<string | null>(null);
+
+  // Fullscreen preview state
+  const [fullscreenOpened, { open: openFullscreen, close: closeFullscreen }] = useDisclosure(false);
+
+  // Handle fullscreen toggle
+  const handleFullscreenToggle = async () => {
+    if (!document.fullscreenElement) {
+      // Enter fullscreen
+      openFullscreen();
+      // Wait for modal to render, then request fullscreen
+      setTimeout(async () => {
+        const modalElement = document.querySelector('[data-fullscreen-modal]') as HTMLElement;
+        if (modalElement) {
+          await modalElement.requestFullscreen();
+        }
+      }, 100);
+    }
+  };
+
+  // Listen for fullscreen changes to close modal when exiting fullscreen
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement && fullscreenOpened) {
+        closeFullscreen();
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, [fullscreenOpened, closeFullscreen]);
 
   const handleLeftWidthChange = (width: number) => {
     console.log('Left panel width changed to:', width);
@@ -293,10 +323,27 @@ export default function RoomComponent({
 
   // Top Right Panel: Timer Display
   const topRightPanel = (
-    <Paper withBorder p="md" h="100%">
+    <Paper withBorder p="md" h="100%" style={{ position: 'relative' }}>
       {convertedTimer && matchedDisplay ? (
         <Stack gap="md" style={{ height: '100%' }}>
-          <Box style={{ flex: 1 }}>
+          <Box style={{ flex: 1, position: 'relative' }}>
+            <Tooltip label="Fullscreen Preview">
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                size="lg"
+                onClick={handleFullscreenToggle}
+                style={{
+                  position: 'absolute',
+                  top: 8,
+                  right: 8,
+                  zIndex: 10,
+                  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                }}
+              >
+                <IconMaximize size={20} />
+              </ActionIcon>
+            </Tooltip>
             <TimerDisplay
               key={`${displayTimer?.id}`}
               display={matchedDisplay}
@@ -385,6 +432,46 @@ export default function RoomComponent({
             defaultDisplayId={defaultDisplayId}
           />
         </Box>
+      </Modal>
+
+      {/* Fullscreen Timer Preview Modal */}
+      <Modal
+        opened={fullscreenOpened}
+        onClose={closeFullscreen}
+        fullScreen
+        padding={0}
+        withCloseButton={false}
+        styles={{
+          body: {
+            padding: 0,
+            height: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#000',
+          },
+          content: {
+            backgroundColor: '#000',
+          }
+        }}
+      >
+        {convertedTimer && matchedDisplay && (
+          <Box
+            data-fullscreen-modal
+            style={{
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <TimerDisplay
+              display={matchedDisplay}
+              timer={convertedTimer}
+            />
+          </Box>
+        )}
       </Modal>
     </Box>
   );

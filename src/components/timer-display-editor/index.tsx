@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Paper,
   Title,
-  Tabs,
+  Accordion,
   Stack,
   Group,
   TextInput,
@@ -18,9 +18,10 @@ import {
   Text,
   ActionIcon,
   Badge,
-  Card,
   Modal,
-  rem,
+  Tooltip,
+  Alert,
+  Box,
 } from '@mantine/core';
 import {
   IconUpload,
@@ -35,6 +36,9 @@ import {
   IconSparkles,
   IconStar,
   IconTrash,
+  IconAlertCircle,
+  IconChevronDown,
+  IconMaximize,
 } from '@tabler/icons-react';
 import TimerDisplay from '@/components/timer-display';
 import { useWebSocketContext } from '@/providers/websocket-provider';
@@ -103,6 +107,9 @@ export default function TimerDisplayEditor({
   const [isCreatingNew, setIsCreatingNew] = useState(!initialDisplay?.id);
   const [deleteConfirmOpened, setDeleteConfirmOpened] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [fullscreenPreview, setFullscreenPreview] = useState(false);
+  const initialDisplayRef = useRef(initialDisplayWithIsDefault);
 
   const handleDisplaySelection = (value: string | null) => {
     if (!value) return;
@@ -115,15 +122,20 @@ export default function TimerDisplayEditor({
       setDisplay(newDisplay);
       setSelectedDisplayId('new');
       setIsCreatingNew(true);
+      initialDisplayRef.current = newDisplay;
+      setHasUnsavedChanges(false);
     } else {
       const selectedDisplay = displays.find(d => d.id.toString() === value);
       if (selectedDisplay) {
-        setDisplay({
+        const displayWithDefault = {
           ...selectedDisplay,
           is_default: selectedDisplay.id === defaultDisplayId
-        });
+        };
+        setDisplay(displayWithDefault);
         setSelectedDisplayId(selectedDisplay.id);
         setIsCreatingNew(false);
+        initialDisplayRef.current = displayWithDefault;
+        setHasUnsavedChanges(false);
       }
     }
   };
@@ -156,7 +168,14 @@ export default function TimerDisplayEditor({
 
   const updateDisplay = (key: string, value: any) => {
     setDisplay((prev: any) => ({ ...prev, [key]: value }));
+    setHasUnsavedChanges(true);
   };
+
+  // Track unsaved changes
+  useEffect(() => {
+    const hasChanges = JSON.stringify(display) !== JSON.stringify(initialDisplayRef.current);
+    setHasUnsavedChanges(hasChanges);
+  }, [display]);
 
   // Watch for errors from WebSocket and capture display deletion errors
   useEffect(() => {
@@ -319,35 +338,23 @@ export default function TimerDisplayEditor({
               size="md"
             />
 
-            <Tabs defaultValue="layout" variant="pills">
-              <Tabs.List grow>
-                <Tabs.Tab value="layout" leftSection={<IconLayout size={18} />}>
-                  Layout
-                </Tabs.Tab>
-                <Tabs.Tab value="branding" leftSection={<IconPhoto size={18} />}>
-                  Brand
-                </Tabs.Tab>
-                <Tabs.Tab value="timer" leftSection={<IconClock size={18} />}>
-                  Timer
-                </Tabs.Tab>
-                <Tabs.Tab value="content" leftSection={<IconTextSize size={18} />}>
-                  Content
-                </Tabs.Tab>
-                <Tabs.Tab value="colors" leftSection={<IconPalette size={18} />}>
-                  Colors
-                </Tabs.Tab>
-              </Tabs.List>
+            {hasUnsavedChanges && (
+              <Alert icon={<IconAlertCircle size={16} />} color="yellow" variant="light" radius="md">
+                <Text size="sm" fw={500}>You have unsaved changes</Text>
+              </Alert>
+            )}
 
-              {/* Layout & Background Tab */}
-              <Tabs.Panel value="layout" pt="lg">
-                <Stack gap="lg">
-                  <Card withBorder radius="md" p="md">
+            <Accordion variant="separated" defaultValue="layout" chevronPosition="right" radius="md">
+              {/* Layout & Background Section */}
+              <Accordion.Item value="layout">
+                <Accordion.Control icon={<IconLayout size={20} />}>
+                  <Text fw={600}>Layout & Background</Text>
+                </Accordion.Control>
+                <Accordion.Panel>
+                  <Stack gap="lg">
                     <Stack gap="sm">
-                      <Group gap="xs">
-                        <IconLayout size={20} />
-                        <Text fw={600} size="sm">Display Dimensions</Text>
-                      </Group>
-                      <Text size="xs" c="dimmed" mb="xs">
+                      <Text fw={600} size="sm">Display Dimensions</Text>
+                      <Text size="xs" c="dimmed">
                         Choose the aspect ratio for your timer display
                       </Text>
                       <Select
@@ -357,18 +364,15 @@ export default function TimerDisplayEditor({
                         onChange={(value) => updateDisplay('display_ratio', value)}
                       />
                     </Stack>
-                  </Card>
 
-                  <Card withBorder radius="md" p="md">
+                    <Divider />
+
                     <Stack gap="sm">
-                      <Group gap="xs">
-                        <IconSparkles size={20} />
-                        <Text fw={600} size="sm">Background</Text>
-                      </Group>
-                      <Text size="xs" c="dimmed" mb="xs">
+                      <Text fw={600} size="sm">Background</Text>
+                      <Text size="xs" c="dimmed">
                         Set the background style for your display
                       </Text>
-                      
+
                       <Select
                         label="Background Type"
                         data={[
@@ -386,7 +390,7 @@ export default function TimerDisplayEditor({
                           value={display.background_color}
                           onChange={(value) => updateDisplay('background_color', value)}
                           withEyeDropper={false}
-                          swatches={['#000000', '#1a1b1e', '#2C2E33', '#25262B', '#ffffff', '#868e96', '#fa5252', '#e64980', '#be4bdb', '#7950f2', '#4c6ef5', '#228be6', '#15aabf', '#12b886', '#40c057', '#82c91e', '#fab005', '#fd7e14']}
+                          swatches={['#000000', '#1a1b1e', '#2C2E33', '#25262B', '#ffffff']}
                         />
                       )}
 
@@ -414,12 +418,12 @@ export default function TimerDisplayEditor({
                         </Stack>
                       )}
                     </Stack>
-                  </Card>
 
-                  <Card withBorder radius="md" p="md">
+                    <Divider />
+
                     <Stack gap="sm">
                       <Text fw={600} size="sm">Progress Indicator</Text>
-                      <Text size="xs" c="dimmed" mb="xs">
+                      <Text size="xs" c="dimmed">
                         Visual indicator showing timer progress
                       </Text>
                       <Select
@@ -429,77 +433,74 @@ export default function TimerDisplayEditor({
                         onChange={(value) => updateDisplay('progress_style', value)}
                       />
                     </Stack>
-                  </Card>
-                </Stack>
-              </Tabs.Panel>
+                  </Stack>
+                </Accordion.Panel>
+              </Accordion.Item>
 
-              {/* Branding Tab */}
-              <Tabs.Panel value="branding" pt="lg">
-                <Stack gap="lg">
-                  <Card withBorder radius="md" p="md">
-                    <Stack gap="sm">
-                      <Group gap="xs">
-                        <IconPhoto size={20} />
-                        <Text fw={600} size="sm">Logo Settings</Text>
+              {/* Branding Section */}
+              <Accordion.Item value="branding">
+                <Accordion.Control icon={<IconPhoto size={20} />}>
+                  <Text fw={600}>Logo & Branding</Text>
+                </Accordion.Control>
+                <Accordion.Panel>
+                  <Stack gap="sm">
+                    <Text size="xs" c="dimmed">
+                      Add your organization's logo to the display
+                    </Text>
+
+                    <FileInput
+                      label="Logo Image"
+                      description="Upload a PNG or JPG file"
+                      placeholder="Click to upload logo"
+                      leftSection={<IconUpload size={16} />}
+                      onChange={(file) => file && handleFileUpload(file, 'logo_image')}
+                    />
+
+                    {display.logo_image && (
+                      <Group gap="xs" p="xs" style={{ background: 'var(--mantine-color-green-light)', borderRadius: '4px' }}>
+                        <Text size="xs" c="green" fw={500}>✓ Logo uploaded</Text>
+                        <ActionIcon
+                          size="sm"
+                          color="red"
+                          variant="subtle"
+                          onClick={() => updateDisplay('logo_image', null)}
+                        >
+                          <IconX size={14} />
+                        </ActionIcon>
                       </Group>
-                      <Text size="xs" c="dimmed" mb="xs">
-                        Add your organization's logo to the display
-                      </Text>
-                      
-                      <FileInput
-                        label="Logo Image"
-                        description="Upload a PNG or JPG file"
-                        placeholder="Click to upload logo"
-                        leftSection={<IconUpload size={16} />}
-                        onChange={(file) => file && handleFileUpload(file, 'logo_image')}
-                      />
-                      
-                      {display.logo_image && (
-                        <Group gap="xs" p="xs" style={{ background: 'var(--mantine-color-green-light)', borderRadius: '4px' }}>
-                          <Text size="xs" c="green" fw={500}>✓ Logo uploaded</Text>
-                          <ActionIcon
-                            size="sm"
-                            color="red"
-                            variant="subtle"
-                            onClick={() => updateDisplay('logo_image', null)}
-                          >
-                            <IconX size={14} />
-                          </ActionIcon>
-                        </Group>
-                      )}
+                    )}
 
-                      <NumberInput
-                        label="Logo Size"
-                        description="Size in pixels"
-                        value={display.logo_size_percent}
-                        onChange={(value) => updateDisplay('logo_size_percent', value)}
-                        min={20}
-                        max={200}
-                        suffix=" px"
-                      />
+                    <NumberInput
+                      label="Logo Size"
+                      description="Size in pixels"
+                      value={display.logo_size_percent}
+                      onChange={(value) => updateDisplay('logo_size_percent', value)}
+                      min={20}
+                      max={200}
+                      suffix=" px"
+                    />
 
-                      <Select
-                        label="Logo Position"
-                        description="Where to place the logo on screen"
-                        data={positionOptions}
-                        value={display.logo_position}
-                        onChange={(value) => updateDisplay('logo_position', value)}
-                      />
-                    </Stack>
-                  </Card>
-                </Stack>
-              </Tabs.Panel>
+                    <Select
+                      label="Logo Position"
+                      description="Where to place the logo on screen"
+                      data={positionOptions}
+                      value={display.logo_position}
+                      onChange={(value) => updateDisplay('logo_position', value)}
+                    />
+                  </Stack>
+                </Accordion.Panel>
+              </Accordion.Item>
 
-              {/* Timer & Clock Tab */}
-              <Tabs.Panel value="timer" pt="lg">
-                <Stack gap="lg">
-                  <Card withBorder radius="md" p="md">
+              {/* Timer & Clock Section */}
+              <Accordion.Item value="timer">
+                <Accordion.Control icon={<IconClock size={20} />}>
+                  <Text fw={600}>Timer & Clock</Text>
+                </Accordion.Control>
+                <Accordion.Panel>
+                  <Stack gap="lg">
                     <Stack gap="sm">
-                      <Group gap="xs">
-                        <IconClock size={20} />
-                        <Text fw={600} size="sm">Timer Configuration</Text>
-                      </Group>
-                      <Text size="xs" c="dimmed" mb="xs">
+                      <Text fw={600} size="sm">Timer Configuration</Text>
+                      <Text size="xs" c="dimmed">
                         Customize how the timer appears
                       </Text>
 
@@ -516,7 +517,7 @@ export default function TimerDisplayEditor({
 
                       <Select
                         label="Timer Font"
-                        description="Monospace fonts recommended for timers"
+                        description="Monospace fonts recommended"
                         data={monoFontOptions}
                         value={display.timer_font_family}
                         onChange={(value) => updateDisplay('timer_font_family', value)}
@@ -540,12 +541,12 @@ export default function TimerDisplayEditor({
                         onChange={(value) => updateDisplay('timer_position', value)}
                       />
                     </Stack>
-                  </Card>
 
-                  <Card withBorder radius="md" p="md">
+                    <Divider />
+
                     <Stack gap="sm">
                       <Text fw={600} size="sm">Clock Display</Text>
-                      <Text size="xs" c="dimmed" mb="xs">
+                      <Text size="xs" c="dimmed">
                         Show current time alongside the timer
                       </Text>
 
@@ -565,20 +566,20 @@ export default function TimerDisplayEditor({
                         />
                       )}
                     </Stack>
-                  </Card>
-                </Stack>
-              </Tabs.Panel>
+                  </Stack>
+                </Accordion.Panel>
+              </Accordion.Item>
 
-              {/* Content Layout Tab */}
-              <Tabs.Panel value="content" pt="lg">
-                <Stack gap="lg">
-                  <Card withBorder radius="md" p="md">
+              {/* Content Layout Section */}
+              <Accordion.Item value="content">
+                <Accordion.Control icon={<IconTextSize size={20} />}>
+                  <Text fw={600}>Content & Typography</Text>
+                </Accordion.Control>
+                <Accordion.Panel>
+                  <Stack gap="lg">
                     <Stack gap="sm">
-                      <Group gap="xs">
-                        <IconTextSize size={20} />
-                        <Text fw={600} size="sm">Content Placement</Text>
-                      </Group>
-                      <Text size="xs" c="dimmed" mb="xs">
+                      <Text fw={600} size="sm">Content Placement</Text>
+                      <Text size="xs" c="dimmed">
                         Choose where to display title and speaker information
                       </Text>
 
@@ -598,15 +599,12 @@ export default function TimerDisplayEditor({
                         onChange={(value) => updateDisplay('speaker_display_location', value)}
                       />
                     </Stack>
-                  </Card>
 
-                  <Card withBorder radius="md" p="md">
+                    <Divider />
+
                     <Stack gap="sm">
-                      <Group gap="xs">
-                        <IconTypography size={20} />
-                        <Text fw={600} size="sm">Typography</Text>
-                      </Group>
-                      <Text size="xs" c="dimmed" mb="xs">
+                      <Text fw={600} size="sm">Typography</Text>
+                      <Text size="xs" c="dimmed">
                         Font families for different text elements
                       </Text>
 
@@ -634,20 +632,20 @@ export default function TimerDisplayEditor({
                         onChange={(value) => updateDisplay('message_font_family', value)}
                       />
                     </Stack>
-                  </Card>
-                </Stack>
-              </Tabs.Panel>
+                  </Stack>
+                </Accordion.Panel>
+              </Accordion.Item>
 
-              {/* Colors & Theme Tab */}
-              <Tabs.Panel value="colors" pt="lg">
-                <Stack gap="lg">
-                  <Card withBorder radius="md" p="md">
+              {/* Colors & Theme Section */}
+              <Accordion.Item value="colors">
+                <Accordion.Control icon={<IconPalette size={20} />}>
+                  <Text fw={600}>Colors & Theme</Text>
+                </Accordion.Control>
+                <Accordion.Panel>
+                  <Stack gap="lg">
                     <Stack gap="sm">
-                      <Group gap="xs">
-                        <IconPalette size={20} />
-                        <Text fw={600} size="sm">Timer & Clock Colors</Text>
-                      </Group>
-                      <Text size="xs" c="dimmed" mb="xs">
+                      <Text fw={600} size="sm">Timer & Clock Colors</Text>
+                      <Text size="xs" c="dimmed">
                         Colors for time display elements
                       </Text>
 
@@ -657,7 +655,7 @@ export default function TimerDisplayEditor({
                         value={display.timer_color}
                         onChange={(value) => updateDisplay('timer_color', value)}
                         withEyeDropper={true}
-                        swatches={['#ffffff', '#000000', '#868e96', '#fa5252', '#e64980', '#be4bdb', '#7950f2', '#4c6ef5', '#228be6', '#15aabf', '#12b886', '#40c057', '#82c91e', '#fab005', '#fd7e14']}
+                        swatches={['#ffffff', '#000000', '#868e96']}
                       />
 
                       <ColorInput
@@ -666,15 +664,15 @@ export default function TimerDisplayEditor({
                         value={display.clock_color}
                         onChange={(value) => updateDisplay('clock_color', value)}
                         withEyeDropper={true}
-                        swatches={['#ffffff', '#000000', '#868e96', '#fa5252', '#e64980', '#be4bdb', '#7950f2', '#4c6ef5', '#228be6', '#15aabf', '#12b886', '#40c057', '#82c91e', '#fab005', '#fd7e14']}
+                        swatches={['#ffffff', '#000000', '#868e96']}
                       />
                     </Stack>
-                  </Card>
 
-                  <Card withBorder radius="md" p="md">
+                    <Divider />
+
                     <Stack gap="sm">
                       <Text fw={600} size="sm">Content Text Colors</Text>
-                      <Text size="xs" c="dimmed" mb="xs">
+                      <Text size="xs" c="dimmed">
                         Colors for titles, speakers, and messages
                       </Text>
 
@@ -684,7 +682,7 @@ export default function TimerDisplayEditor({
                         value={display.header_color}
                         onChange={(value) => updateDisplay('header_color', value)}
                         withEyeDropper={true}
-                        swatches={['#ffffff', '#000000', '#868e96', '#fa5252', '#e64980', '#be4bdb', '#7950f2', '#4c6ef5', '#228be6', '#15aabf', '#12b886', '#40c057', '#82c91e', '#fab005', '#fd7e14']}
+                        swatches={['#ffffff', '#000000', '#868e96']}
                       />
 
                       <ColorInput
@@ -693,7 +691,7 @@ export default function TimerDisplayEditor({
                         value={display.footer_color}
                         onChange={(value) => updateDisplay('footer_color', value)}
                         withEyeDropper={true}
-                        swatches={['#ffffff', '#000000', '#868e96', '#fa5252', '#e64980', '#be4bdb', '#7950f2', '#4c6ef5', '#228be6', '#15aabf', '#12b886', '#40c057', '#82c91e', '#fab005', '#fd7e14']}
+                        swatches={['#ffffff', '#000000', '#868e96']}
                       />
 
                       <ColorInput
@@ -702,15 +700,15 @@ export default function TimerDisplayEditor({
                         value={display.message_color}
                         onChange={(value) => updateDisplay('message_color', value)}
                         withEyeDropper={true}
-                        swatches={['#ffffff', '#000000', '#868e96', '#fa5252', '#e64980', '#be4bdb', '#7950f2', '#4c6ef5', '#228be6', '#15aabf', '#12b886', '#40c057', '#82c91e', '#fab005', '#fd7e14']}
+                        swatches={['#ffffff', '#000000', '#868e96']}
                       />
                     </Stack>
-                  </Card>
 
-                  <Card withBorder radius="md" p="md">
+                    <Divider />
+
                     <Stack gap="sm">
                       <Text fw={600} size="sm">Progress Indicator Colors</Text>
-                      <Text size="xs" c="dimmed" mb="xs">
+                      <Text size="xs" c="dimmed">
                         Colors for different timer states
                       </Text>
 
@@ -720,7 +718,7 @@ export default function TimerDisplayEditor({
                         value={display.progress_color_main}
                         onChange={(value) => updateDisplay('progress_color_main', value)}
                         withEyeDropper={true}
-                        swatches={['#40c057', '#12b886', '#15aabf', '#228be6', '#4c6ef5', '#7950f2', '#be4bdb', '#e64980', '#fa5252', '#fd7e14', '#fab005', '#82c91e']}
+                        swatches={['#40c057', '#12b886', '#15aabf', '#228be6']}
                       />
 
                       <ColorInput
@@ -729,7 +727,7 @@ export default function TimerDisplayEditor({
                         value={display.progress_color_secondary}
                         onChange={(value) => updateDisplay('progress_color_secondary', value)}
                         withEyeDropper={true}
-                        swatches={['#fab005', '#fd7e14', '#82c91e', '#40c057', '#12b886', '#15aabf', '#228be6', '#4c6ef5', '#7950f2', '#be4bdb', '#e64980', '#fa5252']}
+                        swatches={['#fab005', '#fd7e14', '#82c91e', '#40c057']}
                       />
 
                       <ColorInput
@@ -738,50 +736,60 @@ export default function TimerDisplayEditor({
                         value={display.progress_color_tertiary}
                         onChange={(value) => updateDisplay('progress_color_tertiary', value)}
                         withEyeDropper={true}
-                        swatches={['#fa5252', '#e64980', '#fd7e14', '#fab005', '#be4bdb', '#7950f2', '#4c6ef5', '#228be6', '#15aabf', '#12b886', '#40c057', '#82c91e']}
+                        swatches={['#fa5252', '#e64980', '#fd7e14', '#fab005']}
                       />
                     </Stack>
-                  </Card>
-                </Stack>
-              </Tabs.Panel>
-            </Tabs>
+                  </Stack>
+                </Accordion.Panel>
+              </Accordion.Item>
+            </Accordion>
 
             <Divider />
 
             <Group justify="space-between" gap="sm">
               <div>
                 {!isCreatingNew && onDelete && displays.length > 1 && (
-                  <Button
-                    leftSection={<IconTrash size={18} />}
-                    color="red"
-                    variant="light"
-                    onClick={() => setDeleteConfirmOpened(true)}
-                    size="md"
-                  >
-                    Delete Display
-                  </Button>
+                  <Tooltip label="Delete this display configuration">
+                    <Button
+                      leftSection={<IconTrash size={18} />}
+                      color="red"
+                      variant="light"
+                      onClick={() => setDeleteConfirmOpened(true)}
+                      size="md"
+                    >
+                      Delete Display
+                    </Button>
+                  </Tooltip>
                 )}
               </div>
               <Group gap="sm">
                 {onCancel && (
-                  <Button variant="default" onClick={onCancel} size="md">
-                    Cancel
-                  </Button>
+                  <Tooltip label={hasUnsavedChanges ? "Discard unsaved changes" : "Close editor"}>
+                    <Button variant="default" onClick={onCancel} size="md">
+                      Cancel
+                    </Button>
+                  </Tooltip>
                 )}
-                <Button
-                  leftSection={<IconDeviceFloppy size={18} />}
-                  onClick={() => {
-                    // Remove client-side only properties before saving
-                    const { is_default, ...displayToSave } = display;
-                    onSave?.(displayToSave);
-                    if (display.is_default && display.id) {
-                      setDefaultDisplay(display.id);
-                    }
-                  }}
-                  size="md"
-                >
-                  Save Display
-                </Button>
+                <Tooltip label={!hasUnsavedChanges ? "No changes to save" : isCreatingNew ? "Create new display" : "Save changes to display"}>
+                  <Button
+                    leftSection={<IconDeviceFloppy size={18} />}
+                    onClick={() => {
+                      // Remove client-side only properties before saving
+                      const { is_default, ...displayToSave } = display;
+                      onSave?.(displayToSave);
+                      if (display.is_default && display.id) {
+                        setDefaultDisplay(display.id);
+                      }
+                      // Reset unsaved changes after save
+                      initialDisplayRef.current = display;
+                      setHasUnsavedChanges(false);
+                    }}
+                    size="md"
+                    disabled={!hasUnsavedChanges || (isCreatingNew && !display.name.trim())}
+                  >
+                    {isCreatingNew ? 'Create Display' : 'Save Changes'}
+                  </Button>
+                </Tooltip>
               </Group>
             </Group>
           </Stack>
@@ -793,12 +801,26 @@ export default function TimerDisplayEditor({
           <Stack gap="md">
             <div>
               <Group justify="space-between" align="center">
-                <Title order={2}>Live Preview</Title>
-                <Badge color="green" variant="dot">Real-time</Badge>
+                <div>
+                  <Title order={2}>Live Preview</Title>
+                  <Text size="sm" c="dimmed" mt="xs">
+                    Changes are reflected instantly as you adjust settings
+                  </Text>
+                </div>
+                <Group gap="xs">
+                  <Badge color="green" variant="dot">Real-time</Badge>
+                  <Tooltip label="Fullscreen Preview">
+                    <Button
+                      variant="light"
+                      size="sm"
+                      leftSection={<IconMaximize size={16} />}
+                      onClick={() => setFullscreenPreview(true)}
+                    >
+                      Fullscreen
+                    </Button>
+                  </Tooltip>
+                </Group>
               </Group>
-              <Text size="sm" c="dimmed" mt="xs">
-                Changes are reflected instantly as you adjust settings
-              </Text>
             </div>
             <TimerDisplay
               display={display}
@@ -860,6 +882,44 @@ export default function TimerDisplayEditor({
             </Button>
           </Group>
         </Stack>
+      </Modal>
+
+      {/* Fullscreen Preview Modal */}
+      <Modal
+        opened={fullscreenPreview}
+        onClose={() => setFullscreenPreview(false)}
+        fullScreen
+        padding={0}
+        withCloseButton={false}
+        styles={{
+          body: {
+            padding: 0,
+            height: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#000',
+          },
+          content: {
+            backgroundColor: '#000',
+          }
+        }}
+      >
+        <Box
+          style={{
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <TimerDisplay
+            display={display}
+            timer={mockTimer}
+            in_view_mode={true}
+          />
+        </Box>
       </Modal>
     </Grid>
   );
