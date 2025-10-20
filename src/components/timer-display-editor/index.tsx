@@ -807,7 +807,7 @@ export default function TimerDisplayEditor({
                     Changes are reflected instantly as you adjust settings
                   </Text>
                 </div>
-                <Group gap="xs">
+                {/* <Group gap="xs">
                   <Badge color="green" variant="dot">Real-time</Badge>
                   <Tooltip label="Fullscreen Preview">
                     <Button
@@ -819,7 +819,7 @@ export default function TimerDisplayEditor({
                       Fullscreen
                     </Button>
                   </Tooltip>
-                </Group>
+                </Group> */}
               </Group>
             </div>
             <TimerDisplay

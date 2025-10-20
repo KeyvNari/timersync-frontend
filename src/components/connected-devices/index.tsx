@@ -175,6 +175,9 @@ function ConnectionGroupItem({
     c => c.is_self === true || (c as any).self === true
   );
 
+  // Get the access level for this group (all connections in a group have the same access level)
+  const groupAccessLevel = group.connections[0]?.access_level || 'viewer';
+
   return (
     <Box>
       <Box p="sm">
@@ -204,6 +207,11 @@ function ConnectionGroupItem({
                 <Badge size="xs" color="gray" variant="light">
                   {connectionCount} {connectionCount === 1 ? 'device' : 'devices'}
                 </Badge>
+                <Tooltip label={groupAccessLevel === 'full' ? 'Full access' : 'Viewer access'} withinPortal>
+                  <Badge size="xs" color={groupAccessLevel === 'full' ? 'blue' : 'gray'} variant="light">
+                    {groupAccessLevel}
+                  </Badge>
+                </Tooltip>
                 {hasSelfConnection && (
                   <Badge size="xs" color="green" variant="dot">
                     You
@@ -304,7 +312,7 @@ function ConnectionItem({
                 {connection.connection_name}
               </Text>
 
-              <Tooltip label={connection.access_level === 'full' ? 'Admin access' : 'Viewer access'} withinPortal>
+              <Tooltip label={connection.access_level === 'full' ? 'Full access' : 'Viewer access'} withinPortal>
                 {connection.access_level === 'full' ? (
                   <AdminIcon size="0.7rem" color="var(--mantine-color-blue-6)" />
                 ) : (
@@ -486,7 +494,7 @@ export function ConnectedDevices({
         </Group>
         
         <Text size="sm" c="dimmed" ta="center" py="xl">
-          Device details are only available to administrators
+          Device details are only available with full access
         </Text>
       </Paper>
     );
@@ -504,14 +512,14 @@ export function ConnectedDevices({
                 {onlineCount} online
               </Text>
               <Text size="sm" c="dimmed">
-                {fullAccessCount} admin{fullAccessCount !== 1 ? 's' : ''}
+                {fullAccessCount} full{fullAccessCount !== 1 ? '' : ''}
               </Text>
               <Text size="sm" c="dimmed">
                 {viewerCount} viewer{viewerCount !== 1 ? 's' : ''}
               </Text>
-              <Text size="sm" c="dimmed">
+              {/* <Text size="sm" c="dimmed">
                 {groupsArray.length} token{groupsArray.length !== 1 ? 's' : ''}
-              </Text>
+              </Text> */}
             </Group>
           </div>
         </Group>

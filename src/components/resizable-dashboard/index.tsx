@@ -159,13 +159,14 @@ export function ResizableDashboard({
           minWidth: '200px',
           maxWidth: '70%',
           paddingLeft: theme.spacing.xs,
+          overflow: 'auto',
         }}
       >
         <Box
           style={{
             display: 'flex',
             flexDirection: 'column',
-            height: '100%',
+            minHeight: '100%',
             gap: theme.spacing.xs,
           }}
         >

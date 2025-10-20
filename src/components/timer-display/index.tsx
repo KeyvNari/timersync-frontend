@@ -591,43 +591,118 @@ switch (safeDisplay.background_type || 'color') {
       );
     } else if (progressStyle === 'ring') {
       let ringSections = [];
-      
+
       if (safeTimer.duration_seconds && safeTimer.duration_seconds > 0) {
         const warningTime = safeTimer.warning_time || safeTimer.duration_seconds * 0.3;
         const criticalTime = safeTimer.critical_time || safeTimer.duration_seconds * 0.1;
-        
+
         if (safeTimer.timer_type === 'countdown') {
-          const greenPercent = ((safeTimer.duration_seconds - warningTime) / safeTimer.duration_seconds) * 100;
-          const yellowPercent = ((warningTime - criticalTime) / safeTimer.duration_seconds) * 100;
           const redPercent = (criticalTime / safeTimer.duration_seconds) * 100;
-          
+          const yellowPercent = ((warningTime - criticalTime) / safeTimer.duration_seconds) * 100;
+          const greenPercent = ((safeTimer.duration_seconds - warningTime) / safeTimer.duration_seconds) * 100;
+
+          const currentPercent = mainSection;
+          let redFilled = 0;
+          let yellowFilled = 0;
+          let greenFilled = 0;
+
+          if (currentPercent > (redPercent + yellowPercent)) {
+            greenFilled = currentPercent - (redPercent + yellowPercent);
+            yellowFilled = yellowPercent;
+            redFilled = redPercent;
+          } else if (currentPercent > redPercent) {
+            yellowFilled = currentPercent - redPercent;
+            redFilled = redPercent;
+            greenFilled = 0;
+          } else {
+            redFilled = currentPercent;
+            yellowFilled = 0;
+            greenFilled = 0;
+          }
+
           ringSections = [
-            { value: greenPercent, color: safeDisplay.progress_color_main || 'green' },
-            { value: yellowPercent, color: safeDisplay.progress_color_secondary || 'yellow' },
-            { value: redPercent, color: safeDisplay.progress_color_tertiary || 'red' },
-          ];
+            { value: redFilled, color: safeDisplay.progress_color_tertiary || 'red' },
+            { value: redPercent - redFilled, color: 'gray' },
+            { value: yellowFilled, color: safeDisplay.progress_color_secondary || 'yellow' },
+            { value: yellowPercent - yellowFilled, color: 'gray' },
+            { value: greenFilled, color: safeDisplay.progress_color_main || 'green' },
+            { value: greenPercent - greenFilled, color: 'gray' },
+          ].filter(s => s.value > 0);
         } else {
           const greenPercent = (warningTime / safeTimer.duration_seconds) * 100;
           const yellowPercent = ((criticalTime - warningTime) / safeTimer.duration_seconds) * 100;
           const redPercent = ((safeTimer.duration_seconds - criticalTime) / safeTimer.duration_seconds) * 100;
-          
+
+          const currentPercent = mainSection;
+          let greenFilled = 0;
+          let yellowFilled = 0;
+          let redFilled = 0;
+
+          if (currentPercent > (greenPercent + yellowPercent)) {
+            greenFilled = greenPercent;
+            yellowFilled = yellowPercent;
+            redFilled = currentPercent - (greenPercent + yellowPercent);
+          } else if (currentPercent > greenPercent) {
+            greenFilled = greenPercent;
+            yellowFilled = currentPercent - greenPercent;
+            redFilled = 0;
+          } else {
+            greenFilled = currentPercent;
+            yellowFilled = 0;
+            redFilled = 0;
+          }
+
           ringSections = [
-            { value: greenPercent, color: safeDisplay.progress_color_main || 'green' },
-            { value: yellowPercent, color: safeDisplay.progress_color_secondary || 'yellow' },
-            { value: redPercent, color: safeDisplay.progress_color_tertiary || 'red' },
-          ];
+            { value: greenFilled, color: safeDisplay.progress_color_main || 'green' },
+            { value: greenPercent - greenFilled, color: 'gray' },
+            { value: yellowFilled, color: safeDisplay.progress_color_secondary || 'yellow' },
+            { value: yellowPercent - yellowFilled, color: 'gray' },
+            { value: redFilled, color: safeDisplay.progress_color_tertiary || 'red' },
+            { value: redPercent - redFilled, color: 'gray' },
+          ].filter(s => s.value > 0);
         }
       } else {
         ringSections = [{ value: 100, color: safeDisplay.progress_color_main || 'green' }];
       }
-      
+
+      // Calculate handle position on the ring
+      // RingProgress starts at top (0deg) and goes clockwise
+      const ringSize = 120;
+      const ringThickness = 12;
+      const angle = (mainSection / 100) * 360 - 90; // Convert to degrees, starting from top
+
+      // Mantine's RingProgress has internal padding/spacing
+      // The actual visual radius is smaller than ringSize/2
+      // Position at the center of the ring stroke
+      const strokeRadius = ringSize * 0.35; // Adjusted for Mantine's internal layout
+      const handleX = strokeRadius * Math.cos((angle * Math.PI) / 180);
+      const handleY = strokeRadius * Math.sin((angle * Math.PI) / 180);
+
       progressComponent = (
-        <RingProgress
-          sections={ringSections}
-          size={120}
-          thickness={12}
-          label={<Text size="sm" ta="center" c={getCurrentProgressColor()}>{Math.round(mainSection)}%</Text>}
-        />
+        <Box style={{ position: 'relative', display: 'inline-block' }}>
+          <RingProgress
+            sections={ringSections}
+            size={ringSize}
+            thickness={ringThickness}
+            label={<Text size="sm" ta="center" c={getCurrentProgressColor()}>{Math.round(mainSection)}%</Text>}
+          />
+          {/* Handle indicator - vertical bar */}
+          <Box
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: `translate(calc(-50% + ${handleX}px), calc(-50% + ${handleY}px)) rotate(${angle + 90}deg)`,
+              width: '3px',
+              height: `${ringThickness}px`,
+              backgroundColor: 'white',
+              borderRadius: '2px',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.5)',
+              zIndex: 2,
+              pointerEvents: 'none',
+            }}
+          />
+        </Box>
       );
     }
   }
@@ -661,6 +736,7 @@ switch (safeDisplay.background_type || 'color') {
 
   const [ratioWidth, ratioHeight] = (safeDisplay.display_ratio || '16:9').split(':').map(Number);
   const aspectRatio = ratioWidth / ratioHeight;
+  const is16by9 = safeDisplay.display_ratio === '16:9';
 
   const borderColor = getCurrentProgressColor();
 
@@ -681,13 +757,22 @@ switch (safeDisplay.background_type || 'color') {
       break;
   }
 
+  // Special case: 16:9 in viewer normal mode should fill viewport
+  const shouldFillViewport = in_view_mode && !isFullscreen && is16by9;
+
   return (
     <Box
       onMouseMove={handleMouseMove}
       style={{
-        width: '100%',
-        height: '100%',
-        aspectRatio: aspectRatio.toString(),
+        // Always maintain aspect ratio (except for 16:9 in viewer normal mode)
+        aspectRatio: shouldFillViewport ? undefined : aspectRatio.toString(),
+        // Determine sizing based on mode
+        width: shouldFillViewport ? '100vw' :
+               (isFullscreen || in_view_mode) ? `min(100vw, calc(100vh * ${aspectRatio}))` : undefined,
+        height: shouldFillViewport ? '100vh' :
+                (isFullscreen || in_view_mode) ? `min(100vh, calc(100vw / ${aspectRatio}))` : undefined,
+        maxWidth: '100%',
+        maxHeight: '100%',
         position: 'relative',
         overflow: 'hidden',
         ...backgroundStyle,
