@@ -446,10 +446,13 @@ export class SimpleWebSocketService {
   }
 
   adjustTimer(timerId: number, newTimeSeconds: number): void {
+    // Generate unique timestamp for request-response matching
+    const timestamp = Date.now();
     this.send({
       type: 'timer_adjust',
       timer_id: timerId,
-      current_time_seconds: newTimeSeconds
+      current_time_seconds: newTimeSeconds,
+      time_stamp: timestamp
     });
   }
 

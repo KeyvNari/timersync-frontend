@@ -28,9 +28,13 @@ export function TimerAdjustmentControls({
   // Timer is running only when it's active and not paused
   const isTimerRunning = isActive && !isPaused && !isFinished && !isStopped;
 
-  // Disable controls when timer is not running
-  const controlsDisabled = !isTimerRunning;
-  const tooltipLabel = !isTimerRunning ? 'Timer must be running to adjust time' : '';
+  // Disable controls when timer is not running OR when an adjustment is pending
+  const controlsDisabled = !isTimerRunning || isAdjusting;
+  const tooltipLabel = !isTimerRunning
+    ? 'Timer must be running to adjust time'
+    : isAdjusting
+    ? 'Adjustment in progress...'
+    : '';
 
   const handleAdjust = (adjustmentSeconds: number) => {
     const newTime = currentTimeSeconds + adjustmentSeconds;

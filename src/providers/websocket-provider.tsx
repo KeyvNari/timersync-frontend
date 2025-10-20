@@ -416,6 +416,27 @@ wsService.on('timer_bulk_update', (message: any) => {
   });
 });
 
+wsService.on('timer_adjust_success', (message: any) => {
+  console.log('✅ TIMER_ADJUST_SUCCESS received:', {
+    timer_id: message.timer_id,
+    current_time_seconds: message.current_time_seconds,
+    time_stamp: message.time_stamp,
+    timestamp: message.timestamp
+  });
+
+  // Clear the pending adjustment operation for this specific timer
+  if (message.timer_id) {
+    removePendingOperation(`timer_adjust_${message.timer_id}`);
+
+    // Also clear the optimistic update if one exists
+    const optimisticUpdate = optimisticUpdatesRef.current.get(message.timer_id);
+    if (optimisticUpdate) {
+      clearTimeout(optimisticUpdate.timeout);
+      optimisticUpdatesRef.current.delete(message.timer_id);
+    }
+  }
+});
+
 
 wsService.on('error', (message: any) => {
   const errorMessage = message.message || 'Unknown error';
