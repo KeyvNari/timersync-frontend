@@ -197,11 +197,11 @@ export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerC
 
       if (result.success && result.content) {
         setExtractedFileContent(result.content);
-        notifications.show({
-          title: 'File uploaded',
-          message: `Successfully extracted content from ${file.name}`,
-          color: 'green',
-        });
+        // notifications.show({
+        //   title: 'File uploaded',
+        //   message: `Successfully extracted content from ${file.name}`,
+        //   color: 'green',
+        // });
       } else {
         setUploadedFile(null);
         notifications.show({
@@ -240,7 +240,7 @@ export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerC
     <Modal
       opened={opened}
       onClose={onClose}
-      size="xl"
+      size="1200px"
       title={
         <Group gap="sm" style={{ padding: '4px 0' }}>
           <Box
@@ -523,7 +523,7 @@ export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerC
                 disabled={uploadedFile !== null || isExtractingFile}
               >
                 {(props) => (
-                  <Tooltip label={uploadedFile ? "Remove current file to upload another" : "Upload file"}>
+                  <Tooltip label={uploadedFile ? "Remove current file to attach another" : "Attach file"}>
                     <ActionIcon
                       {...props}
                       size={44}

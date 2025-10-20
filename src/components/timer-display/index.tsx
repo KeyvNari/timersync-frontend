@@ -457,8 +457,9 @@ switch (safeDisplay.background_type || 'color') {
   const logoSize = safeDisplay.logo_size_percent || 60;
   const logoStyle: React.CSSProperties = {
     position: 'absolute',
-    width: `${logoSize}px`,
-    height: `${logoSize}px`,
+    maxWidth: `${logoSize}px`,
+    maxHeight: `${logoSize}px`,
+    objectFit: 'contain',
     zIndex: 10,
   };
 
@@ -843,7 +844,9 @@ switch (safeDisplay.background_type || 'color') {
             }}>
               <Text style={{
                 ...timerStyle,
-                fontSize: `min(${timerStyle.fontSize}, ${baseFontSize * 18}vw, ${baseFontSize * 12}vh)`,
+                fontSize: isFullscreen
+                  ? `min(${baseFontSize * 42}rem, ${baseFontSize * 18}vw, ${baseFontSize * 12}vh)`
+                  : `min(${baseFontSize * 42}rem, ${baseFontSize * 12}vw, ${baseFontSize * 8}vh)`,
                 whiteSpace: 'nowrap',
               }}>
                 {timerText}

@@ -10,7 +10,8 @@
       "Bash(node --version)",
       "Bash(npm --version)",
       "Bash(cat src/api/query-client.ts)",
-      "Bash(npm install react-markdown remark-gfm)"
+      "Bash(npm install react-markdown remark-gfm)",
+      "Bash(npm install mammoth pdfjs-dist xlsx)"
     ],
     "deny": [],
     "ask": []
