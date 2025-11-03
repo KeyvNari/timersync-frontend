@@ -85,7 +85,20 @@ export default function RoomComponent({
   showCurrentUser = true,
 }: RoomComponentProps) {
   const navigate = useNavigate();
-  const { defaultDisplayId, adjustTimer, isOperationPending } = useWebSocketContext();
+  const { defaultDisplayId, adjustTimer, isOperationPending, messages: wsMessages } = useWebSocketContext();
+
+  // Get the currently showing message
+  const showingMessage = wsMessages?.find(msg => msg.is_showing);
+
+  // Debug logging for messages
+  useEffect(() => {
+    console.log('🏠 Room - Messages state:', {
+      allMessages: wsMessages,
+      messageCount: wsMessages?.length,
+      showingMessage,
+      hasShowingMessage: !!showingMessage
+    });
+  }, [wsMessages, showingMessage]);
 
   // Display Editor state
   const [editorOpened, { open: openEditor, close: closeEditor }] = useDisclosure(false);
@@ -348,6 +361,7 @@ export default function RoomComponent({
               key={`${displayTimer?.id}`}
               display={matchedDisplay}
               timer={convertedTimer}
+              message={showingMessage}
             />
           </Box>
           {displayTimer && (
@@ -375,7 +389,7 @@ export default function RoomComponent({
           </Group>
         </Box>
       ) : (
-        <TimerDisplay display={matchedDisplay} timer={convertedTimer} />
+        <TimerDisplay display={matchedDisplay} timer={convertedTimer} message={showingMessage} />
       )}
     </Paper>
   );
@@ -469,6 +483,7 @@ export default function RoomComponent({
             <TimerDisplay
               display={matchedDisplay}
               timer={convertedTimer}
+              message={showingMessage}
             />
           </Box>
         )}

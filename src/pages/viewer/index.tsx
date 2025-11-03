@@ -99,7 +99,8 @@ export default function ViewerPage() {
     refreshTimers,
     requestConnections,
     displays,
-    revokedToken
+    revokedToken,
+    messages
   } = useWebSocketContext();
 
   const {
@@ -248,6 +249,19 @@ useEffect(() => {
   const activeTimer = timers?.find(timer => timer.is_active);
   const displayTimer = selectedTimer || activeTimer || timers?.[0];
   const matchedDisplay = displayTimer ? displays.find(d => d.id === displayTimer.display_id) : undefined;
+
+  // Get the currently showing message
+  const showingMessage = messages?.find(msg => msg.is_showing);
+
+  // Debug logging for messages
+  useEffect(() => {
+    console.log('👁️ Viewer - Messages state:', {
+      allMessages: messages,
+      messageCount: messages?.length,
+      showingMessage,
+      hasShowingMessage: !!showingMessage
+    });
+  }, [messages, showingMessage]);
 
   // Merge display data with defaults for full Display type
   const displayConfig = matchedDisplay ? {
@@ -562,6 +576,7 @@ return connected && displayTimer ? (
       display={displayConfig}
       timer={convertedTimer}
       in_view_mode={true}
+      message={showingMessage}
     />
   </Box>
 ) : (

@@ -487,13 +487,24 @@ export function Messages({
       is_flashing: false,
       source: 'user',
       asker: undefined,
-      is_showing: true,
+      is_showing: false,
     };
 
     addMessageFn(newMessage);
   };
 
   const handleUpdateMessage = (id: string, updates: Partial<Message>) => {
+    // If showing a message, hide all other messages first
+    if (updates.is_showing === true) {
+      // Hide all other messages that are currently showing
+      messages
+        .filter(msg => msg.id !== id && msg.is_showing)
+        .forEach(msg => {
+          updateMessageFn(msg.id, { is_showing: false });
+        });
+    }
+
+    // Then apply the update to the selected message
     updateMessageFn(id, updates);
   };
 

@@ -2,6 +2,14 @@ import { useState, useEffect } from 'react';
 import { Text, Image, Flex, Stack, Progress, Box, RingProgress, ActionIcon } from '@mantine/core';
 import { Maximize, Minimize } from 'lucide-react';
 
+// CSS for flashing animation
+const messageStyles = `
+  @keyframes flash {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+`;
+
 type Display = {
   name: string;
   logo_image?: string | null;
@@ -66,16 +74,30 @@ type Timer = {
   accumulated_seconds?: number;
 };
 
+type Message = {
+  id: string;
+  date: string;
+  content: string;
+  color?: string | null;
+  is_focused?: boolean;
+  is_flashing?: boolean;
+  source?: string | null;
+  asker?: string | null;
+  is_showing: boolean;
+  show_asker?: boolean;
+  show_source?: boolean;
+};
 
-
-function TimerDisplay({ 
-  display, 
-  timer, 
-  in_view_mode = false 
-}: { 
-  display?: Display; 
+function TimerDisplay({
+  display,
+  timer,
+  in_view_mode = false,
+  message
+}: {
+  display?: Display;
   timer?: Timer;
   in_view_mode?: boolean;
+  message?: Message;
 }) {
   const defaultDisplay: Display = {
     name: 'Timer Display',
@@ -728,11 +750,77 @@ switch (safeDisplay.background_type || 'color') {
     </Text>
   ) : null;
 
-  const message = safeTimer.show_notes && safeTimer.notes ? safeTimer.notes : '';
-  const messageComponent = message ? (
-    <Text size="md" style={{ fontFamily: safeDisplay.message_font_family || 'Roboto Mono', color: safeDisplay.message_color || '#ffffff', textAlign: 'center' }}>
-      {message}
-    </Text>
+  // Use the message prop if provided, otherwise fall back to timer notes
+  const timerNotesMessage = safeTimer.show_notes && safeTimer.notes ? safeTimer.notes : '';
+  const displayMessage = message?.content || timerNotesMessage;
+
+  // Debug logging
+  useEffect(() => {
+    console.log('📨 TimerDisplay - Message prop:', {
+      message,
+      displayMessage,
+      timerNotesMessage,
+      hasMessage: !!message,
+      messageContent: message?.content,
+      isShowing: message?.is_showing
+    });
+  }, [message, displayMessage]);
+
+  // Determine message styling - use message properties if available, otherwise use display defaults
+  const messageColor = message?.color || safeDisplay.message_color || '#ffffff';
+  const messageFontFamily = safeDisplay.message_font_family || 'Roboto Mono';
+
+  const messageComponent = displayMessage ? (
+    <Box
+      style={{
+        maxWidth: '95%',
+        width: '95%',
+        padding: '1rem',
+        animation: message?.is_flashing ? 'flash 1s infinite' : undefined,
+      }}
+    >
+      {/* Show source if enabled */}
+      {message?.show_source && message?.source && (
+        <Text
+          size={message?.is_focused ? 'lg' : 'xs'}
+          c="dimmed"
+          ta="center"
+          mb="xs"
+          style={{ fontFamily: messageFontFamily }}
+        >
+          {message.source}
+        </Text>
+      )}
+
+      {/* Message content */}
+      <Text
+        size={message?.is_focused ? '2rem' : 'md'}
+        fw={message?.is_focused ? 700 : 400}
+        style={{
+          fontFamily: messageFontFamily,
+          color: messageColor,
+          textAlign: 'center',
+          textDecoration: message?.is_focused ? 'underline' : undefined,
+          lineHeight: message?.is_focused ? 1.3 : 1.5,
+          fontSize: message?.is_focused ? 'clamp(1.5rem, 4vw, 3rem)' : undefined,
+        }}
+      >
+        {displayMessage}
+      </Text>
+
+      {/* Show asker if enabled */}
+      {message?.show_asker && message?.asker && (
+        <Text
+          size={message?.is_focused ? 'lg' : 'xs'}
+          c="dimmed"
+          ta="center"
+          mt="xs"
+          style={{ fontFamily: messageFontFamily }}
+        >
+          Asked by: {message.asker}
+        </Text>
+      )}
+    </Box>
   ) : null;
 
   const [ratioWidth, ratioHeight] = (safeDisplay.display_ratio || '16:9').split(':').map(Number);
@@ -762,9 +850,13 @@ switch (safeDisplay.background_type || 'color') {
   const shouldFillViewport = in_view_mode && !isFullscreen && is16by9;
 
   return (
-    <Box
-      onMouseMove={handleMouseMove}
-      style={{
+    <>
+      {/* Inject CSS for animations */}
+      <style>{messageStyles}</style>
+
+      <Box
+        onMouseMove={handleMouseMove}
+        style={{
         // Always maintain aspect ratio (except for 16:9 in viewer normal mode)
         aspectRatio: shouldFillViewport ? undefined : aspectRatio.toString(),
         // Determine sizing based on mode
@@ -833,49 +925,60 @@ switch (safeDisplay.background_type || 'color') {
         {header && <Box style={{ flexShrink: 0 }}>{header}</Box>}
 
         <Stack align="center" justify={stackJustify} gap="md" style={{ flex: 1, minHeight: 0 }}>
-          {showTimer && (
-            <Box style={{
-              maxWidth: '100%',
-              maxHeight: '100%',
-              overflow: 'visible',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-              <Text style={{
-                ...timerStyle,
-                fontSize: isFullscreen
-                  ? `min(${baseFontSize * 42}rem, ${baseFontSize * 18}vw, ${baseFontSize * 12}vh)`
-                  : `min(${baseFontSize * 42}rem, ${baseFontSize * 12}vw, ${baseFontSize * 8}vh)`,
-                whiteSpace: 'nowrap',
-              }}>
-                {timerText}
-              </Text>
-            </Box>
-          )}
+          {/* In focus mode, only show the message */}
+          {message?.is_focused ? (
+            messageComponent && (
+              <Box style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+                {messageComponent}
+              </Box>
+            )
+          ) : (
+            <>
+              {showTimer && (
+                <Box style={{
+                  maxWidth: '100%',
+                  maxHeight: '100%',
+                  overflow: 'visible',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <Text style={{
+                    ...timerStyle,
+                    fontSize: isFullscreen
+                      ? `min(${baseFontSize * 42}rem, ${baseFontSize * 18}vw, ${baseFontSize * 12}vh)`
+                      : `min(${baseFontSize * 42}rem, ${baseFontSize * 12}vw, ${baseFontSize * 8}vh)`,
+                    whiteSpace: 'nowrap',
+                  }}>
+                    {timerText}
+                  </Text>
+                </Box>
+              )}
 
-          {safeDisplay.clock_visible && !showOnlyClock && (
-            <Box style={{ maxWidth: '100%', overflow: 'hidden' }}>
-              <Text style={{
-                ...clockStyle,
-                fontSize: `min(${clockStyle.fontSize}, 8vw, 8vh)`,
-              }}>{clockText}</Text>
-            </Box>
-          )}
+              {safeDisplay.clock_visible && !showOnlyClock && (
+                <Box style={{ maxWidth: '100%', overflow: 'hidden' }}>
+                  <Text style={{
+                    ...clockStyle,
+                    fontSize: `min(${clockStyle.fontSize}, 8vw, 8vh)`,
+                  }}>{clockText}</Text>
+                </Box>
+              )}
 
-          {showOnlyClock && (
-            <Box style={{ maxWidth: '100%', overflow: 'hidden' }}>
-              <Text style={{
-                ...clockStyle,
-                fontSize: `min(${clockStyle.fontSize}, 12vw, 12vh)`,
-              }}>{clockText}</Text>
-            </Box>
-          )}
+              {showOnlyClock && (
+                <Box style={{ maxWidth: '100%', overflow: 'hidden' }}>
+                  <Text style={{
+                    ...clockStyle,
+                    fontSize: `min(${clockStyle.fontSize}, 12vw, 12vh)`,
+                  }}>{clockText}</Text>
+                </Box>
+              )}
 
-          {messageComponent && (
-            <Box style={{ maxWidth: '100%', overflow: 'hidden' }}>
-              {messageComponent}
-            </Box>
+              {messageComponent && (
+                <Box style={{ maxWidth: '100%', overflow: 'hidden' }}>
+                  {messageComponent}
+                </Box>
+              )}
+            </>
           )}
         </Stack>
 
@@ -902,6 +1005,7 @@ switch (safeDisplay.background_type || 'color') {
         </Box>
       )}
     </Box>
+    </>
   );
 }
 
