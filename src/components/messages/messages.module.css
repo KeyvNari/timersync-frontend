@@ -5,27 +5,39 @@
 }
 
 .messagesList {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
 }
 
 .item {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   border-radius: var(--mantine-radius-sm);
   padding: var(--mantine-spacing-sm) var(--mantine-spacing-md);
   background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6));
-  margin-bottom: 1px;
   position: relative;
   transition: all 0.2s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   border: 1px solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
   border-left: 3px solid transparent;
+  min-height: 100px;
 }
 
 .item:hover {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   border-color: light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-3));
+}
+
+.itemShowing {
+  background-color: light-dark(var(--mantine-color-blue-0), var(--mantine-color-dark-5));
+  border: 2px solid var(--mantine-color-blue-6);
+  border-left: 5px solid var(--mantine-color-blue-6);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+}
+
+.itemShowing:hover {
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.25);
 }
 
 .itemFlashing {
@@ -40,6 +52,8 @@
 .messageContent {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .messageHeader {
@@ -86,8 +100,11 @@
 .controls {
   display: flex;
   gap: 4px;
-  margin-left: var(--mantine-spacing-md);
   align-items: center;
+  justify-content: flex-end;
+  margin-top: var(--mantine-spacing-xs);
+  padding-top: var(--mantine-spacing-xs);
+  border-top: 1px solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
 }
 
 .checkboxWrapper {

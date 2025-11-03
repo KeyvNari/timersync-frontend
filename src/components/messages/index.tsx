@@ -14,6 +14,8 @@ import {
   Popover,
   ColorPicker,
   ActionIcon,
+  Paper,
+  Stack,
 } from '@mantine/core';
 import { IconPlus, IconTrash, IconEye, IconEyeOff, IconPalette } from '@tabler/icons-react';
 import { v4 as uuidv4 } from 'uuid';
@@ -124,30 +126,14 @@ function MessageItem({ message, onUpdate, onDelete }: MessageItemProps) {
     onUpdate(message.id, { is_showing: !message.is_showing });
   };
 
-  const handleToggleFocused = (checked: boolean) => {
-    onUpdate(message.id, { is_focused: checked });
-  };
-
-  const handleToggleFlashing = (checked: boolean) => {
-    onUpdate(message.id, { is_flashing: checked });
-  };
-
-  const handleToggleShowAsker = (checked: boolean) => {
-    onUpdate(message.id, { show_asker: checked });
-  };
-
-  const handleToggleShowSource = (checked: boolean) => {
-    onUpdate(message.id, { show_source: checked });
-  };
-
   return (
     <div
       className={cx(classes.item, {
-        [classes.itemFlashing]: message.is_flashing,
+        [classes.itemFlashing]: message.is_flashing && message.is_showing,
+        [classes.itemShowing]: message.is_showing,
       })}
       style={{
-        borderLeftColor: message.is_showing && message.color ? message.color : 'transparent',
-        borderLeftWidth: message.is_showing ? '3px' : '3px',
+        borderLeftColor: message.is_showing && message.color ? message.color : undefined,
       }}
     >
       <div className={classes.messageContent}>
@@ -155,6 +141,11 @@ function MessageItem({ message, onUpdate, onDelete }: MessageItemProps) {
           <Text size="xs" c="dimmed">
             {new Date(message.date).toLocaleString()}
           </Text>
+          {message.is_showing && (
+            <Badge size="xs" color="blue" variant="filled">
+              SHOWING
+            </Badge>
+          )}
         </div>
 
         <div className={classes.messageMeta}>
@@ -311,66 +302,6 @@ function MessageItem({ message, onUpdate, onDelete }: MessageItemProps) {
       </div>
 
       <div className={classes.controls}>
-        {/* Show Source checkbox */}
-        <Tooltip label="Show Source" position="top" withArrow>
-          <div className={classes.checkboxWrapper}>
-            <Checkbox
-              checked={message.show_source || false}
-              onChange={(e) => handleToggleShowSource(e.currentTarget.checked)}
-              size="xs"
-              label="S"
-              styles={{
-                label: { fontSize: '10px', fontWeight: 600 },
-              }}
-            />
-          </div>
-        </Tooltip>
-
-        {/* Show Asker checkbox */}
-        <Tooltip label="Show Asker" position="top" withArrow>
-          <div className={classes.checkboxWrapper}>
-            <Checkbox
-              checked={message.show_asker || false}
-              onChange={(e) => handleToggleShowAsker(e.currentTarget.checked)}
-              size="xs"
-              label="A"
-              styles={{
-                label: { fontSize: '10px', fontWeight: 600 },
-              }}
-            />
-          </div>
-        </Tooltip>
-
-        {/* Focused checkbox */}
-        <Tooltip label="Focused" position="top" withArrow>
-          <div className={classes.checkboxWrapper}>
-            <Checkbox
-              checked={message.is_focused || false}
-              onChange={(e) => handleToggleFocused(e.currentTarget.checked)}
-              size="xs"
-              label="F"
-              styles={{
-                label: { fontSize: '10px', fontWeight: 600 },
-              }}
-            />
-          </div>
-        </Tooltip>
-
-        {/* Flashing checkbox */}
-        <Tooltip label="Flashing" position="top" withArrow>
-          <div className={classes.checkboxWrapper}>
-            <Checkbox
-              checked={message.is_flashing || false}
-              onChange={(e) => handleToggleFlashing(e.currentTarget.checked)}
-              size="xs"
-              label="⚡"
-              styles={{
-                label: { fontSize: '12px' },
-              }}
-            />
-          </div>
-        </Tooltip>
-
         {/* Show/Hide button */}
         <Tooltip label={message.is_showing ? 'Hide message' : 'Show message'} position="top" withArrow>
           <button
@@ -494,7 +425,7 @@ export function Messages({
   };
 
   const handleUpdateMessage = (id: string, updates: Partial<Message>) => {
-    // If showing a message, hide all other messages first
+    // If showing a message, hide all other messages first and apply global display options
     if (updates.is_showing === true) {
       // Hide all other messages that are currently showing
       messages
@@ -502,6 +433,15 @@ export function Messages({
         .forEach(msg => {
           updateMessageFn(msg.id, { is_showing: false });
         });
+
+      // Apply global display options to the newly shown message
+      updates = {
+        ...updates,
+        show_source: globalDisplayOptions.show_source,
+        show_asker: globalDisplayOptions.show_asker,
+        is_focused: globalDisplayOptions.is_focused,
+        is_flashing: globalDisplayOptions.is_flashing,
+      };
     }
 
     // Then apply the update to the selected message
@@ -512,14 +452,116 @@ export function Messages({
     deleteMessageFn(id);
   };
 
+  // Get the currently showing message for global controls
+  const showingMessage = messages.find(m => m.is_showing);
+
+  // Store global display options state
+  const [globalDisplayOptions, setGlobalDisplayOptions] = useState({
+    show_source: false,
+    show_asker: false,
+    is_focused: false,
+    is_flashing: false,
+  });
+
+  // Sync global options with showing message
+  useEffect(() => {
+    if (showingMessage) {
+      setGlobalDisplayOptions({
+        show_source: showingMessage.show_source || false,
+        show_asker: showingMessage.show_asker || false,
+        is_focused: showingMessage.is_focused || false,
+        is_flashing: showingMessage.is_flashing || false,
+      });
+    }
+  }, [showingMessage?.id, showingMessage?.show_source, showingMessage?.show_asker, showingMessage?.is_focused, showingMessage?.is_flashing]);
+
+  // Global control handlers - always work, apply to showing message if exists
+  const handleGlobalToggleSource = (checked: boolean) => {
+    setGlobalDisplayOptions(prev => ({ ...prev, show_source: checked }));
+    if (showingMessage) {
+      handleUpdateMessage(showingMessage.id, { show_source: checked });
+    }
+  };
+
+  const handleGlobalToggleAsker = (checked: boolean) => {
+    setGlobalDisplayOptions(prev => ({ ...prev, show_asker: checked }));
+    if (showingMessage) {
+      handleUpdateMessage(showingMessage.id, { show_asker: checked });
+    }
+  };
+
+  const handleGlobalToggleFocused = (checked: boolean) => {
+    setGlobalDisplayOptions(prev => ({ ...prev, is_focused: checked }));
+    if (showingMessage) {
+      handleUpdateMessage(showingMessage.id, { is_focused: checked });
+    }
+  };
+
+  const handleGlobalToggleFlashing = (checked: boolean) => {
+    setGlobalDisplayOptions(prev => ({ ...prev, is_flashing: checked }));
+    if (showingMessage) {
+      handleUpdateMessage(showingMessage.id, { is_flashing: checked });
+    }
+  };
+
   return (
     <Box className={classes.container}>
-      {/* Add Message Button */}
-      <Group mb="md">
+      {/* Add Message Button and Stats */}
+      <Group mb="md" justify="space-between">
         <Button leftSection={<IconPlus size={16} />} onClick={handleAddMessage} size="sm">
           Add Message
         </Button>
+        {messages.length > 0 && (
+          <Badge size="lg" variant="light" color="gray">
+            {messages.length} {messages.length === 1 ? 'Message' : 'Messages'}
+          </Badge>
+        )}
       </Group>
+
+      {/* Global Controls - always visible */}
+      <Paper
+        withBorder
+        p="md"
+        mb="md"
+        style={{
+          backgroundColor: 'var(--mantine-color-dark-6)',
+          borderColor: 'var(--mantine-color-dark-4)'
+        }}
+      >
+        <Stack gap="sm">
+          <Group justify="space-between" align="center">
+            <Text size="sm" fw={600}>
+              Display Options {showingMessage && <Text span c="blue">(Active)</Text>}
+            </Text>
+          </Group>
+          <Group gap="lg">
+            <Checkbox
+              checked={globalDisplayOptions.show_source}
+              onChange={(e) => handleGlobalToggleSource(e.currentTarget.checked)}
+              label="Show Source"
+              size="sm"
+            />
+            <Checkbox
+              checked={globalDisplayOptions.show_asker}
+              onChange={(e) => handleGlobalToggleAsker(e.currentTarget.checked)}
+              label="Show Asker"
+              size="sm"
+            />
+            <Checkbox
+              checked={globalDisplayOptions.is_focused}
+              onChange={(e) => handleGlobalToggleFocused(e.currentTarget.checked)}
+              label="Focused"
+              size="sm"
+            />
+            <Checkbox
+              checked={globalDisplayOptions.is_flashing}
+              onChange={(e) => handleGlobalToggleFlashing(e.currentTarget.checked)}
+              label="Flashing"
+              size="sm"
+            />
+          </Group>
+        </Stack>
+      </Paper>
 
       {/* Messages List */}
       {messages.length === 0 ? (
