@@ -11,7 +11,7 @@ interface GuestGuardProps {
 
 function getRedirectPath(search: string) {
   const REDIRECT_QUERY_PARAM_REGEX = new RegExp(`${app.redirectQueryParamName}=([^&]*)`);
-  return REDIRECT_QUERY_PARAM_REGEX.exec(search)?.[1] ?? paths.dashboard.root;
+  return REDIRECT_QUERY_PARAM_REGEX.exec(search)?.[1] ?? paths.dashboard.rooms;
 }
 
 export function GuestGuard({ children }: GuestGuardProps) {

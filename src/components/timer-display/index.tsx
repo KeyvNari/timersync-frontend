@@ -770,23 +770,69 @@ switch (safeDisplay.background_type || 'color') {
   const messageColor = message?.color || safeDisplay.message_color || '#ffffff';
   const messageFontFamily = safeDisplay.message_font_family || 'Roboto Mono';
 
+  // Calculate font size based on message length with auto-adjustment
+  const getMessageFontSize = (text: string, isFocused: boolean) => {
+    const length = text.length;
+
+    // In view mode (full screen or dedicated viewer), use larger fonts
+    const isLargeView = in_view_mode || isFullscreen;
+
+    if (isLargeView) {
+      if (isFocused) {
+        // Focused mode: much larger font that adjusts as text gets longer
+        if (length < 30) return 'clamp(3rem, 8vw, 8rem)';
+        if (length < 60) return 'clamp(2.5rem, 6vw, 6rem)';
+        if (length < 100) return 'clamp(2rem, 5vw, 5rem)';
+        if (length < 150) return 'clamp(1.5rem, 4vw, 4rem)';
+        return 'clamp(1.2rem, 3vw, 3rem)';
+      } else {
+        // Normal mode: much larger than before, with auto-adjustment
+        if (length < 30) return 'clamp(2rem, 5vw, 5rem)';
+        if (length < 60) return 'clamp(1.5rem, 4vw, 4rem)';
+        if (length < 100) return 'clamp(1.2rem, 3vw, 3rem)';
+        if (length < 150) return 'clamp(1rem, 2.5vw, 2.5rem)';
+        return 'clamp(0.9rem, 2vw, 2rem)';
+      }
+    } else {
+      // Small preview mode (room controller, etc): use smaller fixed sizes
+      if (isFocused) {
+        if (length < 30) return '0.9rem';
+        if (length < 60) return '0.75rem';
+        if (length < 100) return '0.65rem';
+        if (length < 150) return '0.55rem';
+        return '0.5rem';
+      } else {
+        if (length < 30) return '0.75rem';
+        if (length < 60) return '0.65rem';
+        if (length < 100) return '0.55rem';
+        if (length < 150) return '0.5rem';
+        return '0.45rem';
+      }
+    }
+  };
+
+  const isLargeView = in_view_mode || isFullscreen;
+
   const messageComponent = displayMessage ? (
     <Box
       style={{
-        maxWidth: '95%',
-        width: '95%',
-        padding: '1rem',
+        width: '100%',
+        padding: isLargeView ? '2rem' : '0.5rem',
         animation: message?.is_flashing ? 'flash 1s infinite' : undefined,
       }}
     >
       {/* Show source if enabled */}
       {message?.show_source && message?.source && (
         <Text
-          size={message?.is_focused ? 'lg' : 'xs'}
           c="dimmed"
           ta="center"
           mb="xs"
-          style={{ fontFamily: messageFontFamily }}
+          style={{
+            fontFamily: messageFontFamily,
+            fontSize: isLargeView
+              ? (message?.is_focused ? 'clamp(1.2rem, 3vw, 2rem)' : 'clamp(0.9rem, 2vw, 1.5rem)')
+              : (message?.is_focused ? '0.6rem' : '0.5rem'),
+          }}
         >
           {message.source}
         </Text>
@@ -794,15 +840,16 @@ switch (safeDisplay.background_type || 'color') {
 
       {/* Message content */}
       <Text
-        size={message?.is_focused ? '2rem' : 'md'}
-        fw={message?.is_focused ? 700 : 400}
+        fw={message?.is_focused ? 700 : 500}
         style={{
           fontFamily: messageFontFamily,
           color: messageColor,
           textAlign: 'center',
           textDecoration: message?.is_focused ? 'underline' : undefined,
-          lineHeight: message?.is_focused ? 1.3 : 1.5,
-          fontSize: message?.is_focused ? 'clamp(1.5rem, 4vw, 3rem)' : undefined,
+          lineHeight: message?.is_focused ? 1.3 : 1.4,
+          fontSize: getMessageFontSize(displayMessage, !!message?.is_focused),
+          wordWrap: 'break-word',
+          overflowWrap: 'break-word',
         }}
       >
         {displayMessage}
@@ -811,11 +858,15 @@ switch (safeDisplay.background_type || 'color') {
       {/* Show asker if enabled */}
       {message?.show_asker && message?.asker && (
         <Text
-          size={message?.is_focused ? 'lg' : 'xs'}
           c="dimmed"
           ta="center"
           mt="xs"
-          style={{ fontFamily: messageFontFamily }}
+          style={{
+            fontFamily: messageFontFamily,
+            fontSize: isLargeView
+              ? (message?.is_focused ? 'clamp(1.2rem, 3vw, 2rem)' : 'clamp(0.9rem, 2vw, 1.5rem)')
+              : (message?.is_focused ? '0.6rem' : '0.5rem'),
+          }}
         >
           Asked by: {message.asker}
         </Text>

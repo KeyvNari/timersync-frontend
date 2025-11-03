@@ -6,6 +6,7 @@ import { notifications } from '@mantine/notifications';
 import { modals } from '@mantine/modals';
 import { Page } from '@/components/page';
 import { RoomsComponent } from '@/components/rooms';
+import { CurrentUser } from '@/layouts/dashboard/header/current-user';
 import { paths } from '@/routes/paths';
 import { useGetRooms, useCreateRoom, useUpdateRoom, useDeleteRoom } from '@/hooks';
 import { Room } from '@/api/entities/rooms';
@@ -214,6 +215,7 @@ export default function RoomsPage() {
         onEditRoom={handleEditRoom}
         onDeleteRoom={handleDeleteRoom}
         hideHeader={true}
+        actionBarRightContent={<CurrentUser size="md" />}
       />
 
       {/* Create Room Modal */}

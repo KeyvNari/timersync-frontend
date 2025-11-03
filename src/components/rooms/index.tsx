@@ -35,7 +35,7 @@ import {
 } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
 import { useNavigate } from 'react-router-dom';
-import { useAuth, useGetAccountInfo, useLogout, useGetRooms } from '@/hooks';
+import { useAuth, useGetAccountInfo, useLogout } from '@/hooks';
 import { paths } from '@/routes/paths';
 import { Room } from '@/api/entities/rooms';
 
@@ -60,6 +60,8 @@ export interface RoomsComponentProps {
   onDeleteRoom?: (roomId: number) => void;
   /** Optional: Hide header (default: false) */
   hideHeader?: boolean;
+  /** Optional: Custom action bar right content */
+  actionBarRightContent?: React.ReactNode;
 }
 
 export function RoomsComponent({
@@ -73,6 +75,7 @@ export function RoomsComponent({
   onEditRoom,
   onDeleteRoom,
   hideHeader = false,
+  actionBarRightContent,
 }: RoomsComponentProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [createOpened, { open: openCreate, close: closeCreate }] = useDisclosure(false);
@@ -220,43 +223,7 @@ export function RoomsComponent({
                 Create Room
               </Button>
             )}
-            {hideHeader && (
-              <Menu position="bottom-end" shadow="md" width={200}>
-                <Menu.Target>
-                  <Button variant="subtle" color="gray" rightSection={<IconChevronDown size="1rem" />}>
-                    <Group gap="sm">
-                      <Avatar src={user?.profile_image_url} size="sm" radius="xl">
-                        <IconUser size="1rem" />
-                      </Avatar>
-                      <Text size="sm" fw={500}>
-                        {user?.name || user?.username || 'User'}
-                      </Text>
-                    </Group>
-                  </Button>
-                </Menu.Target>
-                <Menu.Dropdown>
-                  <Menu.Label>Account</Menu.Label>
-                  <Menu.Item>
-                    <Text size="sm" fw={500}>
-                      {user?.name}
-                    </Text>
-                    <Text size="xs" c="dimmed">
-                      {user?.email}
-                    </Text>
-                  </Menu.Item>
-                  <Menu.Divider />
-                  <Menu.Item leftSection={<IconSettings size="0.9rem" />}>Settings</Menu.Item>
-                  <Menu.Divider />
-                  <Menu.Item
-                    color="red"
-                    leftSection={<IconLogout size="0.9rem" />}
-                    onClick={handleLogout}
-                  >
-                    Logout
-                  </Menu.Item>
-                </Menu.Dropdown>
-              </Menu>
-            )}
+            {actionBarRightContent}
           </Group>
         </Group>
 
