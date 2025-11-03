@@ -1,5 +1,5 @@
 // src/components/messages/index.tsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Button,
@@ -7,7 +7,7 @@ import {
   Text,
   TextInput,
   Textarea,
-  Checkbox,
+  Switch,
   Modal,
   Tooltip,
   Badge,
@@ -17,7 +17,7 @@ import {
   Paper,
   Stack,
 } from '@mantine/core';
-import { IconPlus, IconTrash, IconEye, IconEyeOff, IconPalette } from '@tabler/icons-react';
+import { IconPlus, IconTrash, IconEye, IconEyeOff, IconPalette, IconSearch, IconX } from '@tabler/icons-react';
 import { v4 as uuidv4 } from 'uuid';
 import cx from 'clsx';
 import classes from './messages.module.css';
@@ -172,19 +172,27 @@ function MessageItem({ message, onUpdate, onDelete }: MessageItemProps) {
             </div>
           ) : (
             <div style={{ width: '100%', marginBottom: '8px' }}>
-              <Text
-                size="sm"
-                className={classes.editableField}
-                onClick={() => setEditingContent(true)}
-                style={{
-                  color: message.color || undefined,
-                  fontWeight: message.is_focused ? 700 : 500,
-                  fontSize: message.is_focused ? '15px' : undefined,
-                  textDecoration: message.is_focused ? 'underline' : undefined,
-                }}
-              >
-                {message.content}
-              </Text>
+              {message.content === 'New message' ? (
+                <div className={classes.emptyMessageContent} onClick={() => setEditingContent(true)}>
+                  <Text size="sm" c="dimmed">
+                    Click to edit message...
+                  </Text>
+                </div>
+              ) : (
+                <Text
+                  size="sm"
+                  className={classes.editableField}
+                  onClick={() => setEditingContent(true)}
+                  style={{
+                    color: message.color || undefined,
+                    fontWeight: message.is_focused ? 700 : 500,
+                    fontSize: message.is_focused ? '15px' : undefined,
+                    textDecoration: message.is_focused ? 'underline' : undefined,
+                  }}
+                >
+                  {message.content}
+                </Text>
+              )}
             </div>
           )}
 
@@ -308,14 +316,14 @@ function MessageItem({ message, onUpdate, onDelete }: MessageItemProps) {
             className={cx(classes.controlButton, message.is_showing ? classes.showing : classes.hidden)}
             onClick={handleToggleShowing}
           >
-            {message.is_showing ? <IconEye size={14} /> : <IconEyeOff size={14} />}
+            {message.is_showing ? <IconEye size={16} /> : <IconEyeOff size={16} />}
           </button>
         </Tooltip>
 
         {/* Delete button */}
         <Tooltip label="Delete message" position="top" withArrow>
           <button className={cx(classes.controlButton, classes.delete)} onClick={handleDeleteClick}>
-            <IconTrash size={14} />
+            <IconTrash size={16} />
           </button>
         </Tooltip>
       </div>
@@ -350,6 +358,10 @@ export function Messages({
   // Determine which messages to use
   const messages = useLocalState ? localMessages : (wsContext?.messages || []);
 
+  // Ref for scrollable content
+  const scrollableRef = useRef<HTMLDivElement>(null);
+  const previousMessageCount = useRef(messages.length);
+
   // Debug logging - track when messages change from context
   useEffect(() => {
     console.log('📬 Messages component: Context messages changed:', {
@@ -371,6 +383,20 @@ export function Messages({
       console.log('🎬 Messages component unmounted');
     };
   }, []);
+
+  // Auto-scroll to bottom when new message is added
+  useEffect(() => {
+    if (messages.length > previousMessageCount.current) {
+      // New message was added, scroll to bottom
+      if (scrollableRef.current) {
+        scrollableRef.current.scrollTo({
+          top: scrollableRef.current.scrollHeight,
+          behavior: 'smooth'
+        });
+      }
+    }
+    previousMessageCount.current = messages.length;
+  }, [messages.length]);
 
   // Determine which update functions to use
   const addMessageFn = useLocalState
@@ -463,6 +489,9 @@ export function Messages({
     is_flashing: false,
   });
 
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+
   // Sync global options with showing message
   useEffect(() => {
     if (showingMessage) {
@@ -504,82 +533,129 @@ export function Messages({
     }
   };
 
+  // Filter messages based on search query
+  const filteredMessages = messages.filter((message) => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      message.content.toLowerCase().includes(query) ||
+      message.source?.toLowerCase().includes(query) ||
+      message.asker?.toLowerCase().includes(query)
+    );
+  });
+
   return (
     <Box className={classes.container}>
-      {/* Add Message Button and Stats */}
-      <Group mb="md" justify="space-between">
-        <Button leftSection={<IconPlus size={16} />} onClick={handleAddMessage} size="sm">
-          Add Message
-        </Button>
-        {messages.length > 0 && (
-          <Badge size="lg" variant="light" color="gray">
-            {messages.length} {messages.length === 1 ? 'Message' : 'Messages'}
-          </Badge>
-        )}
-      </Group>
+      {/* Fixed Header Section */}
+      <Box className={classes.fixedHeader}>
+        {/* Top Row: Add Button and Search */}
+        <Group mb="sm" gap="xs" wrap="nowrap">
+          <Button
+            variant="default"
+            size="sm"
+            onClick={handleAddMessage}
+            style={{ flexShrink: 0 }}
+          >
+            + Add Message
+          </Button>
 
-      {/* Global Controls - always visible */}
-      <Paper
-        withBorder
-        p="md"
-        mb="md"
-        style={{
-          backgroundColor: 'var(--mantine-color-dark-6)',
-          borderColor: 'var(--mantine-color-dark-4)'
-        }}
-      >
-        <Stack gap="sm">
-          <Group justify="space-between" align="center">
-            <Text size="sm" fw={600}>
-              Display Options {showingMessage && <Text span c="blue">(Active)</Text>}
-            </Text>
-          </Group>
-          <Group gap="lg">
-            <Checkbox
+          {messages.length > 0 && (
+            <TextInput
+              placeholder="Search messages..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.currentTarget.value)}
+              leftSection={<IconSearch size={16} />}
+              rightSection={
+                searchQuery && (
+                  <ActionIcon
+                    variant="subtle"
+                    onClick={() => setSearchQuery('')}
+                    size="sm"
+                  >
+                    <IconX size={14} />
+                  </ActionIcon>
+                )
+              }
+              size="sm"
+              style={{ flex: 1 }}
+            />
+          )}
+        </Group>
+
+        {/* Display Options Row */}
+        <Group gap="md" wrap="nowrap" align="center">
+          <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>
+            Display Options:
+          </Text>
+          <Group gap="md" style={{ flex: 1 }}>
+            <Switch
               checked={globalDisplayOptions.show_source}
               onChange={(e) => handleGlobalToggleSource(e.currentTarget.checked)}
               label="Show Source"
-              size="sm"
+              size="xs"
             />
-            <Checkbox
+            <Switch
               checked={globalDisplayOptions.show_asker}
               onChange={(e) => handleGlobalToggleAsker(e.currentTarget.checked)}
               label="Show Asker"
-              size="sm"
+              size="xs"
             />
-            <Checkbox
+            <Switch
               checked={globalDisplayOptions.is_focused}
               onChange={(e) => handleGlobalToggleFocused(e.currentTarget.checked)}
               label="Focused"
-              size="sm"
+              size="xs"
             />
-            <Checkbox
+            <Switch
               checked={globalDisplayOptions.is_flashing}
               onChange={(e) => handleGlobalToggleFlashing(e.currentTarget.checked)}
               label="Flashing"
-              size="sm"
+              size="xs"
             />
           </Group>
-        </Stack>
-      </Paper>
+          {showingMessage && (
+            <Badge size="xs" color="blue" variant="light" style={{ flexShrink: 0 }}>
+              Active
+            </Badge>
+          )}
+        </Group>
+      </Box>
 
-      {/* Messages List */}
-      {messages.length === 0 ? (
-        <Text c="dimmed" size="sm" ta="center" mt="xl">
-          No messages yet. Click "Add Message" to create your first message.
-        </Text>
-      ) : (
-        <Box className={classes.messagesList}>
-          {messages.map((message) => (
-            <MessageItem
-              key={message.id}
-              message={message}
-              onUpdate={handleUpdateMessage}
-              onDelete={handleDeleteMessage}
-            />
-          ))}
-        </Box>
-      )}
+      {/* Scrollable Messages Section */}
+      <Box className={classes.scrollableContent} ref={scrollableRef}>
+        {messages.length === 0 ? (
+          <Box className={classes.emptyState}>
+            <Text c="dimmed" size="sm" ta="center">
+              No messages yet. Click "Add Message" to create your first message.
+            </Text>
+          </Box>
+        ) : filteredMessages.length === 0 ? (
+          <Box className={classes.emptyState}>
+            <Text c="dimmed" size="sm" ta="center">
+              No messages found matching "{searchQuery}"
+            </Text>
+            <Button
+              variant="subtle"
+              size="xs"
+              mt="sm"
+              onClick={() => setSearchQuery('')}
+            >
+              Clear search
+            </Button>
+          </Box>
+        ) : (
+          <Box className={classes.messagesList}>
+            {filteredMessages.map((message) => (
+              <MessageItem
+                key={message.id}
+                message={message}
+                onUpdate={handleUpdateMessage}
+                onDelete={handleDeleteMessage}
+              />
+            ))}
+          </Box>
+        )}
+      </Box>
     </Box>
   );
 }

@@ -163,7 +163,7 @@ function ConnectionGroupItem({
   onDisconnect?: (connectionId: string) => void;
   onRevokeToken?: (tokenId: number) => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const connectionCount = group.connections.length;
   const onlineCount = group.connections.filter(c => {
     if (!c.last_ping) return true;
@@ -180,7 +180,7 @@ function ConnectionGroupItem({
 
   return (
     <Box>
-      <Box p="sm">
+      <Box p="md">
         <Group justify="space-between" wrap="nowrap">
           <Group wrap="nowrap" gap="sm" style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => setExpanded(!expanded)}>
             <ActionIcon variant="subtle" size="sm">
@@ -276,7 +276,7 @@ function ConnectionItem({
   isGrouped?: boolean;
 }) {
   console.log('Rendering connection:', connection.connection_name, 'Full connection object:', connection);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const deviceType = getDeviceType(connection.user_agent);
   const isOnline = connection.last_ping ?
     (new Date().getTime() - new Date(connection.last_ping).getTime()) < 300000  : true;
@@ -292,7 +292,7 @@ function ConnectionItem({
   });
 
   return (
-    <Box p="sm">
+    <Box p="md">
       <Group justify="space-between" wrap="nowrap">
         <Group wrap="nowrap" gap="sm" style={{ flex: 1, minWidth: 0 }}>
           <Indicator

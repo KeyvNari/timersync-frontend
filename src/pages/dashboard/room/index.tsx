@@ -222,10 +222,27 @@ export default function RoomPage() {
 
   // Top Right Panel: Timer Display
   const topRightPanel = (
-    <Paper withBorder p="md" h="100%">
+    <Paper withBorder p="md" h="100%" style={{ position: 'relative' }}>
       {convertedTimer && matchedDisplay ? (
         <Stack gap="md" style={{ height: '100%' }}>
-          <Box style={{ flex: 1 }}>
+          <Box style={{ flex: 1, position: 'relative' }}>
+            <Box
+              style={{
+                position: 'absolute',
+                top: 8,
+                left: 8,
+                zIndex: 10,
+                backgroundColor: 'rgba(37, 99, 235, 0.9)',
+                backdropFilter: 'blur(4px)',
+                padding: '4px 12px',
+                borderRadius: '6px',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+              }}
+            >
+              <Text size="xs" fw={600} c="white" style={{ letterSpacing: '0.5px' }}>
+                LIVE PREVIEW
+              </Text>
+            </Box>
             <TimerDisplay
               key={`${displayTimer?.id}-${displayTimer?.current_time_seconds}`}
               display={matchedDisplay}
@@ -261,12 +278,14 @@ export default function RoomPage() {
 
   // Bottom Right Panel: Connected Devices
   const bottomRightPanel = (
-    <Paper withBorder p="md" h="100%">
-      <ConnectedDevices
-        connections={connections}
-        currentUserAccess="full"
-        compactMode={connectionCount === 0}
-      />
+    <Paper withBorder h="100%" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <Box style={{ flex: 1, overflow: 'auto' }}>
+        <ConnectedDevices
+          connections={connections}
+          currentUserAccess="full"
+          compactMode={false}
+        />
+      </Box>
     </Paper>
   );
 
