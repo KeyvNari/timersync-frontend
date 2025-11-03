@@ -1,12 +1,11 @@
 // src/pages/viewer/index.tsx
 import { useEffect, useState } from 'react';
-import { Box, Alert, Loader, Center, Text, Paper, PasswordInput, Button, Stack, Title } from '@mantine/core';
+import { Box, Alert, Loader, Center, Text, Paper, PasswordInput, Button, Stack, Title, LoadingOverlay } from '@mantine/core';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { IconAlertCircle, IconLock } from '@tabler/icons-react';
 import { useForm } from '@mantine/form';
 import TimerDisplay from '@/components/timer-display';
 import { useWebSocketContext, useTimerContext } from '@/providers/websocket-provider';
-import { LoadingOverlay } from '@mantine/core';
 
 type Display = {
   name: string;
@@ -484,7 +483,8 @@ if (connectionState === 'connecting') {
     );
   }
 
-if (!connected || !displayTimer || !convertedTimer) {
+// Show loading screen only when not connected yet
+if (!connected) {
   return (
     <Box
       pos="relative"
@@ -507,11 +507,10 @@ if (!connected || !displayTimer || !convertedTimer) {
   );
 }
 
-  // Show loading screen when connected but no timer data yet
- if (connected && !displayTimer) {
+// Show message when connected but no timer is available
+if (connected && !displayTimer) {
   return (
     <Box
-      pos="relative"
       style={{
         width: '100vw',
         height: '100vh',
@@ -521,12 +520,19 @@ if (!connected || !displayTimer || !convertedTimer) {
         overflow: 'hidden',
       }}
     >
-      <LoadingOverlay
-        visible={true}
-        zIndex={1000}
-        overlayProps={{ radius: 'sm', blur: 2 }}
-        loaderProps={{ color: 'blue', type: 'bars' }}
-      />
+      <Center h="100%">
+        <Stack align="center" gap="lg">
+          <IconAlertCircle size={64} color="var(--mantine-color-yellow-6)" />
+          <Title order={2} c="white" ta="center">
+            No Timer Available
+          </Title>
+          <Text size="lg" c="dimmed" ta="center" maw={500}>
+            {timers && timers.length === 0
+              ? 'There are no timers in this room yet. Please add a timer from the controller.'
+              : 'No timer is currently selected. Please select a timer from the controller.'}
+          </Text>
+        </Stack>
+      </Center>
     </Box>
   );
 }
