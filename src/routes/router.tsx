@@ -30,7 +30,7 @@ const router = createBrowserRouter([
 
   {
     path: '/',
-    element: <Navigate to={paths.dashboard.root} replace />,
+    element: LazyPage(() => import('@/pages/landing')),
   },
   {
     path: paths.auth.root,

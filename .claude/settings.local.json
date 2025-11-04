@@ -16,7 +16,8 @@
       "Bash(del nul)",
       "Bash(cmd /c del nul)",
       "Bash(git rm:*)",
-      "Bash(powershell -Command:*)"
+      "Bash(powershell -Command:*)",
+      "Bash(dir:*)"
     ],
     "deny": [],
     "ask": []
