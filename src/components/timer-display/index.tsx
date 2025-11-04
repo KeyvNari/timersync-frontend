@@ -81,11 +81,7 @@ type Message = {
   color?: string | null;
   is_focused?: boolean;
   is_flashing?: boolean;
-  source?: string | null;
-  asker?: string | null;
   is_showing: boolean;
-  show_asker?: boolean;
-  show_source?: boolean;
 };
 
 function TimerDisplay({
@@ -821,23 +817,6 @@ switch (safeDisplay.background_type || 'color') {
         animation: message?.is_flashing ? 'flash 1s infinite' : undefined,
       }}
     >
-      {/* Show source if enabled */}
-      {message?.show_source && message?.source && (
-        <Text
-          c="dimmed"
-          ta="center"
-          mb="xs"
-          style={{
-            fontFamily: messageFontFamily,
-            fontSize: isLargeView
-              ? (message?.is_focused ? 'clamp(1.2rem, 3vw, 2rem)' : 'clamp(0.9rem, 2vw, 1.5rem)')
-              : (message?.is_focused ? '0.6rem' : '0.5rem'),
-          }}
-        >
-          {message.source}
-        </Text>
-      )}
-
       {/* Message content */}
       <Text
         fw={message?.is_focused ? 700 : 500}
@@ -854,23 +833,6 @@ switch (safeDisplay.background_type || 'color') {
       >
         {displayMessage}
       </Text>
-
-      {/* Show asker if enabled */}
-      {message?.show_asker && message?.asker && (
-        <Text
-          c="dimmed"
-          ta="center"
-          mt="xs"
-          style={{
-            fontFamily: messageFontFamily,
-            fontSize: isLargeView
-              ? (message?.is_focused ? 'clamp(1.2rem, 3vw, 2rem)' : 'clamp(0.9rem, 2vw, 1.5rem)')
-              : (message?.is_focused ? '0.6rem' : '0.5rem'),
-          }}
-        >
-          Asked by: {message.asker}
-        </Text>
-      )}
     </Box>
   ) : null;
 

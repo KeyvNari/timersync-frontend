@@ -17,7 +17,7 @@ import {
   Paper,
   Stack,
 } from '@mantine/core';
-import { IconPlus, IconTrash, IconEye, IconEyeOff, IconPalette, IconSearch, IconX } from '@tabler/icons-react';
+import { IconPlus, IconTrash, IconPalette, IconSearch, IconX, IconEye, IconFocus, IconFlare } from '@tabler/icons-react';
 import { v4 as uuidv4 } from 'uuid';
 import cx from 'clsx';
 import classes from './messages.module.css';
@@ -30,11 +30,7 @@ export interface Message {
   color?: string | null;
   is_focused?: boolean;
   is_flashing?: boolean;
-  source?: string | null;
-  asker?: string | null;
   is_showing: boolean;
-  show_asker?: boolean;
-  show_source?: boolean;
 }
 
 interface MessagesProps {
@@ -57,10 +53,6 @@ function MessageItem({ message, onUpdate, onDelete }: MessageItemProps) {
   const [contentValue, setContentValue] = useState(message.content);
 
   // Inline editing states for other fields
-  const [editingSource, setEditingSource] = useState(false);
-  const [sourceValue, setSourceValue] = useState(message.source || '');
-  const [editingAsker, setEditingAsker] = useState(false);
-  const [askerValue, setAskerValue] = useState(message.asker || '');
   const [colorPickerOpened, setColorPickerOpened] = useState(false);
   const [colorValue, setColorValue] = useState(message.color || '');
 
@@ -91,25 +83,6 @@ function MessageItem({ message, onUpdate, onDelete }: MessageItemProps) {
     }
   };
 
-  const handleSaveSource = () => {
-    onUpdate(message.id, { source: sourceValue || undefined });
-    setEditingSource(false);
-  };
-
-  const handleCancelSource = () => {
-    setSourceValue(message.source || '');
-    setEditingSource(false);
-  };
-
-  const handleSaveAsker = () => {
-    onUpdate(message.id, { asker: askerValue || undefined });
-    setEditingAsker(false);
-  };
-
-  const handleCancelAsker = () => {
-    setAskerValue(message.asker || '');
-    setEditingAsker(false);
-  };
 
   const handleColorChange = (color: string) => {
     setColorValue(color);
@@ -148,184 +121,133 @@ function MessageItem({ message, onUpdate, onDelete }: MessageItemProps) {
           )}
         </div>
 
-        <div className={classes.messageMeta}>
-          {/* Content editing */}
-          {editingContent ? (
-            <div style={{ width: '100%', marginBottom: '8px' }}>
-              <Textarea
-                value={contentValue}
-                onChange={(e) => setContentValue(e.currentTarget.value)}
-                onKeyDown={handleKeyPress}
-                size="xs"
-                minRows={2}
-                maxLength={2000}
-                autoFocus
-              />
-              <Group gap="xs" mt="xs">
-                <Button size="xs" onClick={handleSaveContent}>
-                  Save
-                </Button>
-                <Button size="xs" variant="default" onClick={handleCancelEdit}>
-                  Cancel
-                </Button>
-              </Group>
-            </div>
-          ) : (
-            <div style={{ width: '100%', marginBottom: '8px' }}>
-              {message.content === 'New message' ? (
-                <div className={classes.emptyMessageContent} onClick={() => setEditingContent(true)}>
-                  <Text size="sm" c="dimmed">
-                    Click to edit message...
-                  </Text>
-                </div>
-              ) : (
-                <Text
-                  size="sm"
-                  className={classes.editableField}
-                  onClick={() => setEditingContent(true)}
-                  style={{
-                    color: message.color || undefined,
-                    fontWeight: message.is_focused ? 700 : 500,
-                    fontSize: message.is_focused ? '15px' : undefined,
-                    textDecoration: message.is_focused ? 'underline' : undefined,
-                  }}
-                >
-                  {message.content}
+        {/* Content editing */}
+        {editingContent ? (
+          <div style={{ width: '100%', marginBottom: '8px' }}>
+            <Textarea
+              value={contentValue}
+              onChange={(e) => setContentValue(e.currentTarget.value)}
+              onKeyDown={handleKeyPress}
+              size="xs"
+              minRows={2}
+              maxLength={2000}
+              autoFocus
+            />
+            <Group gap="xs" mt="xs">
+              <Button size="xs" onClick={handleSaveContent}>
+                Save
+              </Button>
+              <Button size="xs" variant="default" onClick={handleCancelEdit}>
+                Cancel
+              </Button>
+            </Group>
+          </div>
+        ) : (
+          <div className={classes.messageTextBox}>
+            {message.content === 'New message' ? (
+              <div className={classes.emptyMessageContent} onClick={() => setEditingContent(true)}>
+                <Text size="sm" c="dimmed">
+                  Click to edit message...
                 </Text>
-              )}
-            </div>
-          )}
-
-          {/* Source editing */}
-          <span className={classes.editableField} onClick={() => !editingSource && setEditingSource(true)}>
-            Source: {editingSource ? (
-              <Group gap="xs" style={{ display: 'inline-flex' }}>
-                <TextInput
-                  value={sourceValue}
-                  onChange={(e) => setSourceValue(e.currentTarget.value)}
-                  onBlur={handleSaveSource}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSaveSource();
-                    if (e.key === 'Escape') handleCancelSource();
-                  }}
-                  size="xs"
-                  style={{ width: '120px', display: 'inline-block' }}
-                  autoFocus
-                />
-              </Group>
+              </div>
             ) : (
-              <span style={{ minWidth: '20px', display: 'inline-block' }}>
-                {message.source ? message.source : <span style={{color: 'gray'}}>Enter source...</span>}
-              </span>
-            )}
-          </span>
-
-          {/* Asker editing */}
-          <span className={classes.editableField} onClick={() => !editingAsker && setEditingAsker(true)}>
-            Asked by: {editingAsker ? (
-              <Group gap="xs" style={{ display: 'inline-flex' }}>
-                <TextInput
-                  value={askerValue}
-                  onChange={(e) => setAskerValue(e.currentTarget.value)}
-                  onBlur={handleSaveAsker}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSaveAsker();
-                    if (e.key === 'Escape') handleCancelAsker();
-                  }}
-                  size="xs"
-                  style={{ width: '120px', display: 'inline-block' }}
-                  autoFocus
-                />
-              </Group>
-            ) : (
-              <span style={{ minWidth: '20px', display: 'inline-block' }}>
-                {message.asker ? message.asker : <span style={{color: 'gray'}}>Enter asker...</span>}
-              </span>
-            )}
-          </span>
-
-          {/* Color editing */}
-          <Popover
-            opened={colorPickerOpened}
-            onChange={setColorPickerOpened}
-            width={250}
-            position="bottom"
-            withArrow
-            shadow="md"
-          >
-            <Popover.Target>
-              <span
+              <Text
+                size="sm"
                 className={classes.editableField}
-                onClick={() => setColorPickerOpened(true)}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                onClick={() => setEditingContent(true)}
+                style={{
+                  color: message.color || undefined,
+                  fontWeight: message.is_focused ? 700 : 500,
+                  fontSize: message.is_focused ? '15px' : undefined,
+                  textDecoration: message.is_focused ? 'underline' : undefined,
+                }}
               >
-                <span>Color:</span>
-                {message.color ? (
-                  <>
-                    <div
-                      style={{
-                        width: '16px',
-                        height: '16px',
-                        backgroundColor: message.color,
-                        border: '1px solid var(--mantine-color-gray-4)',
-                        borderRadius: '3px',
-                      }}
-                    />
-                    <span>{message.color}</span>
-                  </>
-                ) : (
-                  <span>none</span>
-                )}
-              </span>
-            </Popover.Target>
-            <Popover.Dropdown>
-              <ColorPicker
-                format="hex"
-                value={colorValue || '#000000'}
-                onChange={handleColorChange}
-                swatches={[
-                  '#FF5733',
-                  '#33FF57',
-                  '#3357FF',
-                  '#F333FF',
-                  '#FF33F3',
-                  '#33FFF3',
-                  '#F3FF33',
-                  '#FF8C33',
-                  '#8C33FF',
-                  '#33FF8C',
-                ]}
-              />
-              <Group justify="space-between" mt="xs">
-                <Button size="xs" variant="light" color="red" onClick={handleClearColor}>
-                  Clear
-                </Button>
-                <Button size="xs" onClick={() => setColorPickerOpened(false)}>
-                  Done
-                </Button>
-              </Group>
-            </Popover.Dropdown>
-          </Popover>
-        </div>
+                {message.content}
+              </Text>
+            )}
+          </div>
+        )}
       </div>
 
       <div className={classes.controls}>
-        {/* Show/Hide button */}
-        <Tooltip label={message.is_showing ? 'Hide message' : 'Show message'} position="top" withArrow>
-          <button
-            className={cx(classes.controlButton, message.is_showing ? classes.showing : classes.hidden)}
-            onClick={handleToggleShowing}
-          >
-            {message.is_showing ? <IconEye size={16} /> : <IconEyeOff size={16} />}
-          </button>
-        </Tooltip>
+        {/* Show button with icon and text */}
+        <Button
+          variant={message.is_showing ? 'filled' : 'default'}
+          onClick={handleToggleShowing}
+          size="xs"
+          leftSection={<IconEye size={14} />}
+        >
+          Show
+        </Button>
+
+        {/* Color picker */}
+        <Popover
+          opened={colorPickerOpened}
+          onChange={setColorPickerOpened}
+          width={250}
+          position="bottom"
+          withArrow
+          shadow="md"
+        >
+          <Popover.Target>
+            <Button
+              variant="default"
+              onClick={() => setColorPickerOpened(true)}
+              size="xs"
+              leftSection={
+                <div
+                  style={{
+                    width: '12px',
+                    height: '12px',
+                    backgroundColor: message.color || '#FFFFFF',
+                    border: '1px solid var(--mantine-color-gray-4)',
+                    borderRadius: '2px',
+                  }}
+                />
+              }
+            >
+              Color
+            </Button>
+          </Popover.Target>
+          <Popover.Dropdown>
+            <ColorPicker
+              format="hex"
+              value={colorValue || '#000000'}
+              onChange={handleColorChange}
+              swatches={[
+                '#FF5733',
+                '#33FF57',
+                '#3357FF',
+                '#F333FF',
+                '#FF33F3',
+                '#33FFF3',
+                '#F3FF33',
+                '#FF8C33',
+                '#8C33FF',
+                '#33FF8C',
+              ]}
+            />
+            <Group justify="space-between" mt="xs">
+              <Button size="xs" variant="light" color="red" onClick={handleClearColor}>
+                Clear
+              </Button>
+              <Button size="xs" onClick={() => setColorPickerOpened(false)}>
+                Done
+              </Button>
+            </Group>
+          </Popover.Dropdown>
+        </Popover>
 
         {/* Delete button */}
-        <Tooltip label="Delete message" position="top" withArrow>
-          <button className={cx(classes.controlButton, classes.delete)} onClick={handleDeleteClick}>
-            <IconTrash size={16} />
-          </button>
-        </Tooltip>
+        <ActionIcon
+          variant="default"
+          color="red"
+          onClick={handleDeleteClick}
+          size="sm"
+          title="Delete message"
+        >
+          <IconTrash size={16} />
+        </ActionIcon>
       </div>
 
       {/* Delete Confirmation Modal */}
@@ -463,8 +385,6 @@ export function Messages({
       // Apply global display options to the newly shown message
       updates = {
         ...updates,
-        show_source: globalDisplayOptions.show_source,
-        show_asker: globalDisplayOptions.show_asker,
         is_focused: globalDisplayOptions.is_focused,
         is_flashing: globalDisplayOptions.is_flashing,
       };
@@ -483,8 +403,6 @@ export function Messages({
 
   // Store global display options state
   const [globalDisplayOptions, setGlobalDisplayOptions] = useState({
-    show_source: false,
-    show_asker: false,
     is_focused: false,
     is_flashing: false,
   });
@@ -496,29 +414,13 @@ export function Messages({
   useEffect(() => {
     if (showingMessage) {
       setGlobalDisplayOptions({
-        show_source: showingMessage.show_source || false,
-        show_asker: showingMessage.show_asker || false,
         is_focused: showingMessage.is_focused || false,
         is_flashing: showingMessage.is_flashing || false,
       });
     }
-  }, [showingMessage?.id, showingMessage?.show_source, showingMessage?.show_asker, showingMessage?.is_focused, showingMessage?.is_flashing]);
+  }, [showingMessage?.id, showingMessage?.is_focused, showingMessage?.is_flashing]);
 
   // Global control handlers - always work, apply to showing message if exists
-  const handleGlobalToggleSource = (checked: boolean) => {
-    setGlobalDisplayOptions(prev => ({ ...prev, show_source: checked }));
-    if (showingMessage) {
-      handleUpdateMessage(showingMessage.id, { show_source: checked });
-    }
-  };
-
-  const handleGlobalToggleAsker = (checked: boolean) => {
-    setGlobalDisplayOptions(prev => ({ ...prev, show_asker: checked }));
-    if (showingMessage) {
-      handleUpdateMessage(showingMessage.id, { show_asker: checked });
-    }
-  };
-
   const handleGlobalToggleFocused = (checked: boolean) => {
     setGlobalDisplayOptions(prev => ({ ...prev, is_focused: checked }));
     if (showingMessage) {
@@ -537,19 +439,45 @@ export function Messages({
   const filteredMessages = messages.filter((message) => {
     if (!searchQuery.trim()) return true;
     const query = searchQuery.toLowerCase();
-    return (
-      message.content.toLowerCase().includes(query) ||
-      message.source?.toLowerCase().includes(query) ||
-      message.asker?.toLowerCase().includes(query)
-    );
+    return message.content.toLowerCase().includes(query);
   });
 
   return (
     <Box className={classes.container}>
       {/* Fixed Header Section */}
       <Box className={classes.fixedHeader}>
-        {/* Top Row: Add Button and Search */}
-        <Group mb="sm" gap="xs" wrap="nowrap">
+        {/* Top Row: Display Options on left, Add Message on right */}
+        <Group gap="xs" wrap="nowrap" align="center" justify="space-between">
+          <Group gap="xs" wrap="nowrap" align="center">
+            {/* Display Options - Focus Button */}
+            <Button
+              variant={globalDisplayOptions.is_focused ? 'filled' : 'default'}
+              onClick={() => handleGlobalToggleFocused(!globalDisplayOptions.is_focused)}
+              size="xs"
+              leftSection={<IconFocus size={14} />}
+              style={{ flexShrink: 0 }}
+            >
+              Focus
+            </Button>
+
+            {/* Display Options - Flash Button */}
+            <Button
+              variant={globalDisplayOptions.is_flashing ? 'filled' : 'default'}
+              onClick={() => handleGlobalToggleFlashing(!globalDisplayOptions.is_flashing)}
+              size="xs"
+              leftSection={<IconFlare size={14} />}
+              style={{ flexShrink: 0 }}
+            >
+              Flash
+            </Button>
+
+            {showingMessage && (
+              <Badge size="xs" color="blue" variant="light" style={{ flexShrink: 0 }}>
+                Active
+              </Badge>
+            )}
+          </Group>
+
           <Button
             variant="default"
             size="sm"
@@ -558,66 +486,6 @@ export function Messages({
           >
             + Add Message
           </Button>
-
-          {messages.length > 0 && (
-            <TextInput
-              placeholder="Search messages..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.currentTarget.value)}
-              leftSection={<IconSearch size={16} />}
-              rightSection={
-                searchQuery && (
-                  <ActionIcon
-                    variant="subtle"
-                    onClick={() => setSearchQuery('')}
-                    size="sm"
-                  >
-                    <IconX size={14} />
-                  </ActionIcon>
-                )
-              }
-              size="sm"
-              style={{ flex: 1 }}
-            />
-          )}
-        </Group>
-
-        {/* Display Options Row */}
-        <Group gap="md" wrap="nowrap" align="center">
-          <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>
-            Display Options:
-          </Text>
-          <Group gap="md" style={{ flex: 1 }}>
-            <Switch
-              checked={globalDisplayOptions.show_source}
-              onChange={(e) => handleGlobalToggleSource(e.currentTarget.checked)}
-              label="Show Source"
-              size="xs"
-            />
-            <Switch
-              checked={globalDisplayOptions.show_asker}
-              onChange={(e) => handleGlobalToggleAsker(e.currentTarget.checked)}
-              label="Show Asker"
-              size="xs"
-            />
-            <Switch
-              checked={globalDisplayOptions.is_focused}
-              onChange={(e) => handleGlobalToggleFocused(e.currentTarget.checked)}
-              label="Focused"
-              size="xs"
-            />
-            <Switch
-              checked={globalDisplayOptions.is_flashing}
-              onChange={(e) => handleGlobalToggleFlashing(e.currentTarget.checked)}
-              label="Flashing"
-              size="xs"
-            />
-          </Group>
-          {showingMessage && (
-            <Badge size="xs" color="blue" variant="light" style={{ flexShrink: 0 }}>
-              Active
-            </Badge>
-          )}
         </Group>
       </Box>
 

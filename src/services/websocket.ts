@@ -75,8 +75,6 @@ export interface MessageData {
   color?: string | null;
   is_focused?: boolean;
   is_flashing?: boolean;
-  source?: string | null;
-  asker?: string | null;
   is_showing: boolean;
 }
 
