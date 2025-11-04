@@ -23,7 +23,7 @@ export function TimerAdjustmentControls({
   onAdjustTime,
   isAdjusting = false,
 }: TimerAdjustmentControlsProps) {
-  const [customValue, setCustomValue] = useState<number>(60); // Default 60 seconds (1 minute)
+  const [customValue, setCustomValue] = useState<number>(300); // Default 60 seconds (1 minute)
 
   // Timer is running only when it's active and not paused
   const isTimerRunning = isActive && !isPaused && !isFinished && !isStopped;
