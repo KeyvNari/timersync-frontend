@@ -396,7 +396,7 @@ export default function RoomComponent({
 
   // Bottom Right Panel: Connected Devices
   const bottomRightPanel = (
-    <Paper withBorder p="md" h="100%">
+    <Box h="100%">
       <ConnectedDevices
         connections={connections}
         currentUserAccess={userAccessLevel}
@@ -404,7 +404,7 @@ export default function RoomComponent({
         onDisconnectDevice={onDisconnectDevice}
         onRevokeAccessToken={onRevokeAccessToken}
       />
-    </Paper>
+    </Box>
   );
 
   return (
