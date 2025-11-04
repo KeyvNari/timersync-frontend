@@ -33,9 +33,13 @@
   box-shadow: 0 0 0 1px var(--mantine-color-blue-5), 0 2px 8px rgba(59, 130, 246, 0.15) !important;
 }
 
-/* Status indicators via border colors */
+/* Status indicators via border colors and background */
 .item[data-status="active"] {
   border-left-color: var(--mantine-color-teal-5);
+  background-color: light-dark(
+    rgba(13, 160, 157, 0.08),
+    rgba(19, 197, 195, 0.12)
+  );
 }
 
 .item[data-status="warning"] {
