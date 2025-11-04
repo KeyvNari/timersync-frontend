@@ -114,12 +114,14 @@ export function RoomsComponent({
   };
 
   const handleLogout = () => {
+    // Navigate immediately before any state changes
+    navigate(`${paths.auth.login}?r=${paths.dashboard.rooms}`, { replace: true });
+
     logout(
       { variables: {} },
       {
         onSettled: () => {
           setIsAuthenticated(false);
-          navigate(paths.auth.login, { replace: true });
         },
       }
     );

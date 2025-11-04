@@ -33,8 +33,8 @@ export const menu: MenuItem[] = [
     header: 'Overview',
     section: [
       {
-        name: 'Welcome',
-        href: paths.dashboard.home,
+        name: 'Rooms',
+        href: paths.dashboard.rooms,
         icon: PiStarDuotone,
       },
       {

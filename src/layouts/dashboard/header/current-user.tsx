@@ -23,13 +23,14 @@ export function CurrentUser(props: CurrentUserProps) {
   const { data: user } = useGetAccountInfo();
 
 const handleLogout = () => {
+  // Navigate immediately before any state changes
+  navigate(`${paths.auth.login}?r=${paths.dashboard.rooms}`, { replace: true });
+
   logout(
     { variables: {} },
     {
       onSettled: () => {
-        // Always clear auth state and redirect, regardless of API response
         setIsAuthenticated(false);
-        navigate(paths.auth.login, { replace: true });
       }
     }
   );
