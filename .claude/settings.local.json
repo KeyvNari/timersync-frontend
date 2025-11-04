@@ -12,7 +12,11 @@
       "Bash(cat src/api/query-client.ts)",
       "Bash(npm install react-markdown remark-gfm)",
       "Bash(npm install mammoth pdfjs-dist xlsx)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(del nul)",
+      "Bash(cmd /c del nul)",
+      "Bash(git rm:*)",
+      "Bash(powershell -Command:*)"
     ],
     "deny": [],
     "ask": []

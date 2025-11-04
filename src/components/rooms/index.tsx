@@ -38,6 +38,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth, useGetAccountInfo, useLogout } from '@/hooks';
 import { paths } from '@/routes/paths';
 import { Room } from '@/api/entities/rooms';
+import { Logo } from '@/components/logo';
 
 export interface RoomsComponentProps {
   /** Array of rooms to display */
@@ -62,6 +63,8 @@ export interface RoomsComponentProps {
   hideHeader?: boolean;
   /** Optional: Custom action bar right content */
   actionBarRightContent?: React.ReactNode;
+  /** Optional: Logo to display in action bar */
+  actionBarLeftContent?: React.ReactNode;
 }
 
 export function RoomsComponent({
@@ -76,6 +79,7 @@ export function RoomsComponent({
   onDeleteRoom,
   hideHeader = false,
   actionBarRightContent,
+  actionBarLeftContent,
 }: RoomsComponentProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [createOpened, { open: openCreate, close: closeCreate }] = useDisclosure(false);
@@ -151,8 +155,9 @@ export function RoomsComponent({
       {/* Header */}
       {!hideHeader && (
         <Paper
-          withBorder
+          withBorder={false}
           p="md"
+          pb="0"
           mb="lg"
           style={{
             position: 'sticky',
@@ -161,13 +166,8 @@ export function RoomsComponent({
             backgroundColor: 'var(--mantine-color-body)',
           }}
         >
-          <Group justify="space-between">
-            <Group gap="md">
-              <Title order={2}>Your Rooms</Title>
-              <Badge size="lg" variant="light" color="blue">
-                {rooms.length} {rooms.length === 1 ? 'Room' : 'Rooms'}
-              </Badge>
-            </Group>
+          <Group justify="space-between" align="center">
+            <Logo size="80px" />
 
             {/* User Menu */}
             <Menu position="bottom-end" shadow="md" width={200}>
@@ -211,15 +211,18 @@ export function RoomsComponent({
 
       <Stack gap="lg" p="md">
         {/* Action Bar */}
-        <Group justify="space-between" wrap="wrap">
-          <TextInput
-            placeholder="Search rooms..."
-            leftSection={<IconSearch size="1rem" />}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.currentTarget.value)}
-            style={{ flexGrow: 1, maxWidth: '400px' }}
-          />
+        <Group justify="space-between" wrap="wrap" align="center">
+          <Group gap="md">
+            {actionBarLeftContent}
+          </Group>
           <Group gap="sm">
+            <TextInput
+              placeholder="Search rooms..."
+              leftSection={<IconSearch size="1rem" />}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.currentTarget.value)}
+              style={{ width: '300px' }}
+            />
             {showCreateButton && (
               <Button leftSection={<IconPlus size="1rem" />} onClick={onCreateRoom || openCreate}>
                 Create Room

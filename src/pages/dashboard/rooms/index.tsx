@@ -7,6 +7,8 @@ import { modals } from '@mantine/modals';
 import { Page } from '@/components/page';
 import { RoomsComponent } from '@/components/rooms';
 import { CurrentUser } from '@/layouts/dashboard/header/current-user';
+import { Logo } from '@/components/logo';
+import { Box } from '@mantine/core';
 import { paths } from '@/routes/paths';
 import { useGetRooms, useCreateRoom, useUpdateRoom, useDeleteRoom } from '@/hooks';
 import { Room } from '@/api/entities/rooms';
@@ -22,12 +24,12 @@ export default function RoomsPage() {
   const [editOpened, { open: openEdit, close: closeEdit }] = useDisclosure(false);
 
   const [roomName, setRoomName] = useState('');
-  const [timeZone, setTimeZone] = useState('UTC');
+  const [timeZone, setTimeZone] = useState('Europe/Berlin');
 
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [editName, setEditName] = useState('');
   const [editDescription, setEditDescription] = useState('');
-  const [editTimeZone, setEditTimeZone] = useState('UTC');
+  const [editTimeZone, setEditTimeZone] = useState('Europe/Berlin');
   const [editIsActive, setEditIsActive] = useState(true);
 
   const handleRoomSelect = (roomId: number) => {
@@ -61,7 +63,7 @@ export default function RoomsPage() {
             color: 'green',
           });
           setRoomName('');
-          setTimeZone('UTC');
+          setTimeZone('Europe/Berlin');
           closeCreate();
         },
         onError: (error) => {
@@ -77,7 +79,7 @@ export default function RoomsPage() {
 
   const handleCloseModal = () => {
     setRoomName('');
-    setTimeZone('UTC');
+    setTimeZone('Europe/Berlin');
     closeCreate();
   };
 
@@ -88,7 +90,7 @@ export default function RoomsPage() {
     setEditingRoom(room);
     setEditName(room.name);
     setEditDescription(room.description || '');
-    setEditTimeZone(room.time_zone || 'UTC');
+    setEditTimeZone(room.time_zone || 'Europe/Berlin');
     setEditIsActive(room.is_active);
     openEdit();
   };
@@ -140,7 +142,7 @@ export default function RoomsPage() {
     setEditingRoom(null);
     setEditName('');
     setEditDescription('');
-    setEditTimeZone('UTC');
+    setEditTimeZone('Europe/Berlin');
     setEditIsActive(true);
     closeEdit();
   };
@@ -195,12 +197,16 @@ export default function RoomsPage() {
     { value: 'America/Denver', label: 'America/Denver (MST/MDT)' },
     { value: 'America/Los_Angeles', label: 'America/Los Angeles (PST/PDT)' },
     { value: 'Europe/London', label: 'Europe/London (GMT/BST)' },
-    { value: 'Europe/Paris', label: 'Europe/Paris (CET/CEST)' },
     { value: 'Europe/Berlin', label: 'Europe/Berlin (CET/CEST)' },
-    { value: 'Asia/Tokyo', label: 'Asia/Tokyo (JST)' },
-    { value: 'Asia/Shanghai', label: 'Asia/Shanghai (CST)' },
+    { value: 'Europe/Amsterdam', label: 'Europe/Amsterdam (CET/CEST)' },
+    { value: 'Europe/Moscow', label: 'Europe/Moscow (MSK)' },
     { value: 'Asia/Dubai', label: 'Asia/Dubai (GST)' },
+    { value: 'Asia/Kolkata', label: 'Asia/Kolkata (IST)' },
+    { value: 'Asia/Shanghai', label: 'Asia/Shanghai (CST)' },
+    { value: 'Asia/Tokyo', label: 'Asia/Tokyo (JST)' },
+    { value: 'Asia/Seoul', label: 'Asia/Seoul (KST)' },
     { value: 'Australia/Sydney', label: 'Australia/Sydney (AEST/AEDT)' },
+    { value: 'Pacific/Auckland', label: 'Pacific/Auckland (NZST)' },
   ];
 
   return (
@@ -215,6 +221,7 @@ export default function RoomsPage() {
         onEditRoom={handleEditRoom}
         onDeleteRoom={handleDeleteRoom}
         hideHeader={true}
+        actionBarLeftContent={<Logo size="200px" />}
         actionBarRightContent={<CurrentUser size="md" />}
       />
 

@@ -5,7 +5,7 @@ import { Page } from '@/components/page';
 import { LoadingScreen } from '@/components/loading-screen';
 import RoomComponent from '@/components/room';
 import { useWebSocketContext, useTimerContext } from '@/providers/websocket-provider';
-import { useAuth, useGetAccountInfo } from '@/hooks';
+import { useSafeAuth, useGetAccountInfo } from '@/hooks';
 import { app } from '@/config';
 import { useDisclosure } from '@mantine/hooks';
 import { AITimerChat } from '@/components/ai-timer-chat';
@@ -40,7 +40,7 @@ export default function RoomController({
   // Track if we've ever been connected (to avoid showing notification on initial load)
   const [hasBeenConnected, setHasBeenConnected] = useState(false);
 
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated } = useSafeAuth();
   const { data: user } = useGetAccountInfo();
 
   const {

@@ -1,5 +1,5 @@
 export const app = {
-  name: 'clockverse',
+  name: 'VeroTime',
   apiBaseUrl: 'http://localhost:8002',
   fakeBackend: false,
   redirectQueryParamName: 'r',

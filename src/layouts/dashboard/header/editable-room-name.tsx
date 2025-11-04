@@ -12,7 +12,7 @@ interface EditableRoomNameProps {
 
 export function EditableRoomName({
   initialName = "Unnamed Room...",
-  initialTimeZone = "UTC",
+  initialTimeZone = "Europe/Berlin",
   onSave,
   onTimeZoneSave,
   maxLength = 50
@@ -90,8 +90,7 @@ export function EditableRoomName({
     { value: 'America/Los_Angeles', label: 'PST (Pacific Standard Time)' },
     { value: 'Europe/London', label: 'GMT (Greenwich Mean Time)' },
     { value: 'Europe/Berlin', label: 'CET (Central European Time)' },
-    { value: 'Europe/Paris', label: 'CET (Central European Time)' },
-    { value: 'Europe/Rome', label: 'CET (Central European Time)' },
+    { value: 'Europe/Amsterdam', label: 'CET (Central European Time)' },
     { value: 'Europe/Moscow', label: 'MSK (Moscow Time)' },
     { value: 'Asia/Dubai', label: 'GST (Gulf Standard Time)' },
     { value: 'Asia/Kolkata', label: 'IST (Indian Standard Time)' },
@@ -99,7 +98,6 @@ export function EditableRoomName({
     { value: 'Asia/Tokyo', label: 'JST (Japan Standard Time)' },
     { value: 'Asia/Seoul', label: 'KST (Korea Standard Time)' },
     { value: 'Australia/Sydney', label: 'AEST (Australian Eastern Standard Time)' },
-    { value: 'Australia/Melbourne', label: 'AEST (Australian Eastern Standard Time)' },
     { value: 'Pacific/Auckland', label: 'NZST (New Zealand Standard Time)' },
   ];
 
