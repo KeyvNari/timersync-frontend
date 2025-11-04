@@ -13,15 +13,13 @@ import {
   Divider,
   Box,
   Indicator,
-  Collapse,
-  Button
+  Collapse
 } from '@mantine/core';
 import {
   PiDevices as DeviceIcon,
   PiUser as UserIcon,
   PiEye as ViewerIcon,
   PiCrown as AdminIcon,
-  PiCircle as OnlineIcon,
   PiSignOut as DisconnectIcon,
   PiDotsThreeOutline as DetailsIcon,
   PiCaretDown as CaretDownIcon,
@@ -178,6 +176,9 @@ function ConnectionGroupItem({
   // Get the access level for this group (all connections in a group have the same access level)
   const groupAccessLevel = group.connections[0]?.access_level || 'viewer';
 
+  // Check if any device in the group is online for the indicator
+  const hasOnlineDevice = onlineCount > 0;
+
   return (
     <Box>
       <Box p="md">
@@ -192,7 +193,7 @@ function ConnectionGroupItem({
               size={6}
               offset={2}
               processing
-              disabled={onlineCount === 0}
+              disabled={!hasOnlineDevice}
             >
               <Avatar size="sm" color="violet">
                 <TokenIcon size="1rem" />
@@ -218,9 +219,6 @@ function ConnectionGroupItem({
                   </Badge>
                 )}
               </Group>
-              <Text size="xs" c="dimmed">
-                {onlineCount} online
-              </Text>
             </div>
           </Group>
 
@@ -456,12 +454,6 @@ export function ConnectedDevices({
   const groupsArray = Array.from(connectionGroups.values());
 
   const totalConnections = connectionList.length;
-  const fullAccessCount = connectionList.filter(c => c.access_level === 'full').length;
-  const viewerCount = connectionList.filter(c => c.access_level === 'viewer').length;
-  const onlineCount = connectionList.filter(c => {
-    if (!c.last_ping) return true;
-    return (new Date().getTime() - new Date(c.last_ping).getTime()) < 60000;
-  }).length;
   
   if (compactMode) {
     return (
@@ -507,20 +499,6 @@ export function ConnectedDevices({
           <DeviceIcon size="1.5rem" />
           <div style={{ flex: 1 }}>
             <Title order={4}>Connected Devices</Title>
-            <Group gap="md" mt="xs">
-              <Text size="sm" c="dimmed">
-                {onlineCount} online
-              </Text>
-              <Text size="sm" c="dimmed">
-                {fullAccessCount} full{fullAccessCount !== 1 ? '' : ''}
-              </Text>
-              <Text size="sm" c="dimmed">
-                {viewerCount} viewer{viewerCount !== 1 ? 's' : ''}
-              </Text>
-              {/* <Text size="sm" c="dimmed">
-                {groupsArray.length} token{groupsArray.length !== 1 ? 's' : ''}
-              </Text> */}
-            </Group>
           </div>
         </Group>
       </Box>

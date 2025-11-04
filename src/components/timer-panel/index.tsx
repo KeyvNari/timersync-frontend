@@ -404,6 +404,11 @@ const handleDoubleClick = (e: React.MouseEvent) => {
 
   // Inline editing functions
   const startEditing = (field: string, currentValue: string) => {
+    // Don't allow editing if timer is running
+    if (item.is_active && !item.is_paused) {
+      return;
+    }
+
     setEditingField(field);
     if (field === 'duration_seconds') {
       const { minutes, seconds } = secondsToMinutesAndSeconds(item.duration_seconds);
@@ -513,6 +518,11 @@ const handleDoubleClick = (e: React.MouseEvent) => {
 
   // Open schedule popover with current value
   const handleScheduleClick = () => {
+    // Don't allow editing if timer is running
+    if (item.is_active && !item.is_paused) {
+      return;
+    }
+
     if (item.scheduled_start_date && item.scheduled_start_time) {
       setScheduleDateTime(new Date(`${item.scheduled_start_date}T${item.scheduled_start_time}`));
     } else {
@@ -550,7 +560,15 @@ const handleDoubleClick = (e: React.MouseEvent) => {
               autoFocus
             />
           ) : (
-            <div className={classes.timerTitle} onClick={() => startEditing('title', item.title)}>
+            <div
+              className={classes.timerTitle}
+              onClick={() => startEditing('title', item.title)}
+              style={{
+                cursor: (item.is_active && !item.is_paused) ? 'not-allowed' : 'pointer',
+                opacity: (item.is_active && !item.is_paused) ? 0.7 : 1
+              }}
+              title={(item.is_active && !item.is_paused) ? 'Cannot edit while timer is running' : 'Click to edit'}
+            >
               {item.title}
             </div>
           )}
@@ -666,7 +684,15 @@ const handleDoubleClick = (e: React.MouseEvent) => {
             ) : (
               <>
                 <span className={classes.metaLabel}>Duration</span>
-                <span className={classes.metaValue} onClick={() => startEditing('duration_seconds', formatDuration(item.duration_seconds))}>
+                <span
+                  className={classes.metaValue}
+                  onClick={() => startEditing('duration_seconds', formatDuration(item.duration_seconds))}
+                  style={{
+                    cursor: (item.is_active && !item.is_paused) ? 'not-allowed' : 'pointer',
+                    opacity: (item.is_active && !item.is_paused) ? 0.7 : 1
+                  }}
+                  title={(item.is_active && !item.is_paused) ? 'Cannot edit while timer is running' : 'Click to edit'}
+                >
                   {formatDuration(item.duration_seconds)}
                 </span>
               </>
@@ -698,7 +724,15 @@ const handleDoubleClick = (e: React.MouseEvent) => {
               ) : (
                 <>
                   <span className={classes.metaLabel}>Speaker</span>
-                  <span className={classes.metaSpeaker} onClick={() => startEditing('speaker', item.speaker || '')}>
+                  <span
+                    className={classes.metaSpeaker}
+                    onClick={() => startEditing('speaker', item.speaker || '')}
+                    style={{
+                      cursor: (item.is_active && !item.is_paused) ? 'not-allowed' : 'pointer',
+                      opacity: (item.is_active && !item.is_paused) ? 0.7 : 1
+                    }}
+                    title={(item.is_active && !item.is_paused) ? 'Cannot edit while timer is running' : 'Click to edit'}
+                  >
                     {item.speaker}
                   </span>
                 </>
@@ -725,6 +759,11 @@ const handleDoubleClick = (e: React.MouseEvent) => {
                   e.stopPropagation();
                   handleScheduleClick();
                 }}
+                style={{
+                  cursor: (item.is_active && !item.is_paused) ? 'not-allowed' : 'pointer',
+                  opacity: (item.is_active && !item.is_paused) ? 0.7 : 1
+                }}
+                title={(item.is_active && !item.is_paused) ? 'Cannot edit while timer is running' : undefined}
               >
                 <IconCalendar size={14} style={{ flexShrink: 0 }} />
                 {item.scheduled_start_time && item.scheduled_start_date ? (
@@ -831,10 +870,23 @@ const handleDoubleClick = (e: React.MouseEvent) => {
             </button>
           </Tooltip>
 
-          <Tooltip label="Advanced settings" position="top" withArrow>
+          <Tooltip
+            label={
+              (item.is_active && !item.is_paused)
+                ? "Cannot edit settings while timer is running"
+                : "Advanced settings"
+            }
+            position="top"
+            withArrow
+          >
             <button
               className={classes.controlButton}
               onClick={() => onOpenSettings(item)}
+              disabled={item.is_active && !item.is_paused}
+              style={{
+                cursor: (item.is_active && !item.is_paused) ? 'not-allowed' : 'pointer',
+                opacity: (item.is_active && !item.is_paused) ? 0.5 : 1
+              }}
             >
               <IconSettings size={14} />
             </button>
