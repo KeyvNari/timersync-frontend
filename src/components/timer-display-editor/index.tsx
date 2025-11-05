@@ -476,7 +476,7 @@ export default function TimerDisplayEditor({
                       value={display.logo_size_percent}
                       onChange={(value) => updateDisplay('logo_size_percent', value)}
                       min={20}
-                      max={200}
+                      max={500}
                       suffix=" px"
                     />
 

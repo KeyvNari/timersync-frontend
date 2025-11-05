@@ -38,6 +38,7 @@ import {
   IconDownload,
   IconAlertCircle,
   IconRefresh,
+  IconLetterXSmall
 } from '@tabler/icons-react';
 import { useWebSocketContext } from '@/providers/websocket-provider';
 import { useDisclosure } from '@mantine/hooks';
@@ -316,18 +317,18 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
   const getPermissionsList = (level: AccessLevel) => {
     if (level === 'full') {
       return [
-        { icon: IconEdit, text: 'Full control over all timers' },
-        { icon: IconClock, text: 'Start, pause, and stop timers' },
-        { icon: IconSettings, text: 'Create, edit, and delete timers' },
-        { icon: IconDeviceDesktop, text: 'Manage displays and connections' },
-        { icon: IconMessages, text: 'Access room chat' },
-        { icon: IconUsers, text: 'Disconnect other viewers' },
+        { icon: IconCheck, text: 'View current running timer display' },
+        { icon: IconCheck, text: 'Full control over all timers and messages' },
+        { icon: IconCheck, text: 'Manage displays and connections' },
+        { icon: IconCheck, text: 'Disconnect other connections' }
       ];
     } else {
       return [
-        { icon: IconEye, text: 'View all timers in real-time' },
-        { icon: IconMessages, text: 'Access room chat' },
-        { icon: IconCircleCheck, text: 'Read-only access - cannot control timers' },
+        { icon: IconCheck, text: 'View current running timer display' },
+        { icon: IconLetterXSmall, text: 'Full control over all timers and messages' },
+        { icon: IconLetterXSmall, text: 'Manage displays and connections' },
+        { icon: IconLetterXSmall, text: 'Disconnect other connections' }
+  
       ];
     }
   };
@@ -411,7 +412,7 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
                   <List.Item
                     key={idx}
                     icon={
-                      <ThemeIcon color={level === 'full' ? 'blue' : 'teal'} size={18} radius="xl">
+                      <ThemeIcon color={perm.icon === IconLetterXSmall ? 'red' : 'blue'} size={18} radius="xl">
                         <perm.icon size={11} />
                       </ThemeIcon>
                     }
