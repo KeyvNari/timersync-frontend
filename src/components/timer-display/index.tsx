@@ -472,7 +472,13 @@ switch (safeDisplay.background_type || 'color') {
     whiteSpace: 'nowrap',
   };
 
-  const logoSize = safeDisplay.logo_size_percent || 60;
+  // Apply size limits in small view mode
+  let logoSize = safeDisplay.logo_size_percent || 60;
+  // In small view (not in view_mode and not fullscreen), cap logo size at 100px maximum
+  if (!in_view_mode && !isFullscreen) {
+    logoSize = Math.min(logoSize, 100);
+  }
+
   const logoStyle: React.CSSProperties = {
     position: 'absolute',
     maxWidth: `${logoSize}px`,
