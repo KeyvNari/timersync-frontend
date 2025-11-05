@@ -22,7 +22,7 @@ export function App() {
   return (
     <HelmetProvider>
       <QueryClientProvider client={queryClient}>
-        <ReactQueryDevtools initialIsOpen={false} />
+        {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
         <AuthProvider>
           <WebSocketProvider >
           <MantineProvider theme={theme} forceColorScheme="dark">
