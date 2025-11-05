@@ -1,9 +1,8 @@
 // src/pages/auth/login/index.tsx - Show success message from registration
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { PiGoogleLogoDuotone as GoogleIcon, PiXLogoDuotone as XIcon } from 'react-icons/pi';
 import { NavLink } from 'react-router-dom';
-import { Anchor, Button, Divider, Group, Stack, Text, Title, Alert } from '@mantine/core';
+import { Anchor, Stack, Text, Title, Alert } from '@mantine/core';
 import { IconCheck } from '@tabler/icons-react';
 import { Page } from '@/components/page';
 import { UnderlineShape } from '@/components/_stubs';
@@ -34,8 +33,8 @@ export default function LoginPage() {
             to continue.
           </Title>
           <Text fz="sm" c="dimmed">
-            By signing up, you will gain access to exclusive content, special offers, and be the
-            first to hear about exciting news and updates.
+            Access your synchronized timer rooms and manage real-time collaborations with your
+            team. Create, control, and share timers across all devices instantly.
           </Text>
         </Stack>
 
@@ -44,17 +43,6 @@ export default function LoginPage() {
             {successMessage}
           </Alert>
         )}
-
-        <Group grow>
-          <Button leftSection={<XIcon size="1rem" />} variant="outline" color="gray">
-            Login with X
-          </Button>
-          <Button leftSection={<GoogleIcon size="1rem" />} variant="outline" color="gray">
-            Login with Google
-          </Button>
-        </Group>
-
-        <Divider label="OR" labelPosition="center" />
 
         <LoginForm />
 

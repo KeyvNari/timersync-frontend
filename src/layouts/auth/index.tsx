@@ -8,8 +8,8 @@ export function AuthLayout() {
   const navigate = useNavigate();
 
   return (
-    <SimpleGrid mih="100vh" p="md" cols={{ base: 1, lg: 2 }}>
-      <Flex direction="column" align="flex-start">
+    <Box style={{ height: '100vh', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(0, 1fr))', gap: 'var(--mantine-spacing-md)', padding: 'var(--mantine-spacing-md)', overflow: 'hidden' }}>
+      <Flex direction="column" align="flex-start" style={{ overflowY: 'auto' }}>
         <Button
           c="inherit"
           variant="subtle"
@@ -32,18 +32,19 @@ export function AuthLayout() {
         p="4rem"
         bg="var(--mantine-color-default-hover)"
         display={{ base: 'none', lg: 'flex' }}
-        style={{ borderRadius: 'var(--mantine-radius-md)' }}
+        style={{ borderRadius: 'var(--mantine-radius-md)', overflowY: 'auto' }}
       >
         <Box maw="40rem">
-          <Title order={2}>The simplest way to manage your workspace.</Title>
+          <Title order={2}>Real-time timer synchronization for teams.</Title>
           <Text my="lg" c="dimmed">
-            Amet minim mollit non deserunt ullamco est sit aliqua dolor do amet sint velit officia
-            consequat duis.
+            Create collaborative timer rooms, coordinate across devices, and share synchronized timers
+            with your team. Perfect for presentations, events, training sessions, and any scenario
+            where precision timing matters.
           </Text>
 
           <Image src={demosaas} alt="Demo" />
         </Box>
       </Center>
-    </SimpleGrid>
+    </Box>
   );
 }

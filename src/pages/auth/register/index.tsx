@@ -1,6 +1,5 @@
-import { PiGoogleLogoDuotone as GoogleIcon, PiXLogoDuotone as XIcon } from 'react-icons/pi';
 import { NavLink } from 'react-router-dom';
-import { Anchor, Button, Divider, Group, Stack, Text, Title } from '@mantine/core';
+import { Anchor, Stack, Text, Title } from '@mantine/core';
 import { Page } from '@/components/page';
 import { UnderlineShape } from '@/components/_stubs';
 import { paths } from '@/routes';
@@ -12,9 +11,9 @@ export default function RegisterPage() {
       <Stack gap="xl">
         <Stack>
           <Title order={2}>
-            Join us and never miss a thing{' '}
+            Synchronize timers with your team.{' '}
             <Text fz="inherit" fw="inherit" component="span" pos="relative">
-              REGISTER
+              Get Started
               <UnderlineShape
                 c="blue"
                 left="0"
@@ -26,21 +25,11 @@ export default function RegisterPage() {
             </Text>
           </Title>
           <Text fz="sm" c="dimmed">
-            By signing up, you will gain access to exclusive content, special offers, and be the
-            first to hear about exciting news and updates.
+            Create collaborative timer rooms, manage real-time synchronization across devices, and
+            share custom-styled timers with your audience. Perfect for presentations, events, and
+            team coordination.
           </Text>
         </Stack>
-
-        <Group grow>
-          <Button leftSection={<XIcon size="1rem" />} variant="outline" color="gray">
-            Register with X
-          </Button>
-          <Button leftSection={<GoogleIcon size="1rem" />} variant="outline" color="gray">
-            Register with Google
-          </Button>
-        </Group>
-
-        <Divider label="OR" labelPosition="center" />
 
         <RegisterForm />
 
