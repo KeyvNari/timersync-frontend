@@ -489,11 +489,11 @@ switch (safeDisplay.background_type || 'color') {
 
   switch (safeDisplay.logo_position || 'top_left') {
     case 'top_left':
-      logoStyle.top = 20;
+      logoStyle.top = 5;
       logoStyle.left = 20;
       break;
     case 'top_right':
-      logoStyle.top = 20;
+      logoStyle.top = 5;
       logoStyle.right = 20;
       break;
     case 'bottom_left':
