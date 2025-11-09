@@ -337,8 +337,12 @@ function TimerDisplay({
     const m = Math.floor((absSeconds % 3600) / 60);
     const s = absSeconds % 60;
 
+    // Auto-switch to hh:mm:ss format if time exceeds 60 minutes
+    const totalMinutes = Math.floor(absSeconds / 60);
+    const shouldUseHourFormat = totalMinutes >= 60;
+
     let timeStr = '';
-    if (formatStr.includes('h')) {
+    if (shouldUseHourFormat || formatStr.includes('h')) {
       timeStr = [h, m, s].map(n => n.toString().padStart(2, '0')).join(':');
     } else {
       timeStr = [m, s].map(n => n.toString().padStart(2, '0')).join(':');

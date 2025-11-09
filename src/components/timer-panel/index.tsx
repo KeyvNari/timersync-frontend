@@ -573,12 +573,6 @@ const handleDoubleClick = (e: React.MouseEvent) => {
             </div>
           )}
 
-          {/* Status indicator */}
-          {getItemStatus() && (
-          <div className={cx(classes.statusBadge, getItemStatus() && classes[getItemStatus()!])}>
-            {getItemStatus()}
-          </div>
-          )}
 
           {/* Notes indicator */}
           {item.notes && (
@@ -831,23 +825,13 @@ const handleDoubleClick = (e: React.MouseEvent) => {
       </div>
 
         <div className={classes.controls}>
-          <Tooltip label="Start timer" position="top" withArrow>
+          <Tooltip label={item.is_paused || !item.is_active ? "Start timer" : "Pause timer"} position="top" withArrow>
             <button
-              className={cx(classes.controlButton, classes.play)}
-              onClick={handlePlay}
-              disabled={item.is_active && !item.is_paused}
+              className={cx(classes.controlButton, item.is_paused || !item.is_active ? classes.play : classes.pause)}
+              onClick={item.is_paused || !item.is_active ? handlePlay : handlePause}
+              disabled={item.is_stopped}
             >
-              <IconPlayerPlay size={14} />
-            </button>
-          </Tooltip>
-
-          <Tooltip label="Pause timer" position="top" withArrow>
-            <button
-              className={cx(classes.controlButton, classes.pause)}
-              onClick={handlePause}
-              disabled={!item.is_active || item.is_paused}
-            >
-              <IconPlayerPause size={14} />
+              {item.is_paused || !item.is_active ? <IconPlayerPlay size={14} /> : <IconPlayerPause size={14} />}
             </button>
           </Tooltip>
 
