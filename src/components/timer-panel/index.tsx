@@ -17,6 +17,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { IconPlayerPlay, IconPlayerPause, IconRestore, IconGripVertical, IconSettings, IconNotes, IconTrash, IconClock, IconUser, IconCalendar, IconArrowDown, IconLink } from '@tabler/icons-react';
 import cx from 'clsx';
 import { Text, Button, Group, Alert, useMantineColorScheme, useMantineTheme, HoverCard, TextInput, Modal, Popover, Switch } from '@mantine/core';
+import { Menu } from '@mantine/core';
 import { DateTimePicker } from '@mantine/dates';
 import { useListState } from '@mantine/hooks';
 import { useState, useEffect, useRef } from 'react';
@@ -588,7 +589,7 @@ const handleDoubleClick = (e: React.MouseEvent) => {
             </HoverCard>
           )}
 
-          {/* Link indicator */}
+          {/* Link indicator - shown on hover only */}
           {linkedTimer && (
             <Tooltip
               label={`Linked to: ${linkedTimer.title}`}
@@ -596,6 +597,7 @@ const handleDoubleClick = (e: React.MouseEvent) => {
               withArrow
             >
               <div
+                className={classes.hoverOnly}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -615,7 +617,7 @@ const handleDoubleClick = (e: React.MouseEvent) => {
             </Tooltip>
           )}
 
-          {/* Auto Start Toggle - Clickable and shows ON/OFF */}
+          {/* Auto Start Toggle - shown on hover only */}
           <Tooltip
             label={
               item.is_manual_start
@@ -626,7 +628,7 @@ const handleDoubleClick = (e: React.MouseEvent) => {
             withArrow
           >
             <div
-              className={classes.autoStartBadge}
+              className={cx(classes.autoStartBadge, classes.hoverOnly)}
               onClick={(e) => {
                 e.stopPropagation();
                 handleAutoStartToggle();
@@ -703,7 +705,7 @@ const handleDoubleClick = (e: React.MouseEvent) => {
           )}
 
           {item.speaker && (
-            <span className={classes.editableField}>
+            <span className={cx(classes.editableField, classes.hoverOnly)}>
               <IconUser size={14} style={{ flexShrink: 0 }} />
               {editingField === 'speaker' ? (
                 <TextInput
@@ -734,7 +736,7 @@ const handleDoubleClick = (e: React.MouseEvent) => {
             </span>
           )}
 
-          {/* Schedule Editing - Inline with Popover */}
+          {/* Schedule Editing - Inline with Popover - shown on hover only */}
           <Popover
             width={300}
             position="bottom"
@@ -748,7 +750,7 @@ const handleDoubleClick = (e: React.MouseEvent) => {
           >
             <Popover.Target>
               <span
-                className={classes.editableField}
+                className={cx(classes.editableField, classes.hoverOnly)}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleScheduleClick();
@@ -845,36 +847,35 @@ const handleDoubleClick = (e: React.MouseEvent) => {
             </button>
           </Tooltip>
 
-          <Tooltip label="Delete timer" position="top" withArrow>
-            <button
-              className={cx(classes.controlButton, classes.delete)}
-              onClick={handleDelete}
-            >
-              <IconTrash size={14} />
-            </button>
-          </Tooltip>
-
-          <Tooltip
-            label={
-              (item.is_active && !item.is_paused)
-                ? "Cannot edit settings while timer is running"
-                : "Advanced settings"
-            }
-            position="top"
-            withArrow
-          >
-            <button
-              className={classes.controlButton}
-              onClick={() => onOpenSettings(item)}
-              disabled={item.is_active && !item.is_paused}
-              style={{
-                cursor: (item.is_active && !item.is_paused) ? 'not-allowed' : 'pointer',
-                opacity: (item.is_active && !item.is_paused) ? 0.5 : 1
-              }}
-            >
-              <IconSettings size={14} />
-            </button>
-          </Tooltip>
+          <Menu position="bottom-end" shadow="md" closeOnClickOutside>
+            <Menu.Target>
+              <Tooltip label="More options" position="top" withArrow>
+                <button
+                  className={classes.controlButton}
+                  style={{ fontSize: '16px' }}
+                >
+                  ⋯
+                </button>
+              </Tooltip>
+            </Menu.Target>
+            <Menu.Dropdown>
+              <Menu.Item
+                leftSection={<IconSettings size={14} />}
+                onClick={() => onOpenSettings(item)}
+                disabled={item.is_active && !item.is_paused}
+              >
+                Advanced settings
+              </Menu.Item>
+              <Menu.Divider />
+              <Menu.Item
+                leftSection={<IconTrash size={14} />}
+                onClick={handleDelete}
+                color="red"
+              >
+                Delete timer
+              </Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
       </div>
 
       {/* Delete Confirmation Modal */}
@@ -943,6 +944,64 @@ export function Timers({
   // Note: All timer logic (countdown, state transitions, auto-start) is handled by backend
   // This component only displays current state and handles user interactions
 
+  // Helper function to check if all timers are linked in sequence
+  const areAllTimersLinked = (): boolean => {
+    if (state.length <= 1) return false;
+
+    for (let i = 0; i < state.length - 1; i++) {
+      const currentTimer = state[i];
+      const nextTimer = state[i + 1];
+      if (currentTimer.linked_timer_id !== nextTimer.id) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  // Helper function to link all timers in sequence
+  const linkAllTimers = (): Timer[] => {
+    return state.map((timer, index) => ({
+      ...timer,
+      linked_timer_id: index < state.length - 1 ? state[index + 1].id : null,
+    }));
+  };
+
+  // Helper function to unlink all timers
+  const unlinkAllTimers = (): Timer[] => {
+    return state.map(timer => ({
+      ...timer,
+      linked_timer_id: null,
+    }));
+  };
+
+  // Handle link/unlink all timers
+  const handleToggleLinkAll = () => {
+    const shouldLink = !areAllTimersLinked();
+    const newState = shouldLink ? linkAllTimers() : unlinkAllTimers();
+
+    handlers.setState(newState);
+
+    // Collect all timer updates for bulk update
+    const timersToUpdate = newState
+      .filter((timer, index) => {
+        const original = state[index];
+        return timer.linked_timer_id !== original?.linked_timer_id;
+      })
+      .map(timer => ({
+        timer_id: timer.id,
+        room_sequence_order: timer.room_sequence_order,
+        linked_timer_id: timer.linked_timer_id,
+      }));
+
+    if (timersToUpdate.length > 0) {
+      const { bulkUpdateTimers } = useWebSocketContext();
+      bulkUpdateTimers(timersToUpdate);
+      console.log(`${shouldLink ? 'Linking' : 'Unlinking'} all timers`);
+    }
+
+    events?.onTimerReorder?.(newState);
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -960,29 +1019,37 @@ export function Timers({
         room_sequence_order: index + 1,
       }));
 
-      // Break links when timers are reordered
-      // Check if any timer's linked_timer_id no longer points to the next timer in sequence
-      const timersToUpdate: Timer[] = [];
-      newState.forEach((timer, index) => {
-        if (timer.linked_timer_id) {
-          const nextTimer = newState[index + 1];
-          // If the linked timer is not the next one in the sequence, break the link
-          if (!nextTimer || nextTimer.id !== timer.linked_timer_id) {
-            timersToUpdate.push({
-              ...timer,
-              linked_timer_id: null
-            });
+      // Maintain linking state during reordering
+      // If all timers were linked, keep them linked in the new order
+      if (areAllTimersLinked()) {
+        newState = newState.map((timer, index) => ({
+          ...timer,
+          linked_timer_id: index < newState.length - 1 ? newState[index + 1].id : null,
+        }));
+      } else {
+        // If not all linked, break any invalid links
+        const timersToUpdate: Timer[] = [];
+        newState.forEach((timer, index) => {
+          if (timer.linked_timer_id) {
+            const nextTimer = newState[index + 1];
+            // If the linked timer is not the next one in the sequence, break the link
+            if (!nextTimer || nextTimer.id !== timer.linked_timer_id) {
+              timersToUpdate.push({
+                ...timer,
+                linked_timer_id: null
+              });
+            }
           }
-        }
-      });
-
-      // Apply link breaks to the new state
-      if (timersToUpdate.length > 0) {
-        newState = newState.map(timer => {
-          const updated = timersToUpdate.find(t => t.id === timer.id);
-          return updated || timer;
         });
-        console.log(`Breaking ${timersToUpdate.length} timer link(s) due to reordering`);
+
+        // Apply link breaks to the new state
+        if (timersToUpdate.length > 0) {
+          newState = newState.map(timer => {
+            const updated = timersToUpdate.find(t => t.id === timer.id);
+            return updated || timer;
+          });
+          console.log(`Breaking ${timersToUpdate.length} timer link(s) due to reordering`);
+        }
       }
 
       handlers.setState(newState);
@@ -1037,7 +1104,6 @@ const form = useForm({
       timer_format: 'mm:ss',
       scheduled_start_time: null as Date | null,
       is_manual_start: false,
-      linked_timer_id: null as string | null,
       display_id: null as string | null,
       notes: '',
       warning_time: 60,
@@ -1068,7 +1134,6 @@ const form = useForm({
           ? new Date(`${editingTimer.scheduled_start_date}T${editingTimer.scheduled_start_time}`)
           : null,
         is_manual_start: !editingTimer.is_manual_start,
-        linked_timer_id: editingTimer.linked_timer_id ? editingTimer.linked_timer_id.toString() : null,
         display_id: editingTimer.display_id ? editingTimer.display_id.toString() : null,
         notes: editingTimer.notes || '',
         warning_time: editingTimer.warning_time || 60,
@@ -1094,7 +1159,6 @@ const form = useForm({
           : null,
         // Invert the checkbox logic: checked means auto start (is_manual_start = false)
         is_manual_start: !values.is_manual_start,
-        linked_timer_id: values.linked_timer_id ? parseInt(values.linked_timer_id, 10) : null,
         display_id: values.display_id ? parseInt(values.display_id, 10) : null,
       };
 
@@ -1116,6 +1180,20 @@ const form = useForm({
           ))}
         </Alert>
       )}
+
+      {state.length > 1 && (
+        <Group mb="sm" justify="space-between">
+          <Button
+            size="sm"
+            variant={areAllTimersLinked() ? "filled" : "light"}
+            onClick={handleToggleLinkAll}
+            leftSection={<IconLink size={14} />}
+          >
+            {areAllTimersLinked() ? "Unlink All Timers" : "Link All Timers"}
+          </Button>
+        </Group>
+      )}
+
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={state.map((i) => i.id)} strategy={verticalListSortingStrategy}>
           {state.map((item) => (
@@ -1186,19 +1264,6 @@ const form = useForm({
                       { value: 'hh:mm:ss', label: 'HH:MM:SS (zero-padded hours)' },
                     ]}
                     {...form.getInputProps('timer_format')}
-                  />
-
-                  <Select
-                    label="Linked Timer"
-                    placeholder="Select a timer to link"
-                    clearable
-                    data={state
-                      .filter(timer => timer.id !== editingTimer.id)
-                      .map(timer => ({
-                        value: timer.id.toString(),
-                        label: timer.title
-                      }))}
-                    {...form.getInputProps('linked_timer_id')}
                   />
 
                   <Select

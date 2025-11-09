@@ -315,6 +315,17 @@
   display: none;
 }
 
+.hoverOnly {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.item:hover .hoverOnly {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 .container {
   display: flex;
   flex-direction: column;
