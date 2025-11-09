@@ -343,6 +343,9 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
     // Check if we have a pending update for this timer (use ref for current value)
     const hasPendingUpdate = pendingOperationsRef.current.has(`timer_update_${timerData.id}`);
 
+    // Check if this timer is part of a bulk update (linking operation)
+    const isPartOfBulkUpdate = pendingOperationsRef.current.has(`timer_bulk_update_${timerData.id}`);
+
     // If there's a pending update, preserve the optimistic values for non-time fields
     // Only update time-related and state fields from the server
     let finalTimerData;
@@ -366,9 +369,37 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
         actual_start_time: timerData.actual_start_time,
         last_calculated_at: timerData.last_calculated_at,
       };
+    } else if (isPartOfBulkUpdate) {
+      console.log(`⏳ Bulk update pending for timer ${timerData.id}, preserving optimistic values including linked_timer_id`);
+      // During bulk update (linking operation), preserve local state completely
+      // Only update runtime state fields that don't affect linking
+      finalTimerData = {
+        ...existingTimer,  // Keep all optimistic updates including linked_timer_id
+        // Only override with server values for fields that change during runtime
+        current_time_seconds: timerData.current_time_seconds,
+        is_active: timerData.is_active,
+        is_paused: timerData.is_paused,
+        is_finished: timerData.is_finished,
+        is_stopped: timerData.is_stopped,
+        is_overtime: timerData.is_overtime,
+        overtime_seconds: timerData.overtime_seconds,
+        accumulated_seconds: timerData.accumulated_seconds,
+        started_at: timerData.started_at,
+        paused_at: timerData.paused_at,
+        completed_at: timerData.completed_at,
+        actual_start_time: timerData.actual_start_time,
+        last_calculated_at: timerData.last_calculated_at,
+      };
     } else {
       // No pending update - accept all server data
       finalTimerData = { ...timerData };
+
+      // Preserve linked_timer_id from the existing timer since timer_update events
+      // typically only update runtime state (time, is_active, etc.), not linking relationships
+      // The linked_timer_id is managed via timer_bulk_update events instead
+      if (existingTimer && typeof existingTimer.linked_timer_id !== 'undefined') {
+        finalTimerData.linked_timer_id = existingTimer.linked_timer_id;
+      }
 
       // Clear pending operations for this timer (only if no update is pending)
       removePendingOperation(`timer_${timerData.id}`);
@@ -393,9 +424,6 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
 wsService.on('timer_bulk_update', (message: any) => {
   console.log('📍 TIMER_BULK_UPDATE received:', message.timers?.length, 'timers');
 
-  // Clear bulk update pending operation
-  removePendingOperation('timer_bulk_update');
-
   setTimers((prev) => {
     const updatedTimers = message.timers;
     if (!updatedTimers || !Array.isArray(updatedTimers)) {
@@ -407,13 +435,22 @@ wsService.on('timer_bulk_update', (message: any) => {
     const updatedMap = new Map(updatedTimers.map((t: TimerData) => [t.id, t]));
 
     // Update all timers that were in the bulk update
+    // For fields like linked_timer_id and room_sequence_order, preserve them from the update
+    // For runtime fields, use what's in the update (or keep local if not provided)
     const newTimers = prev.map(timer => {
       const updated = updatedMap.get(timer.id);
-      return updated ? { ...updated } : timer;
+      if (updated) {
+        // Merge the updated data with existing data, ensuring linked_timer_id is from the server
+        return { ...timer, ...updated };
+      }
+      return timer;
     });
 
     return newTimers;
   });
+
+  // Note: bulk update pending operations are cleared by the bulkUpdateTimers timeout
+  // This ensures we block all interfering timer_update messages during the bulk operation
 });
 
 wsService.on('timer_adjust_success', (message: any) => {
@@ -894,10 +931,22 @@ const updateTimer = useCallback((timerId: number, updates: Partial<TimerData>) =
 
 const bulkUpdateTimers = useCallback((updates: Array<{ timer_id: number; room_sequence_order: number }>) => {
   addPendingOperation('timer_bulk_update');
+
+  // Add pending operations for each timer to prevent individual updates from interfering
+  updates.forEach(update => {
+    addPendingOperation(`timer_bulk_update_${update.timer_id}`);
+  });
+
   wsServiceRef.current?.bulkUpdateTimers(updates);
 
-  // Failsafe: clear pending state after 10 seconds
-  setTimeout(() => removePendingOperation('timer_bulk_update'), 10000);
+  // Keep bulk update operations pending longer to block interfering timer_update messages
+  // Bulk updates can take longer to propagate and receive confirmation
+  setTimeout(() => {
+    removePendingOperation('timer_bulk_update');
+    updates.forEach(update => {
+      removePendingOperation(`timer_bulk_update_${update.timer_id}`);
+    });
+  }, 3000); // Extended timeout to handle slower networks and delayed updates
 }, [addPendingOperation, removePendingOperation]);
 
 const deleteTimer = useCallback((timerId: number) => {

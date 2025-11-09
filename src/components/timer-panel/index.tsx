@@ -20,7 +20,7 @@ import { Text, Button, Group, Alert, useMantineColorScheme, useMantineTheme, Hov
 import { Menu } from '@mantine/core';
 import { DateTimePicker } from '@mantine/dates';
 import { useListState } from '@mantine/hooks';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, memo } from 'react';
 import { useWebSocketContext } from '@/providers/websocket-provider';
 import dayjs from 'dayjs';
 import { Tooltip } from '@mantine/core';
@@ -329,13 +329,32 @@ interface ItemProps {
   onSelectTimer: (id: number) => void;
   onOpenSettings: (timer: Timer) => void;
   events?: TimerEvents;
+  isAllTimersLinked?: boolean;
+  itemIndex?: number;
 }
 
-function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSettings, events }: ItemProps) {
-  // Find the linked timer if exists
-  const linkedTimer = item.linked_timer_id
-    ? allTimers.find(t => t.id === item.linked_timer_id)
-    : null;
+// Custom comparison for React.memo to prevent unnecessary re-renders
+const areItemsEqual = (prev: ItemProps, next: ItemProps): boolean => {
+  // Re-render if the specific item changed
+  if (prev.item !== next.item) return false;
+  // Re-render if linked timer relationship changed
+  if (prev.item.linked_timer_id !== next.item.linked_timer_id) return false;
+  // Re-render if all-timers-linked status changed
+  if (prev.isAllTimersLinked !== next.isAllTimersLinked) return false;
+  // Re-render if item index changed (for connector display)
+  if (prev.itemIndex !== next.itemIndex) return false;
+  // Don't re-render for allTimers reference changes if the linked timer ID is the same
+  // (we'll memoize the lookup inside)
+  return true;
+};
+
+function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSettings, events, isAllTimersLinked = false, itemIndex = -1 }: ItemProps) {
+  // Memoize the linked timer lookup to prevent unnecessary recalculations
+  const linkedTimer = useMemo(() => {
+    return item.linked_timer_id
+      ? allTimers.find(t => t.id === item.linked_timer_id)
+      : null;
+  }, [item.linked_timer_id, allTimers]);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
   });
@@ -359,14 +378,27 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
   const [scheduleDateTime, setScheduleDateTime] = useState<Date | null>(null);
   const [pendingAutoStart, setPendingAutoStart] = useState(false);
 
+  // Track bulk update operations to disable hover animations during linking
+  const [isBulkUpdatePending, setIsBulkUpdatePending] = useState(false);
+  const wsContext = useWebSocketContext();
+  useEffect(() => {
+    const isUpdating = wsContext.isOperationPending(`timer_bulk_update_${item.id}`);
+    setIsBulkUpdatePending(isUpdating);
+  }, [wsContext.pendingOperations, item.id, wsContext]);
+
   // Reset dismissal when schedule changes
   useEffect(() => {
     setScheduleWarningDismissed(false);
   }, [item.scheduled_start_date, item.scheduled_start_time]);
 
+  // Check if this item should show the connector (not the last item when all linked)
+  const shouldShowConnector = isAllTimersLinked && itemIndex < allTimers.length - 1;
+
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
+    position: 'relative',
+    marginBottom: shouldShowConnector ? '20px' : undefined,
   };
 
   const handlePlay = () => {
@@ -589,15 +621,15 @@ const handleDoubleClick = (e: React.MouseEvent) => {
             </HoverCard>
           )}
 
-          {/* Link indicator - shown on hover only */}
-          {linkedTimer && (
+          {/* Link indicator - shown on hover only (hidden when all timers are linked since visual connector is shown) */}
+          {linkedTimer && !isAllTimersLinked && (
             <Tooltip
               label={`Linked to: ${linkedTimer.title}`}
               position="top"
               withArrow
             >
               <div
-                className={classes.hoverOnly}
+                className={cx(classes.hoverOnly, isBulkUpdatePending && classes.noTransition)}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -628,7 +660,7 @@ const handleDoubleClick = (e: React.MouseEvent) => {
             withArrow
           >
             <div
-              className={cx(classes.autoStartBadge, classes.hoverOnly)}
+              className={cx(classes.autoStartBadge, classes.hoverOnly, isBulkUpdatePending && classes.noTransition)}
               onClick={(e) => {
                 e.stopPropagation();
                 handleAutoStartToggle();
@@ -705,7 +737,7 @@ const handleDoubleClick = (e: React.MouseEvent) => {
           )}
 
           {item.speaker && (
-            <span className={cx(classes.editableField, classes.hoverOnly)}>
+            <span className={cx(classes.editableField, classes.hoverOnly, isBulkUpdatePending && classes.noTransition)}>
               <IconUser size={14} style={{ flexShrink: 0 }} />
               {editingField === 'speaker' ? (
                 <TextInput
@@ -750,7 +782,7 @@ const handleDoubleClick = (e: React.MouseEvent) => {
           >
             <Popover.Target>
               <span
-                className={cx(classes.editableField, classes.hoverOnly)}
+                className={cx(classes.editableField, classes.hoverOnly, isBulkUpdatePending && classes.noTransition)}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleScheduleClick();
@@ -897,9 +929,29 @@ const handleDoubleClick = (e: React.MouseEvent) => {
           </Button>
         </Group>
       </Modal>
+
+      {/* Connection indicator when all timers are linked */}
+
+      {shouldShowConnector && (
+          <Tooltip
+              label={`Linked to the next timer`}
+              position="top"
+              withArrow
+            >
+        <div className={classes.linkedConnector}>
+          {/* <div className={classes.connectorDot}></div> */}
+          <div className={classes.connectorLine}></div>
+          {/* <div className={classes.connectorDot}></div> */}
+        </div>
+        </Tooltip>
+      )}
     </div>
   );
 }
+
+// Memoize the component with custom comparison to prevent unnecessary re-renders
+// This is critical for preventing the link indicator from flickering during bulk updates
+const MemoizedSortableItem = memo(SortableItem, areItemsEqual);
 
 export function Timers({
   timers,
@@ -916,33 +968,6 @@ export function Timers({
   const [state, handlers] = useListState<Timer>(initialTimers);
   const reorderLockRef = useRef<boolean>(false);
   const reorderLockTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Update state when props change (but not during reorder operations)
-  useEffect(() => {
-    if (timers && !reorderLockRef.current) {
-      handlers.setState(
-        [...timers]
-          .sort((a, b) => a.room_sequence_order - b.room_sequence_order)
-          .map(timer => ({
-            ...timer,
-            is_selected: timer.id === selectedTimerId,
-          }))
-      );
-    }
-  }, [timers, selectedTimerId]);
-
-  const overlaps = checkForOverlaps(state);
-  const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor));
-
-  // Emit schedule conflicts
-  useEffect(() => {
-    if (overlaps.length > 0) {
-      events?.onScheduleConflict?.(overlaps);
-    }
-  }, [overlaps, events]);
-
-  // Note: All timer logic (countdown, state transitions, auto-start) is handled by backend
-  // This component only displays current state and handles user interactions
 
   // Helper function to check if all timers are linked in sequence
   const areAllTimersLinked = (): boolean => {
@@ -974,6 +999,36 @@ export function Timers({
     }));
   };
 
+  // Update state when props change (but not during reorder operations)
+  useEffect(() => {
+    if (timers && !reorderLockRef.current) {
+      handlers.setState(
+        [...timers]
+          .sort((a, b) => a.room_sequence_order - b.room_sequence_order)
+          .map(timer => ({
+            ...timer,
+            is_selected: timer.id === selectedTimerId,
+          }))
+      );
+    }
+  }, [timers, selectedTimerId]);
+
+  const overlaps = checkForOverlaps(state);
+  const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor));
+
+  // Memoize the linked state check to prevent unnecessary re-renders
+  const allTimersLinked = useMemo(() => areAllTimersLinked(), [state]);
+
+  // Emit schedule conflicts
+  useEffect(() => {
+    if (overlaps.length > 0) {
+      events?.onScheduleConflict?.(overlaps);
+    }
+  }, [overlaps, events]);
+
+  // Note: All timer logic (countdown, state transitions, auto-start) is handled by backend
+  // This component only displays current state and handles user interactions
+
   // Handle link/unlink all timers
   const handleToggleLinkAll = () => {
     const shouldLink = !areAllTimersLinked();
@@ -981,25 +1036,11 @@ export function Timers({
 
     handlers.setState(newState);
 
-    // Collect all timer updates for bulk update
-    const timersToUpdate = newState
-      .filter((timer, index) => {
-        const original = state[index];
-        return timer.linked_timer_id !== original?.linked_timer_id;
-      })
-      .map(timer => ({
-        timer_id: timer.id,
-        room_sequence_order: timer.room_sequence_order,
-        linked_timer_id: timer.linked_timer_id,
-      }));
-
-    if (timersToUpdate.length > 0) {
-      const { bulkUpdateTimers } = useWebSocketContext();
-      bulkUpdateTimers(timersToUpdate);
-      console.log(`${shouldLink ? 'Linking' : 'Unlinking'} all timers`);
-    }
-
+    // Emit the reorder event which will trigger room-controller's handleTimerReorder
+    // which sends the bulkUpdateTimers call with all linking info
     events?.onTimerReorder?.(newState);
+
+    console.log(`${shouldLink ? 'Linking' : 'Unlinking'} all timers`);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -1185,19 +1226,19 @@ const form = useForm({
         <Group mb="sm" justify="space-between">
           <Button
             size="sm"
-            variant={areAllTimersLinked() ? "filled" : "light"}
+            variant={allTimersLinked ? "filled" : "light"}
             onClick={handleToggleLinkAll}
             leftSection={<IconLink size={14} />}
           >
-            {areAllTimersLinked() ? "Unlink All Timers" : "Link All Timers"}
+            {allTimersLinked ? "Unlink All Timers" : "Link All Timers"}
           </Button>
         </Group>
       )}
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={state.map((i) => i.id)} strategy={verticalListSortingStrategy}>
-          {state.map((item) => (
-            <SortableItem
+          {state.map((item, index) => (
+            <MemoizedSortableItem
               key={item.id}
               item={item}
               allTimers={state}
@@ -1205,6 +1246,8 @@ const form = useForm({
               onSelectTimer={handleSelectTimer}
               onOpenSettings={handleOpenSettings}
               events={events}
+              isAllTimersLinked={allTimersLinked}
+              itemIndex={index}
             />
           ))}
         </SortableContext>
