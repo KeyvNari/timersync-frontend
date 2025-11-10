@@ -1018,14 +1018,46 @@ export function Timers({
   // Update state when props change (but not during reorder operations)
   useEffect(() => {
     if (timers && !reorderLockRef.current) {
-      handlers.setState(
-        [...timers]
-          .sort((a, b) => a.room_sequence_order - b.room_sequence_order)
-          .map(timer => ({
-            ...timer,
-            is_selected: timer.id === selectedTimerId,
-          }))
-      );
+      const sortedTimers = [...timers]
+        .sort((a, b) => a.room_sequence_order - b.room_sequence_order)
+        .map(timer => ({
+          ...timer,
+          is_selected: timer.id === selectedTimerId,
+        }));
+
+      // Check if a new timer was added while all existing timers are linked
+      const previousCount = state.length;
+      const newCount = sortedTimers.length;
+
+      if (newCount > previousCount && previousCount > 0) {
+        // New timer was added - check if we need to link it into the chain
+        const existingLinked = sortedTimers.slice(0, previousCount);
+        const allExistingLinked = existingLinked.length > 1 &&
+          existingLinked.every((timer, index) => {
+            if (index === existingLinked.length - 1) return true; // last timer can have null
+            return timer.linked_timer_id === existingLinked[index + 1].id;
+          });
+
+        if (allExistingLinked && newCount > 1) {
+          // All existing timers are linked, so link the new timer into the chain
+          const updatedTimers = sortedTimers.map((timer, index) => {
+            if (index === newCount - 2) {
+              // Second to last timer should link to the new timer (which is now last)
+              return {
+                ...timer,
+                linked_timer_id: sortedTimers[index + 1].id,
+              };
+            }
+            return timer;
+          });
+
+          handlers.setState(updatedTimers);
+          events?.onTimerReorder?.(updatedTimers);
+          return;
+        }
+      }
+
+      handlers.setState(sortedTimers);
     }
   }, [timers, selectedTimerId]);
 
