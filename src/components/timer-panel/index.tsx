@@ -80,6 +80,7 @@ interface TimerEvents {
   onTimerEdit?: (timer: Timer, field: string, value: any) => void;
   onTimerDelete?: (timer: Timer) => void;
   onScheduleConflict?: (conflicts: Array<{timer1: string, timer2: string, overlapMinutes: number}>) => void;
+  onRequestLinkToggle?: (shouldLink: boolean, timersToReset: Timer[]) => void;
 }
 
 // Component props interface
@@ -101,6 +102,8 @@ interface TimersProps {
   showConflictAlerts?: boolean;
   selectedTimerId?: number;
   displays?: DisplayConfig[];
+  onLinkStateChange?: (isLinked: boolean) => void;
+  onToggleLink?: (callback: () => void) => void;
 }
 
 const mockTimers: Timer[] = [
@@ -959,7 +962,9 @@ export function Timers({
   className,
   showConflictAlerts = true,
   selectedTimerId,
-  displays = []
+  displays = [],
+  onLinkStateChange,
+  onToggleLink
 }: TimersProps) {
   const { updateTimer: wsUpdateTimer } = useWebSocketContext();
 
@@ -968,6 +973,10 @@ export function Timers({
   const [state, handlers] = useListState<Timer>(initialTimers);
   const reorderLockRef = useRef<boolean>(false);
   const reorderLockTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // State for link confirmation dialog
+  const [linkConfirmModalOpened, setLinkConfirmModalOpened] = useState(false);
+  const pendingLinkActionRef = useRef<(() => void) | null>(null);
 
   // Helper function to check if all timers are linked in sequence
   const areAllTimersLinked = (): boolean => {
@@ -999,6 +1008,11 @@ export function Timers({
     }));
   };
 
+  // Helper function to check if any timer is running or paused
+  const getRunningOrPausedTimers = (): Timer[] => {
+    return state.filter(timer => timer.is_active || timer.is_paused);
+  };
+
   // Update state when props change (but not during reorder operations)
   useEffect(() => {
     if (timers && !reorderLockRef.current) {
@@ -1019,6 +1033,16 @@ export function Timers({
   // Memoize the linked state check to prevent unnecessary re-renders
   const allTimersLinked = useMemo(() => areAllTimersLinked(), [state]);
 
+  // Notify parent of link state changes
+  useEffect(() => {
+    onLinkStateChange?.(allTimersLinked);
+  }, [allTimersLinked, onLinkStateChange]);
+
+  // Register the toggle link callback with parent
+  useEffect(() => {
+    onToggleLink?.(() => handleToggleLinkAll());
+  }, [onToggleLink]);
+
   // Emit schedule conflicts
   useEffect(() => {
     if (overlaps.length > 0) {
@@ -1029,18 +1053,44 @@ export function Timers({
   // Note: All timer logic (countdown, state transitions, auto-start) is handled by backend
   // This component only displays current state and handles user interactions
 
-  // Handle link/unlink all timers
-  const handleToggleLinkAll = () => {
-    const shouldLink = !areAllTimersLinked();
-    const newState = shouldLink ? linkAllTimers() : unlinkAllTimers();
-
+  // Execute the link action and reset timers
+  const executeLink = () => {
+    const newState = linkAllTimers();
     handlers.setState(newState);
 
     // Emit the reorder event which will trigger room-controller's handleTimerReorder
     // which sends the bulkUpdateTimers call with all linking info
     events?.onTimerReorder?.(newState);
 
-    console.log(`${shouldLink ? 'Linking' : 'Unlinking'} all timers`);
+    // Reset all timers
+    state.forEach((timer) => {
+      events?.onTimerStop?.(timer);
+    });
+    console.log('Linking all timers and resetting them');
+  };
+
+  // Handle link/unlink all timers
+  const handleToggleLinkAll = () => {
+    const shouldLink = !areAllTimersLinked();
+
+    if (shouldLink) {
+      // Check if any timers are running or paused
+      const runningOrPausedTimers = getRunningOrPausedTimers();
+
+      if (runningOrPausedTimers.length > 0) {
+        // Request parent to handle the confirmation and execute the link
+        events?.onRequestLinkToggle?.(shouldLink, runningOrPausedTimers);
+      } else {
+        // No running or paused timers, proceed immediately
+        executeLink();
+      }
+    } else {
+      // Unlinking - no confirmation needed
+      const newState = unlinkAllTimers();
+      handlers.setState(newState);
+      events?.onTimerReorder?.(newState);
+      console.log('Unlinking all timers');
+    }
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -1222,19 +1272,6 @@ const form = useForm({
         </Alert>
       )}
 
-      {state.length > 1 && (
-        <Group mb="sm" justify="space-between">
-          <Button
-            size="sm"
-            variant={allTimersLinked ? "filled" : "light"}
-            onClick={handleToggleLinkAll}
-            leftSection={<IconLink size={14} />}
-          >
-            {allTimersLinked ? "Unlink All Timers" : "Link All Timers"}
-          </Button>
-        </Group>
-      )}
-
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={state.map((i) => i.id)} strategy={verticalListSortingStrategy}>
           {state.map((item, index) => (
@@ -1397,6 +1434,49 @@ const form = useForm({
           </form>
         )}
       </Drawer>
+
+      {/* Link confirmation modal */}
+      <Modal
+        opened={linkConfirmModalOpened}
+        onClose={() => setLinkConfirmModalOpened(false)}
+        title="Link Timers - Confirm Reset"
+        centered
+      >
+        <Stack gap="md">
+          <Alert icon={<IconAlertTriangle />} color="orange" title="Running or Paused Timers Detected">
+            <Text size="sm">
+              The following timers are currently running or paused and will be reset when linked:
+            </Text>
+          </Alert>
+
+          <Stack gap="xs">
+            {getRunningOrPausedTimers().map((timer) => (
+              <Text key={timer.id} size="sm" style={{ marginLeft: '1rem' }}>
+                • {timer.title || `Timer ${timer.id}`} {timer.is_active && '(Running)'} {timer.is_paused && '(Paused)'}
+              </Text>
+            ))}
+          </Stack>
+
+          <Text size="sm">
+            Linking timers will automatically reset them to their full duration. Do you want to proceed?
+          </Text>
+
+          <Group justify="flex-end" gap="md">
+            <Button variant="light" onClick={() => setLinkConfirmModalOpened(false)}>
+              Cancel
+            </Button>
+            <Button
+              color="orange"
+              onClick={() => {
+                pendingLinkActionRef.current?.();
+                setLinkConfirmModalOpened(false);
+              }}
+            >
+              Link and Reset
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </div>
   );
 }

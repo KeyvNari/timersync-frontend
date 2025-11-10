@@ -1,8 +1,8 @@
 // src/components/room/index.tsx
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Paper, Group, Button, Box, Modal, Tabs, Text, Stack, ActionIcon, Tooltip } from '@mantine/core';
-import { IconShare, IconArrowLeft, IconPlus, IconSparkles, IconSettings, IconClock, IconMessage, IconMaximize } from '@tabler/icons-react';
+import { IconShare, IconArrowLeft, IconPlus, IconSparkles, IconSettings, IconClock, IconMessage, IconMaximize, IconLink } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
 import { StickyHeader } from '@/components/sticky-header';
 import { EditableRoomName } from '@/layouts/dashboard/header/editable-room-name';
@@ -108,6 +108,12 @@ export default function RoomComponent({
   // Fullscreen preview state
   const [fullscreenOpened, { open: openFullscreen, close: closeFullscreen }] = useDisclosure(false);
 
+  // Link/Unlink timers state
+  const [allTimersLinked, setAllTimersLinked] = useState(false);
+  const [linkConfirmModalOpened, setLinkConfirmModalOpened] = useState(false);
+  const toggleLinkCallbackRef = useRef<(() => void) | null>(null);
+  const pendingLinkActionRef = useRef<(() => void) | null>(null);
+
   // Handle fullscreen toggle
   const handleFullscreenToggle = async () => {
     if (!document.fullscreenElement) {
@@ -137,6 +143,24 @@ export default function RoomComponent({
 
   const handleLeftWidthChange = (width: number) => {
     console.log('Left panel width changed to:', width);
+  };
+
+  // Handle link state changes from Timers component
+  const handleLinkStateChange = (isLinked: boolean) => {
+    setAllTimersLinked(isLinked);
+  };
+
+  // Handle toggle link callback registration
+  const handleToggleLinkRegistration = (callback: () => void) => {
+    toggleLinkCallbackRef.current = callback;
+  };
+
+  // Handle link button click
+  const handleLinkButtonClick = () => {
+    if (toggleLinkCallbackRef.current) {
+      // Call the Timers component's toggle function which will handle confirmation if needed
+      toggleLinkCallbackRef.current();
+    }
   };
 
   // Display Editor handlers
@@ -303,6 +327,16 @@ export default function RoomComponent({
                 <Button variant="default" size="sm" leftSection={<IconSparkles size={16} />} onClick={onCreateWithAI}>
                   Create with AI
                 </Button>
+                {timers && timers.length > 1 && (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    leftSection={<IconLink size={16} />}
+                    onClick={handleLinkButtonClick}
+                  >
+                    {allTimersLinked ? "Unlink All" : "Link All"}
+                  </Button>
+                )}
               </Group>
               <Button
                 variant="default"
@@ -316,7 +350,14 @@ export default function RoomComponent({
           )}
 
           <Box style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
-            <Timers timers={timers} events={timerEvents} selectedTimerId={selectedTimerId} displays={displays} />
+            <Timers
+              timers={timers}
+              events={timerEvents}
+              selectedTimerId={selectedTimerId}
+              displays={displays}
+              onLinkStateChange={handleLinkStateChange}
+              onToggleLink={handleToggleLinkRegistration}
+            />
           </Box>
         </Tabs.Panel>
 
