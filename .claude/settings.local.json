@@ -20,7 +20,8 @@
       "Bash(dir:*)",
       "Bash(npm run preview:*)",
       "Bash(find:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(nul)"
     ],
     "deny": [],
     "ask": []

@@ -515,7 +515,7 @@ export default function TimerDisplayEditorV2({
                           />
                           {display.background_image && (
                             <Group spacing="xs">
-                              <Badge variant="light">Image uploaded</Badge>
+                              <Badge variant="light">Image</Badge>
                               <ActionIcon size="sm" onClick={() => updateDisplay('background_image', null)}>
                                 <IconTrash size={14} />
                               </ActionIcon>
@@ -545,7 +545,7 @@ export default function TimerDisplayEditorV2({
                       />
                       {display.logo_image && (
                         <Group spacing="xs">
-                          <Badge variant="light">Logo uploaded</Badge>
+                          <Badge variant="light">Logo</Badge>
                           <ActionIcon size="sm" onClick={() => updateDisplay('logo_image', null)}>
                             <IconTrash size={14} />
                           </ActionIcon>
@@ -750,13 +750,13 @@ export default function TimerDisplayEditorV2({
                 <div>
                   <Title order={3}>Live Preview</Title>
                   <Text size="xs" color="dimmed">
-                    Preview updates instantly as you change settings.
+                    Preview updates instantly as you change settings. Some size updates are shown  correclty the in full screen preview.
                   </Text>
                 </div>
                 <Group>
-                  <Badge color="green" variant="dot">
+                  {/* <Badge color="green" variant="dot">
                     Real-time
-                  </Badge>
+                  </Badge> */}
                   <Tooltip label="Toggle fullscreen preview">
                     <ActionIcon onClick={() => setFullscreenPreview(true)}>
                       <IconMaximize size={16} />
