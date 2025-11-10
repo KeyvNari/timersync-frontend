@@ -884,9 +884,11 @@ switch (safeDisplay.background_type || 'color') {
         aspectRatio: shouldFillViewport ? undefined : aspectRatio.toString(),
         // Determine sizing based on mode
         width: shouldFillViewport ? '100vw' :
-               (isFullscreen || in_view_mode) ? `min(100vw, calc(100vh * ${aspectRatio}))` : undefined,
+               (isFullscreen || in_view_mode) ? `min(100vw, calc(100vh * ${aspectRatio}))` :
+               '100%',
         height: shouldFillViewport ? '100vh' :
-                (isFullscreen || in_view_mode) ? `min(100vh, calc(100vw / ${aspectRatio}))` : undefined,
+                (isFullscreen || in_view_mode) ? `min(100vh, calc(100vw / ${aspectRatio}))` :
+                '100%',
         maxWidth: '100%',
         maxHeight: '100%',
         position: 'relative',
