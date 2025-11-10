@@ -299,6 +299,16 @@ export default function RoomComponent({
         </Group>
 
         <Group gap="sm">
+          {showActionButtons && (
+            <Button
+              variant="default"
+              size="sm"
+              leftSection={<IconSettings size={16} />}
+              onClick={handleOpenDisplayEditor}
+            >
+              Display Settings
+            </Button>
+          )}
           {showShareButton && (
             <Button
               leftSection={<IconShare size={16} />}
@@ -342,25 +352,17 @@ export default function RoomComponent({
                 <Button variant="default" size="sm" leftSection={<IconSparkles size={16} />} onClick={onCreateWithAI}>
                   Create with AI
                 </Button>
-                {timers && timers.length > 1 && (
-                  <Button
-                    variant="default"
-                    size="sm"
-                    leftSection={<IconLink size={16} />}
-                    onClick={handleLinkButtonClick}
-                  >
-                    {allTimersLinked ? "Unlink All" : "Link All"}
-                  </Button>
-                )}
               </Group>
-              <Button
-                variant="default"
-                size="sm"
-                leftSection={<IconSettings size={16} />}
-                onClick={handleOpenDisplayEditor}
-              >
-                Display Settings
-              </Button>
+              {timers && timers.length > 1 && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  leftSection={<IconLink size={16} />}
+                  onClick={handleLinkButtonClick}
+                >
+                  {allTimersLinked ? "Unlink All" : "Link All"}
+                </Button>
+              )}
             </Group>
           )}
 
