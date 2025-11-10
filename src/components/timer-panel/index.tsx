@@ -104,6 +104,7 @@ interface TimersProps {
   displays?: DisplayConfig[];
   onLinkStateChange?: (isLinked: boolean) => void;
   onToggleLink?: (callback: () => void) => void;
+  forceExecuteLinkRef?: React.MutableRefObject<(() => void) | null>;
 }
 
 const mockTimers: Timer[] = [
@@ -964,7 +965,8 @@ export function Timers({
   selectedTimerId,
   displays = [],
   onLinkStateChange,
-  onToggleLink
+  onToggleLink,
+  forceExecuteLinkRef
 }: TimersProps) {
   const { updateTimer: wsUpdateTimer } = useWebSocketContext();
 
@@ -1092,6 +1094,13 @@ export function Timers({
       console.log('Unlinking all timers');
     }
   };
+
+  // Expose executeLink function for parent to call after confirmation
+  useEffect(() => {
+    if (forceExecuteLinkRef) {
+      forceExecuteLinkRef.current = executeLink;
+    }
+  }, [forceExecuteLinkRef, executeLink, state, handlers, events]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
