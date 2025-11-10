@@ -1,12 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Text, Image, Flex, Stack, Progress, Box, RingProgress, ActionIcon } from '@mantine/core';
 import { Maximize, Minimize } from 'lucide-react';
 
-// CSS for flashing animation
+// CSS for flashing animation and fullscreen styling
 const messageStyles = `
   @keyframes flash {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.3; }
+  }
+
+  /* Remove black backdrop in fullscreen mode */
+  *:fullscreen::backdrop {
+    background-color: transparent !important;
+  }
+
+  /* Also handle webkit variant */
+  *:-webkit-full-screen::backdrop {
+    background-color: transparent !important;
   }
 `;
 
@@ -171,6 +181,7 @@ function TimerDisplay({
   const [showControls, setShowControls] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hideTimeout, setHideTimeout] = useState<NodeJS.Timeout | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Sync with backend ONLY on state changes (not on current_time updates)
   useEffect(() => {
@@ -324,7 +335,9 @@ function TimerDisplay({
 
   const toggleFullscreen = async () => {
     if (!document.fullscreenElement) {
-      await document.documentElement.requestFullscreen();
+      if (containerRef.current) {
+        await containerRef.current.requestFullscreen();
+      }
     } else {
       await document.exitFullscreen();
     }
@@ -416,9 +429,6 @@ switch (safeDisplay.background_type || 'color') {
     break;
   case 'transparent':
     backgroundStyle.backgroundColor = 'transparent';
-    backgroundStyle.backgroundImage = 'linear-gradient(45deg, rgba(255,255,255,0.1) 25%, transparent 25%), linear-gradient(-45deg, rgba(255,255,255,0.1) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.1) 75%), linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.1) 75%)';
-    backgroundStyle.backgroundSize = '20px 20px';
-    backgroundStyle.backgroundPosition = '0 0, 0 10px, 10px -10px, -10px 0px';
     break;
   case 'preset':
     backgroundStyle.backgroundColor = '#1a1b1e';
@@ -878,16 +888,19 @@ switch (safeDisplay.background_type || 'color') {
       <style>{messageStyles}</style>
 
       <Box
+        ref={containerRef}
         onMouseMove={handleMouseMove}
         style={{
         // Always maintain aspect ratio (except for 16:9 in viewer normal mode)
         aspectRatio: shouldFillViewport ? undefined : aspectRatio.toString(),
         // Determine sizing based on mode
         width: shouldFillViewport ? '100vw' :
-               (isFullscreen || in_view_mode) ? `min(100vw, calc(100vh * ${aspectRatio}))` :
+               isFullscreen ? '100vw' :
+               in_view_mode ? `min(100vw, calc(100vh * ${aspectRatio}))` :
                '100%',
         height: shouldFillViewport ? '100vh' :
-                (isFullscreen || in_view_mode) ? `min(100vh, calc(100vw / ${aspectRatio}))` :
+                isFullscreen ? '100vh' :
+                in_view_mode ? `min(100vh, calc(100vw / ${aspectRatio}))` :
                 '100%',
         maxWidth: '100%',
         maxHeight: '100%',

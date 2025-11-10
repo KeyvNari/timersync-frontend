@@ -186,7 +186,7 @@ export default function TimerDisplayEditorV2({
     timer_type: 'countdown' as const,
     duration_seconds: 300,
     current_time_seconds: 180,
-    is_active: true,
+    is_active: false,
     is_paused: false,
     is_finished: false,
     is_stopped: false,
@@ -447,11 +447,11 @@ export default function TimerDisplayEditorV2({
 
   return (
     <>
-      <Box style={{ border: `1px solid ${theme.colors.gray[3]}`, borderRadius: theme.radius.md, padding: theme.spacing.md }}>
-        <Grid gutter="lg">
+      <Box style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <Grid gutter={0} style={{ flex: 1, height: '100%' }}>
         {/* Left: Controls */}
-        <Grid.Col span={{ base: 12, lg: 5 }}>
-          <Box style={{ position: 'sticky', top: 16, border: `1px solid ${theme.colors.gray[3]}`, borderRadius: theme.radius.md, padding: theme.spacing.md }}>
+        <Grid.Col span={{ base: 12, lg: 5 }} p={0} style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
+          <Box style={{ padding: theme.spacing.md }}>
             <Stack spacing="md">
               <TopBar />
 
@@ -743,12 +743,12 @@ export default function TimerDisplayEditorV2({
         </Grid.Col>
 
         {/* Right: Live Preview */}
-        <Grid.Col span={{ base: 12, lg: 7 }}>
-          <Box style={{ position: 'sticky', top: 16, height: 'calc(100vh - 100px)' }}>
-            <Card withBorder radius="md" p="md" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <Grid.Col span={{ base: 12, lg: 7 }} p={0} style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
+          <Box style={{ padding: theme.spacing.md, height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <Card withBorder={false} radius={0} p="sm" style={{ flex: 1, display: 'flex', flexDirection: 'column', border: `1px solid ${theme.colors.gray[3]}`, minHeight: 0 }}>
               <Group position="apart" align="center" mb="sm">
                 <div>
-                  <Title order={3}>Live Preview</Title>
+                  {/* <Title order={3}>Live Preview</Title> */}
                   <Text size="xs" color="dimmed">
                     Preview updates instantly as you change settings. Some size updates are shown  correclty the in full screen preview.
                   </Text>

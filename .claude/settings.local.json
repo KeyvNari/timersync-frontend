@@ -21,7 +21,8 @@
       "Bash(npm run preview:*)",
       "Bash(find:*)",
       "Bash(npx tsc:*)",
-      "Bash(nul)"
+      "Bash(nul)",
+      "Bash(git log:*)"
     ],
     "deny": [],
     "ask": []

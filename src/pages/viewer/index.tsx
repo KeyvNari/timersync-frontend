@@ -552,6 +552,9 @@ if (connected && !displayTimer) {
 }
 
   // Show timer display when connected
+  // Determine background color based on display config
+  const containerBgColor = displayConfig.background_type === 'transparent' ? 'transparent' : (displayConfig.background_color || '#000000');
+
 return connected && displayTimer ? (
   <Box
     style={{
@@ -565,7 +568,7 @@ return connected && displayTimer ? (
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: '#000000',
+      backgroundColor: containerBgColor,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',

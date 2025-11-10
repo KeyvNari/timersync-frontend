@@ -900,7 +900,7 @@ const handleDoubleClick = (e: React.MouseEvent) => {
                 onClick={() => onOpenSettings(item)}
                 disabled={item.is_active && !item.is_paused}
               >
-                Advanced settings
+                Timer Settings
               </Menu.Item>
               <Menu.Divider />
               <Menu.Item

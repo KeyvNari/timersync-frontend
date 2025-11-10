@@ -360,7 +360,7 @@ export default function RoomComponent({
                   leftSection={<IconLink size={16} />}
                   onClick={handleLinkButtonClick}
                 >
-                  {allTimersLinked ? "Unlink All" : "Link All"}
+                  {allTimersLinked ? "Unlink All Timers" : "Link All Timers"}
                 </Button>
               )}
             </Group>
@@ -493,21 +493,23 @@ export default function RoomComponent({
         title={editingDisplay ? "Edit Display Configuration" : "Create New Display"}
         padding={0}
         styles={{
-          body: { height: 'calc(100vh - 120px)' },
-          content: { height: '100vh' }
+          root: { padding: 0 },
+          inner: { padding: 0 },
+          overlay: { padding: 0 },
+          content: { height: '100vh', border: 'none', borderRadius: 0, margin: 0, padding: 0, display: 'flex', flexDirection: 'column' },
+          header: { padding: 'md', borderBottom: '1px solid var(--mantine-color-gray-2)', flexShrink: 0 },
+          body: { flex: 1, padding: 0, overflow: 'auto', minHeight: 0 }
         }}
       >
-        <Box p="md" style={{ height: '100%', overflow: 'auto' }}>
-          <TimerDisplayEditor
-            initialDisplay={editingDisplay}
-            displays={displays}
-            onSave={handleSaveDisplay}
-            onCancel={closeEditor}
-            onDelete={onDeleteDisplay}
-            nameError={displayNameError}
-            defaultDisplayId={defaultDisplayId}
-          />
-        </Box>
+        <TimerDisplayEditor
+          initialDisplay={editingDisplay}
+          displays={displays}
+          onSave={handleSaveDisplay}
+          onCancel={closeEditor}
+          onDelete={onDeleteDisplay}
+          nameError={displayNameError}
+          defaultDisplayId={defaultDisplayId}
+        />
       </Modal>
 
       {/* Fullscreen Timer Preview Modal */}
