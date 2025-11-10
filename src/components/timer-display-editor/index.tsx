@@ -315,6 +315,17 @@ export default function TimerDisplayEditorV2({
     return () => window.removeEventListener('keydown', onKey);
   }, [hasUnsavedChanges, display]);
 
+  // Listen for fullscreen exit
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement && fullscreenPreview) {
+        setFullscreenPreview(false);
+      }
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, [fullscreenPreview]);
+
   // Small UI helpers
   const showPreviewFullscreen = () => setFullscreenPreview(true);
 
@@ -342,9 +353,9 @@ export default function TimerDisplayEditorV2({
         <Checkbox
           label={
             <Group spacing={6} align="center">
-              <IconStar size={14} />
+              <IconStar size={20} />
               <Text size="xs" fw={600}>
-                Default
+                Set as default
               </Text>
             </Group>
           }
@@ -352,7 +363,7 @@ export default function TimerDisplayEditorV2({
           onChange={(e) => updateDisplay('is_default', e.currentTarget.checked)}
           size="xs"
         />
-        {display.logo_image ? (
+        {/* {display.logo_image ? (
           <Avatar src={display.logo_image} alt="logo" size={28} radius="sm" />
         ) : (
           <Tooltip label="No logo uploaded">
@@ -360,7 +371,7 @@ export default function TimerDisplayEditorV2({
               <IconPhoto size={14} />
             </Avatar>
           </Tooltip>
-        )}
+        )} */}
         {display.background_type === 'image' && display.background_image && (
           <Badge variant="outline" size="sm">
             Background
@@ -370,14 +381,14 @@ export default function TimerDisplayEditorV2({
 
       <Group spacing="xs">
         <Text size="sm" color={hasUnsavedChanges ? 'orange' : 'teal'} fw={700}>
-          {hasUnsavedChanges ? 'Unsaved changes' : 'Saved'}
+          {hasUnsavedChanges ? 'Unsaved changes' : ''}
         </Text>
 
-        <Tooltip label="Preview fullscreen">
+        {/* <Tooltip label="Preview fullscreen">
           <ActionIcon variant="light" onClick={showPreviewFullscreen}>
             <IconMaximize size={18} />
           </ActionIcon>
-        </Tooltip>
+        </Tooltip> */}
 
         {!isCreatingNew && onDelete && displays.length > 1 && (
           <Tooltip label="Delete this display">
@@ -436,7 +447,8 @@ export default function TimerDisplayEditorV2({
 
   return (
     <>
-      <Grid gutter="lg">
+      <Box style={{ border: `1px solid ${theme.colors.gray[3]}`, borderRadius: theme.radius.md, padding: theme.spacing.md }}>
+        <Grid gutter="lg">
         {/* Left: Controls */}
         <Grid.Col span={{ base: 12, lg: 5 }}>
           <Box style={{ position: 'sticky', top: 16, border: `1px solid ${theme.colors.gray[3]}`, borderRadius: theme.radius.md, padding: theme.spacing.md }}>
@@ -817,31 +829,22 @@ export default function TimerDisplayEditorV2({
         </Stack>
       </Modal>
 
-      {/* Fullscreen Preview Modal */}
-      <Modal
-        opened={fullscreenPreview}
-        onClose={() => setFullscreenPreview(false)}
-        fullScreen
-        padding={0}
-        withCloseButton={false}
-        styles={{
-          body: {
-            padding: 0,
-            height: '100vh',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: '#000',
-          },
-          content: {
-            backgroundColor: '#000',
-          },
-        }}
-      >
-        <Box style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <TimerDisplay display={display} timer={mockTimer} in_view_mode />
+      {/* Fullscreen Preview - using browser fullscreen API */}
+      {fullscreenPreview && (
+        <Box ref={(el) => {
+          if (el && !document.fullscreenElement) {
+            el.requestFullscreen?.().catch(err => {
+              console.warn('Fullscreen request failed:', err);
+              setFullscreenPreview(false);
+            });
+          }
+        }} style={{ width: '100%', height: '100%', position: 'fixed', top: 0, left: 0, zIndex: 9999 }}>
+          <Box style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#000' }}>
+            <TimerDisplay display={display} timer={mockTimer} in_view_mode />
+          </Box>
         </Box>
-      </Modal>
+      )}
+      </Box>
     </>
   );
 }
