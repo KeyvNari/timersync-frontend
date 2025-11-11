@@ -1,4 +1,5 @@
 // src/pages/auth/register/register-form.tsx - Updated with better error handling
+import { useState } from 'react';
 import { useNavigate, NavLink } from 'react-router-dom';
 import {
   Anchor,
@@ -9,7 +10,9 @@ import {
   StackProps,
   Text,
   TextInput,
+  Alert,
 } from '@mantine/core';
+import { IconAlertCircle } from '@tabler/icons-react';
 import { useForm, zodResolver } from '@mantine/form';
 import { FormProvider } from '@/components/forms/form-provider';
 import { RegisterRequestSchema } from '@/api/dtos';
@@ -26,6 +29,10 @@ export function RegisterForm({ onSuccess, ...props }: RegisterFormProps) {
   const { setIsAuthenticated } = useAuth();
   const { mutate: register, isPending: isRegisterPending } = useRegister();
   const { mutate: login, isPending: isLoginPending } = useLogin();
+  const [errorSuggestion, setErrorSuggestion] = useState<{
+    message: string;
+    field?: string;
+  } | null>(null);
 
   const form = useForm({
     mode: 'controlled',
@@ -86,7 +93,32 @@ export function RegisterForm({ onSuccess, ...props }: RegisterFormProps) {
           );
         },
         onError: (error: any) => {
-          // Handle field-specific validation errors
+          // Clear previous suggestions
+          setErrorSuggestion(null);
+
+          // Handle 409 Conflict (duplicate user) with new error structure
+          if (error?.status === 409 || error?.response?.status === 409) {
+            const errorData = error?.response?.data || error;
+            const { detail, extra } = errorData;
+
+            // Set field-specific error
+            if (extra?.field) {
+              form.setFieldError(extra.field, detail);
+              // Show suggestion if available
+              if (extra?.suggestion) {
+                setErrorSuggestion({
+                  message: extra.suggestion,
+                  field: extra.field,
+                });
+              }
+            } else {
+              // Generic 409 error
+              form.setFieldError('email', detail || 'Registration failed');
+            }
+            return;
+          }
+
+          // Handle old-style validation errors (pydantic validation errors)
           if (error?.detail && Array.isArray(error.detail)) {
             error.detail.forEach((err: any) => {
               if (err.loc && err.loc.length > 1) {
@@ -94,7 +126,17 @@ export function RegisterForm({ onSuccess, ...props }: RegisterFormProps) {
                 form.setFieldError(fieldName, err.msg);
               }
             });
+            return;
           }
+
+          // Handle generic error responses
+          if (error?.detail && typeof error.detail === 'string') {
+            form.setFieldError('email', error.detail);
+            return;
+          }
+
+          // Fallback error
+          form.setFieldError('email', 'Registration failed. Please try again.');
         },
       }
     );
@@ -103,6 +145,18 @@ export function RegisterForm({ onSuccess, ...props }: RegisterFormProps) {
   return (
     <FormProvider form={form} onSubmit={handleSubmit}>
       <Stack {...props}>
+        {errorSuggestion && (
+          <Alert
+            icon={<IconAlertCircle size={16} />}
+            title="Helpful Suggestion"
+            color="blue"
+            variant="light"
+            onClose={() => setErrorSuggestion(null)}
+            withCloseButton
+          >
+            {errorSuggestion.message}
+          </Alert>
+        )}
         <TextInput
           label="Full name"
           placeholder="Enter your full name"
