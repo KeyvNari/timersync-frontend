@@ -331,14 +331,14 @@ export default function TimerDisplayEditorV2({
 
   // Top action bar component
   const TopBar = () => (
-    <Group position="apart" align="center" mb="sm">
-      <Group align="center" spacing="sm">
+    <Group justify="space-between" align="center" mb="sm">
+      <Group align="center" gap="sm">
         <Select
           data={displayOptions}
           value={selectedDisplayId?.toString()}
           onChange={handleSelect}
           size="sm"
-          sx={{ minWidth: 260 }}
+          style={{ minWidth: 260 }}
           rightSection={<IconChevronDown size={16} />}
         />
         <TextInput
@@ -347,12 +347,12 @@ export default function TimerDisplayEditorV2({
           placeholder="Display name"
           disabled={!isCreatingNew}
           size="sm"
-          sx={{ minWidth: 220 }}
+          style={{ minWidth: 220 }}
           error={nameError || undefined}
         />
         <Checkbox
           label={
-            <Group spacing={6} align="center">
+            <Group gap={6} align="center">
               <IconStar size={20} />
               <Text size="xs" fw={600}>
                 Set as default
@@ -379,8 +379,8 @@ export default function TimerDisplayEditorV2({
         )}
       </Group>
 
-      <Group spacing="xs">
-        <Text size="sm" color={hasUnsavedChanges ? 'orange' : 'teal'} fw={700}>
+      <Group gap="xs">
+        <Text size="sm" c={hasUnsavedChanges ? 'orange' : 'teal'} fw={700}>
           {hasUnsavedChanges ? 'Unsaved changes' : ''}
         </Text>
 
@@ -406,7 +406,7 @@ export default function TimerDisplayEditorV2({
         )}
 
         <Button
-          leftIcon={<IconDeviceFloppy size={16} />}
+          leftSection={<IconDeviceFloppy size={16} />}
           size="sm"
           onClick={handleSave}
           disabled={!hasUnsavedChanges || (isCreatingNew && !display.name?.trim())}
@@ -431,8 +431,8 @@ export default function TimerDisplayEditorV2({
   }) => (
     <Card shadow="sm" radius="md" p="sm" withBorder>
       {title && (
-        <Group position="apart" mb="xs">
-          <Group spacing="xs">
+        <Group justify="space-between" mb="xs">
+          <Group gap="xs">
             {icon}
             <Text fw={700} size="sm">
               {title}
@@ -452,32 +452,32 @@ export default function TimerDisplayEditorV2({
         {/* Left: Controls */}
         <Grid.Col span={{ base: 12, lg: 5 }} p={0} style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
           <Box style={{ padding: theme.spacing.md }}>
-            <Stack spacing="md">
+            <Stack gap="md">
               <TopBar />
 
               <Tabs value={activeTab} onChange={(val) => setActiveTab(val)} variant="pills">
 
                 <Tabs.List>
-                  <Tabs.Tab value="layout" icon={<IconLayout size={16} />}>
+                  <Tabs.Tab value="layout" leftSection={<IconLayout size={16} />}>
                     Layout
                   </Tabs.Tab>
-                  <Tabs.Tab value="branding" icon={<IconPhoto size={16} />}>
+                  <Tabs.Tab value="branding" leftSection={<IconPhoto size={16} />}>
                     Branding
                   </Tabs.Tab>
-                  <Tabs.Tab value="timer" icon={<IconClock size={16} />}>
+                  <Tabs.Tab value="timer" leftSection={<IconClock size={16} />}>
                     Timer
                   </Tabs.Tab>
-                  <Tabs.Tab value="content" icon={<IconTextSize size={16} />}>
+                  <Tabs.Tab value="content" leftSection={<IconTextSize size={16} />}>
                     Content
                   </Tabs.Tab>
-                  <Tabs.Tab value="colors" icon={<IconPalette size={16} />}>
+                  <Tabs.Tab value="colors" leftSection={<IconPalette size={16} />}>
                     Colors
                   </Tabs.Tab>
                 </Tabs.List>
 
                 <Tabs.Panel value="layout" pt="sm">
                   <SectionCard title="Dimensions & Background" icon={<IconLayout size={18} />}>
-                    <Stack spacing="sm">
+                    <Stack gap="sm">
                       <Select
                         label="Aspect ratio"
                         data={aspectRatioOptions}
@@ -506,7 +506,7 @@ export default function TimerDisplayEditorV2({
                       )}
 
                       {display.background_type === 'image' && (
-                        <Stack spacing="xs">
+                        <Stack gap="xs">
                           <FileInput
                             label="Background image"
                             placeholder="Upload background"
@@ -514,7 +514,7 @@ export default function TimerDisplayEditorV2({
                             leftSection={<IconUpload size={14} />}
                           />
                           {display.background_image && (
-                            <Group spacing="xs">
+                            <Group gap="xs">
                               <Badge variant="light">Image</Badge>
                               <ActionIcon size="sm" onClick={() => updateDisplay('background_image', null)}>
                                 <IconTrash size={14} />
@@ -536,7 +536,7 @@ export default function TimerDisplayEditorV2({
 
                 <Tabs.Panel value="branding" pt="sm">
                   <SectionCard title="Logo & Branding" icon={<IconPhoto size={18} />}>
-                    <Stack spacing="sm">
+                    <Stack gap="sm">
                       <FileInput
                         label="Logo image"
                         placeholder="Upload logo"
@@ -544,7 +544,7 @@ export default function TimerDisplayEditorV2({
                         leftSection={<IconUpload size={14} />}
                       />
                       {display.logo_image && (
-                        <Group spacing="xs">
+                        <Group gap="xs">
                           <Badge variant="light">Logo</Badge>
                           <ActionIcon size="sm" onClick={() => updateDisplay('logo_image', null)}>
                             <IconTrash size={14} />
@@ -573,7 +573,7 @@ export default function TimerDisplayEditorV2({
 
                 <Tabs.Panel value="timer" pt="sm">
                   <SectionCard title="Timer & Clock" icon={<IconClock size={18} />}>
-                    <Stack spacing="sm">
+                    <Stack gap="sm">
                       <Select
                         label="Timer format"
                         data={[
@@ -609,7 +609,7 @@ export default function TimerDisplayEditorV2({
 
                       <Divider />
 
-                      <Group position="apart" align="center">
+                      <Group justify="space-between" align="center">
                         <Text fw={700} size="sm">
                           Clock
                         </Text>
@@ -633,7 +633,7 @@ export default function TimerDisplayEditorV2({
 
                 <Tabs.Panel value="content" pt="sm">
                   <SectionCard title="Content & Typography" icon={<IconTextSize size={18} />}>
-                    <Stack spacing="sm">
+                    <Stack gap="sm">
                       <Select
                         label="Title location"
                         data={displayLocationOptions}
@@ -676,7 +676,7 @@ export default function TimerDisplayEditorV2({
 
                 <Tabs.Panel value="colors" pt="sm">
                   <SectionCard title="Colors & Theme" icon={<IconPalette size={18} />}>
-                    <Stack spacing="sm">
+                    <Stack gap="sm">
                       <ColorInput
                         label="Timer color"
                         value={display.timer_color}
@@ -746,10 +746,10 @@ export default function TimerDisplayEditorV2({
         <Grid.Col span={{ base: 12, lg: 7 }} p={0} style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
           <Box style={{ padding: theme.spacing.md, height: '100%', display: 'flex', flexDirection: 'column' }}>
             <Card withBorder={false} radius={0} p="sm" style={{ flex: 1, display: 'flex', flexDirection: 'column', border: `1px solid ${theme.colors.gray[3]}`, minHeight: 0 }}>
-              <Group position="apart" align="center" mb="sm">
+              <Group justify="space-between" align="center" mb="sm">
                 <div>
                   {/* <Title order={3}>Live Preview</Title> */}
-                  <Text size="xs" color="dimmed">
+                  <Text size="xs" c="dimmed">
                     Preview updates instantly as you change settings. Some size updates are shown  correclty the in full screen preview.
                   </Text>
                 </div>
@@ -790,29 +790,29 @@ export default function TimerDisplayEditorV2({
         centered
         size="md"
       >
-        <Stack spacing="md">
+        <Stack gap="md">
           <Text>
             Are you sure you want to delete the display <strong>{display.name}</strong>? This action cannot be undone.
           </Text>
 
           {display.is_default && !deleteError && (
-            <Text color="orange" fw={700}>
+            <Text c="orange" fw={700}>
               Warning: this is your default display. You will need to set a new default after deletion.
             </Text>
           )}
 
           {deleteError && (
             <Card withBorder radius="sm" p="sm" style={{ borderColor: 'rgba(255, 107, 107, 0.3)' }}>
-              <Group spacing="sm">
+              <Group gap="sm">
                 <IconAlertCircle color="var(--mantine-color-red-filled)" />
-                <Text color="red" fw={700}>
+                <Text c="red" fw={700}>
                   {deleteError}
                 </Text>
               </Group>
             </Card>
           )}
 
-          <Group position="right">
+          <Group justify="flex-end">
             <Button
               variant="default"
               onClick={() => {
