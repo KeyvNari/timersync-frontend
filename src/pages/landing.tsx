@@ -284,7 +284,7 @@ export default function LandingPage() {
           left: 0,
           right: 0,
           zIndex: 1000,
-          backgroundColor: scrolled ? 'rgba(255, 255, 255, 0.8)' : 'transparent',
+          backgroundColor: scrolled ? 'rgba(255, 255, 255, 0.8)' : 'white',
           backdropFilter: scrolled ? 'blur(20px) saturate(180%)' : 'none',
           borderBottom: scrolled ? '1px solid rgba(102, 126, 234, 0.1)' : 'none',
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -292,36 +292,15 @@ export default function LandingPage() {
         }}
       >
         <Container size="xl">
-          <Group justify="space-between" h={70}>
+          <Group justify="space-between" align="center" py="md">
             <Group gap="xs">
-              <Box
-                style={{
-                  position: 'relative',
-                  width: 40,
-                  height: 40,
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  borderRadius: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 8px 20px rgba(102, 126, 234, 0.3)',
-                  animation: 'pulse 3s ease-in-out infinite',
-                }}
-              >
-                <IconClock size={22} color="white" />
-              </Box>
-              <Text
-                size="xl"
-                fw={800}
-                style={{
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  letterSpacing: '-0.5px',
-                }}
-              >
-                VeroTime
-              </Text>
+              <Image
+                src="/logo-light-full.png"
+                alt="VeroTime Logo"
+                height={60}
+                width="auto"
+                fit="contain"
+              />
             </Group>
 
             {/* Desktop Navigation */}
@@ -1262,22 +1241,14 @@ export default function LandingPage() {
               <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="xl">
                 <Stack gap="md">
                   <Group gap="xs">
-                    <Box
-                      style={{
-                        width: 36,
-                        height: 36,
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                        borderRadius: '10px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <IconClock size={20} color="white" />
-                    </Box>
-                    <Text style={{ color: 'white', fontWeight: 800, fontSize: '1.3rem' }}>
-                      VeroTime
-                    </Text>
+                    
+                    <Image
+                src="/logo-dark-full.png"
+                alt="VeroTime Logo"
+                height={60}
+                width="auto"
+                fit="contain"
+              />
                   </Group>
                   <Text size="sm" style={{ color: '#999', maxWidth: 280, lineHeight: 1.6 }}>
                     Modern time synchronization for teams. Collaborate effortlessly with real-time

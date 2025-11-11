@@ -14,7 +14,7 @@ export function AuthLayout() {
           c="inherit"
           variant="subtle"
           leftSection={<GoBackIcon size="1rem" />}
-          onClick={() => navigate(-1)}
+          onClick={() => navigate('/')}
         >
           Go back
         </Button>

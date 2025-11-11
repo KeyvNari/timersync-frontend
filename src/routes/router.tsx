@@ -1,5 +1,6 @@
 // src/routes/router.tsx
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
 import { AuthGuard } from '@/guards/auth-guard';
 import { GuestGuard } from '@/guards/guest-guard';
 import { AuthLayout } from '@/layouts/auth';
@@ -7,6 +8,9 @@ import { DashboardLayout } from '@/layouts/dashboard';
 import docsRoutes from '@/pages/docs/routes';
 import { LazyPage } from './lazy-page';
 import { paths } from './paths';
+
+// Landing page without loading screen
+const LandingPage = lazy(() => import('@/pages/landing'));
 
 const router = createBrowserRouter([
   // Controller routes - no authentication guards needed
@@ -30,7 +34,7 @@ const router = createBrowserRouter([
 
   {
     path: '/',
-    element: LazyPage(() => import('@/pages/landing')),
+    element: <Suspense><LandingPage /></Suspense>,
   },
   {
     path: paths.auth.root,
