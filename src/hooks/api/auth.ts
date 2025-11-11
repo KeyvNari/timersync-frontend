@@ -49,34 +49,34 @@ export const useRegister = createPostMutationHook({
   responseSchema: RegisterResponseSchema,
   rMutationParams: {
     onSuccess: () => {
-      notifications.show({ 
-        title: 'Account Created!', 
-        message: 'Registration successful. You can now log in with your credentials.', 
-        color: 'green' 
+      notifications.show({
+        title: 'Account Created!',
+        message: 'Logging you in...',
+        color: 'green'
       });
     },
     onError: (error: any) => {
       console.error('Registration error:', error);
-      
+
       // Handle validation errors from backend
       if (error?.detail && Array.isArray(error.detail)) {
         const errorMessages = error.detail.map((err: any) => err.msg).join(', ');
-        notifications.show({ 
+        notifications.show({
           title: 'Registration Failed',
-          message: errorMessages, 
-          color: 'red' 
+          message: errorMessages,
+          color: 'red'
         });
       } else if (error?.message) {
-        notifications.show({ 
+        notifications.show({
           title: 'Registration Failed',
-          message: error.message, 
-          color: 'red' 
+          message: error.message,
+          color: 'red'
         });
       } else {
-        notifications.show({ 
+        notifications.show({
           title: 'Registration Failed',
-          message: 'Registration failed. Please try again.', 
-          color: 'red' 
+          message: 'Registration failed. Please try again.',
+          color: 'red'
         });
       }
     },

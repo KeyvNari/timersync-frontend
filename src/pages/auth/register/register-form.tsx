@@ -13,7 +13,8 @@ import {
 import { useForm, zodResolver } from '@mantine/form';
 import { FormProvider } from '@/components/forms/form-provider';
 import { RegisterRequestSchema } from '@/api/dtos';
-import { useRegister } from '@/hooks';
+import { useRegister, useLogin } from '@/hooks';
+import { useAuth } from '@/hooks/use-auth';
 import { paths } from '@/routes';
 
 interface RegisterFormProps extends Omit<StackProps, 'children'> {
@@ -22,7 +23,9 @@ interface RegisterFormProps extends Omit<StackProps, 'children'> {
 
 export function RegisterForm({ onSuccess, ...props }: RegisterFormProps) {
   const navigate = useNavigate();
-  const { mutate: register, isPending } = useRegister();
+  const { setIsAuthenticated } = useAuth();
+  const { mutate: register, isPending: isRegisterPending } = useRegister();
+  const { mutate: login, isPending: isLoginPending } = useLogin();
 
   const form = useForm({
     mode: 'controlled',
@@ -40,7 +43,7 @@ export function RegisterForm({ onSuccess, ...props }: RegisterFormProps) {
   const handleSubmit = form.onSubmit((values) => {
     // Remove agreeToTerms from the data sent to API
     const { agreeToTerms, ...registrationData } = values;
-    
+
     if (!agreeToTerms) {
       form.setFieldError('agreeToTerms', 'You must agree to the terms and privacy policy');
       return;
@@ -51,13 +54,36 @@ export function RegisterForm({ onSuccess, ...props }: RegisterFormProps) {
       {
         onSuccess: () => {
           onSuccess?.();
-          // Redirect to login page after successful registration
-          navigate(paths.auth.login, { 
-            replace: true,
-            state: { 
-              message: 'Registration successful! Please log in with your credentials.' 
+          // Automatically log in the user with their credentials
+          login(
+            {
+              variables: {
+                username: registrationData.email,
+                password: registrationData.password,
+                grant_type: 'password',
+                scope: 'read write',
+                client_id: 'frontend',
+                client_secret: 'frontend-secret',
+              },
+            },
+            {
+              onSuccess: () => {
+                // Update auth state and redirect to dashboard
+                setIsAuthenticated(true);
+                navigate(paths.dashboard.root, { replace: true });
+              },
+              onError: (error: any) => {
+                console.error('Auto-login failed:', error);
+                // Fall back to login page if auto-login fails
+                navigate(paths.auth.login, {
+                  replace: true,
+                  state: {
+                    message: 'Registration successful! Please log in with your credentials.'
+                  }
+                });
+              },
             }
-          });
+          );
         },
         onError: (error: any) => {
           // Handle field-specific validation errors
@@ -124,7 +150,7 @@ export function RegisterForm({ onSuccess, ...props }: RegisterFormProps) {
         
         <Button
           type="submit"
-          loading={isPending}
+          loading={isRegisterPending || isLoginPending}
           disabled={!form.values.agreeToTerms || !form.isValid()}
         >
           Create Account
