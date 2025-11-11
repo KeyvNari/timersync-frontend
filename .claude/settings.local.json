@@ -31,7 +31,8 @@
       "Bash(git commit:*)",
       "Bash(npm ls:*)",
       "Bash(npm run typecheck:*)",
-      "Bash(npm info:*)"
+      "Bash(npm info:*)",
+      "Bash(timeout 5 npm run dev:*)"
     ],
     "deny": [],
     "ask": []

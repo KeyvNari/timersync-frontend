@@ -5,7 +5,8 @@
   "version": "0.0.0",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc && npm run generate-sitemap && vite build",
+    "generate-sitemap": "node scripts/generate-sitemap.mjs",
     "deploy": "firebase deploy",
     "preview": "vite preview",
     "start": "node server.js",
