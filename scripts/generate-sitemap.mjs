@@ -30,7 +30,7 @@ function getTimerPresets() {
 }
 
 function generateSitemap() {
-  const baseUrl = 'https://verotime.com'; // Update with your actual domain
+  const baseUrl = 'https://verotime.io'; // Update with your actual domain
   const slugs = getTimerPresets();
   const now = new Date().toISOString().split('T')[0];
 
