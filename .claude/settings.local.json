@@ -24,7 +24,11 @@
       "Bash(nul)",
       "Bash(git log:*)",
       "Bash(git branch:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nfix: configure Cloud Run deployment with Express server\n\n- Added Express server (server.js) to serve built frontend on port 8080\n- Updated package.json with ''start'' script and express dependency\n- Updated Dockerfile to use multi-stage build and npm start\n- Added .dockerignore to optimize build context\n\nThis ensures the container properly listens on port 8080 for Cloud Run health checks.\n\n🤖 Generated with Claude Code\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git config:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
