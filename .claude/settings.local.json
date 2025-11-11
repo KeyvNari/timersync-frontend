@@ -33,7 +33,9 @@
       "Bash(npm run typecheck:*)",
       "Bash(npm info:*)",
       "Bash(timeout 5 npm run dev:*)",
-      "Bash(node scripts/generate-sitemap.mjs:*)"
+      "Bash(node scripts/generate-sitemap.mjs:*)",
+      "Bash(timeout 10 curl:*)",
+      "Bash(timeout 5 curl:*)"
     ],
     "deny": [],
     "ask": []

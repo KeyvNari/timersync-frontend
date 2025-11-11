@@ -8,6 +8,18 @@
     ],
     "rewrites": [
       {
+        "source": "/assets/**",
+        "destination": "/assets/**"
+      },
+      {
+        "source": "/sitemap.xml",
+        "destination": "/sitemap.xml"
+      },
+      {
+        "source": "/robots.txt",
+        "destination": "/robots.txt"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
