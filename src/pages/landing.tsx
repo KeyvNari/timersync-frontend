@@ -182,7 +182,7 @@ export default function LandingPage() {
   };
 
   return (
-    <Stack gap={0}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       {/* Header Menu */}
       <Box
         component="header"
@@ -287,7 +287,8 @@ export default function LandingPage() {
         </Stack>
       </Drawer>
 
-      {/* Hero Section */}
+      <Stack gap={0} style={{ flex: 1, paddingTop: '60px' }}>
+        {/* Hero Section */}
       <Box
         id="hero"
         ref={(el) => {
@@ -837,6 +838,7 @@ export default function LandingPage() {
           </Stack>
         </Container>
       </Box>
-    </Stack>
+      </Stack>
+    </div>
   );
 }
