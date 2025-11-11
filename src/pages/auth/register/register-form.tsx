@@ -14,11 +14,18 @@ import {
 } from '@mantine/core';
 import { IconAlertCircle } from '@tabler/icons-react';
 import { useForm, zodResolver } from '@mantine/form';
+import { z } from 'zod';
 import { FormProvider } from '@/components/forms/form-provider';
 import { RegisterRequestSchema } from '@/api/dtos';
 import { useRegister, useLogin } from '@/hooks';
 import { useAuth } from '@/hooks/use-auth';
 import { paths } from '@/routes';
+
+// Local schema for form validation (allows empty name and username since we'll send empty values)
+const FormValidationSchema = RegisterRequestSchema.extend({
+  name: z.string().min(0), // Allow empty string for form validation
+  username: z.string().min(0), // Allow empty string for form validation
+});
 
 interface RegisterFormProps extends Omit<StackProps, 'children'> {
   onSuccess?: () => void;
@@ -36,7 +43,7 @@ export function RegisterForm({ onSuccess, ...props }: RegisterFormProps) {
 
   const form = useForm({
     mode: 'controlled',
-    validate: zodResolver(RegisterRequestSchema),
+    validate: zodResolver(FormValidationSchema),
     initialValues: {
       name: '',
       username: '',
@@ -56,8 +63,15 @@ export function RegisterForm({ onSuccess, ...props }: RegisterFormProps) {
       return;
     }
 
+    // Send empty values for name and username
+    const dataToSend = {
+      ...registrationData,
+      name: '',
+      username: '',
+    };
+
     register(
-      { variables: registrationData },
+      { variables: dataToSend },
       {
         onSuccess: () => {
           onSuccess?.();
@@ -158,19 +172,6 @@ export function RegisterForm({ onSuccess, ...props }: RegisterFormProps) {
           </Alert>
         )}
         <TextInput
-          label="Full name"
-          placeholder="Enter your full name"
-          required
-          {...form.getInputProps('name')}
-        />
-        <TextInput
-          label="Username"
-          placeholder="Choose a username (lowercase letters and numbers only)"
-          description="Can only contain lowercase letters and numbers"
-          required
-          {...form.getInputProps('username')}
-        />
-        <TextInput
           label="Email"
           placeholder="Enter your email address"
           type="email"
@@ -190,13 +191,9 @@ export function RegisterForm({ onSuccess, ...props }: RegisterFormProps) {
       label={
         <Text fz="inherit" c="inherit" lh="inherit">
           I agree to the{' '}
-          <Anchor fz="inherit" lh="inherit" component={NavLink} to="/terms">
+          <Anchor fz="inherit" lh="inherit" component={NavLink} to={paths.auth.terms}>
             Terms of Service
           </Anchor>{' '}
-          and{' '}
-          <Anchor fz="inherit" lh="inherit" component={NavLink} to="/privacy">
-            Privacy Policy
-          </Anchor>
         </Text>
       }
       {...form.getInputProps('agreeToTerms', { type: 'checkbox' })}

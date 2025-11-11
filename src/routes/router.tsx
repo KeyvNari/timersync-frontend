@@ -68,6 +68,10 @@ const router = createBrowserRouter([
     ],
   },
   {
+    path: paths.auth.terms,
+    element: LazyPage(() => import('@/pages/auth/terms')),
+  },
+  {
     path: paths.dashboard.root,
     element: (
       <AuthGuard>

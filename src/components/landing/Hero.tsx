@@ -6,11 +6,12 @@ import {
   Group,
   Badge,
   Box,
-  ThemeIcon,
   Title,
+  Grid,
 } from '@mantine/core';
-import { IconClock, IconArrowRight, IconSparkles, IconBolt } from '@tabler/icons-react';
+import { IconArrowRight, IconSparkles, IconBolt } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
+import dashboardImage from '../../assets/image_saas.png';
 
 interface HeroProps {
   onScrollToSection: (sectionId: string) => void;
@@ -78,172 +79,172 @@ export function Hero({ onScrollToSection, animationStyle }: HeroProps) {
             🎉 Trusted by 50,000+ teams worldwide
           </Badge>
 
-          {/* Main Heading */}
-          <Box style={{ animation: 'fadeInUp 1s ease-out 0.2s both' }}>
-            <Title
-              order={1}
-              style={{
-                fontSize: 'clamp(2.5rem, 6vw, 4.5rem)',
-                fontWeight: 900,
-                textAlign: 'center',
-                lineHeight: 1.1,
-                background: 'linear-gradient(135deg, #1a1a1a 0%, #667eea 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                letterSpacing: '-2px',
-                marginBottom: '0.5rem',
-              }}
-            >
-              Time Management
-            </Title>
-            <Title
-              order={1}
-              style={{
-                fontSize: 'clamp(2.5rem, 6vw, 4.5rem)',
-                fontWeight: 900,
-                textAlign: 'center',
-                lineHeight: 1.1,
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                letterSpacing: '-2px',
-              }}
-            >
-              Reimagined for Modern Teams
-            </Title>
-          </Box>
+          {/* Main Content - Text and Image Side by Side */}
+          <Grid gutter="xl" align="center" style={{ width: '100%', margin: 0 }}>
+            {/* Left Column - Text Content */}
+            <Grid.Col span={{ base: 12, sm: 12, md: 6 }}>
+              <Stack gap="lg" align="flex-start">
+                {/* Main Heading */}
+                <Box style={{ animation: 'fadeInUp 1s ease-out 0.2s both' }}>
+                  <Title
+                    order={1}
+                    style={{
+                      fontSize: 'clamp(2rem, 5vw, 3.5rem)',
+                      fontWeight: 900,
+                      textAlign: 'start',
+                      lineHeight: 1.1,
+                      background: 'linear-gradient(135deg, #1a1a1a 0%, #667eea 100%)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      letterSpacing: '-2px',
+                      marginBottom: '0.5rem',
+                    }}
+                  >
+                    Time Management
+                  </Title>
+                  <Title
+                    order={1}
+                    style={{
+                      fontSize: 'clamp(2rem, 5vw, 3.5rem)',
+                      fontWeight: 900,
+                      textAlign: 'start',
+                      lineHeight: 1.1,
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      letterSpacing: '-2px',
+                    }}
+                  >
+                    Reimagined for Modern Teams
+                  </Title>
+                </Box>
 
-          {/* Subtitle */}
-          <Text
-            size="xl"
-            style={{
-              color: '#495057',
-              textAlign: 'center',
-              maxWidth: 700,
-              lineHeight: 1.7,
-              fontSize: 'clamp(1rem, 2vw, 1.25rem)',
-              animation: 'fadeInUp 1s ease-out 0.4s both',
-            }}
-          >
-            Sync timers across your entire team in real-time. Collaborate effortlessly with
-            precision controls, intelligent notifications, and enterprise-grade security.
-          </Text>
+                {/* Subtitle */}
+                <Text
+                  size="lg"
+                  style={{
+                    color: '#495057',
+                    textAlign: 'start',
+                    lineHeight: 1.7,
+                    fontSize: 'clamp(0.95rem, 2vw, 1.1rem)',
+                    animation: 'fadeInUp 1s ease-out 0.4s both',
+                  }}
+                >
+                  Sync timers across your entire team in real-time. Collaborate effortlessly with
+                  precision controls, intelligent notifications, and enterprise-grade security.
+                </Text>
 
-          {/* CTA Buttons */}
-          <Group gap="lg" style={{ animation: 'fadeInUp 1s ease-out 0.6s both' }}>
-            <Button
-              size="xl"
-              radius="xl"
-              variant="gradient"
-              gradient={{ from: 'grape', to: 'violet' }}
-              rightSection={<IconArrowRight size={20} />}
-              style={{
-                fontWeight: 700,
-                paddingLeft: '2.5rem',
-                paddingRight: '2.5rem',
-                boxShadow: '0 10px 40px rgba(102, 126, 234, 0.4)',
-                transition: 'all 0.3s ease',
-              }}
-              onClick={() => navigate('/auth/register')}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-3px)';
-                e.currentTarget.style.boxShadow = '0 15px 50px rgba(102, 126, 234, 0.5)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 10px 40px rgba(102, 126, 234, 0.4)';
-              }}
-            >
-              Start Free Trial
-            </Button>
-            <Button
-              size="xl"
-              radius="xl"
-              variant="light"
-              color="grape"
-              rightSection={<IconBolt size={20} />}
-              style={{
-                fontWeight: 700,
-                paddingLeft: '2.5rem',
-                paddingRight: '2.5rem',
-                border: '2px solid rgba(102, 126, 234, 0.2)',
-                transition: 'all 0.3s ease',
-              }}
-              onClick={() => onScrollToSection('features')}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-3px)';
-                e.currentTarget.style.borderColor = 'rgba(102, 126, 234, 0.4)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.borderColor = 'rgba(102, 126, 234, 0.2)';
-              }}
-            >
-              Watch Demo
-            </Button>
-          </Group>
-
-          {/* Trust Indicators */}
-          <Text
-            size="sm"
-            style={{
-              color: '#868e96',
-              animation: 'fadeInUp 1s ease-out 0.8s both',
-            }}
-          >
-            ✓ No credit card required · ✓ 14-day free trial · ✓ Cancel anytime
-          </Text>
-
-          {/* Hero Image/Mockup Placeholder */}
-          <Box
-            style={{
-              width: '100%',
-              maxWidth: '1100px',
-              marginTop: '3rem',
-              animation: 'fadeInUp 1s ease-out 1s both',
-            }}
-          >
-            <Box
-              style={{
-                position: 'relative',
-                borderRadius: '24px',
-                overflow: 'hidden',
-                boxShadow: '0 30px 90px rgba(0, 0, 0, 0.15)',
-                border: '1px solid rgba(102, 126, 234, 0.1)',
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                padding: '2px',
-              }}
-            >
-              <Box
-                style={{
-                  background: 'white',
-                  borderRadius: '22px',
-                  padding: '3rem',
-                  minHeight: '400px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Stack align="center" gap="md">
-                  <ThemeIcon
-                    size={100}
+                {/* CTA Buttons */}
+                <Group gap="lg" style={{ animation: 'fadeInUp 1s ease-out 0.6s both' }}>
+                  <Button
+                    size="xl"
                     radius="xl"
                     variant="gradient"
                     gradient={{ from: 'grape', to: 'violet' }}
-                    style={{ boxShadow: '0 20px 60px rgba(102, 126, 234, 0.3)' }}
+                    rightSection={<IconArrowRight size={20} />}
+                    style={{
+                      fontWeight: 700,
+                      paddingLeft: '2.5rem',
+                      paddingRight: '2.5rem',
+                      boxShadow: '0 10px 40px rgba(102, 126, 234, 0.4)',
+                      transition: 'all 0.3s ease',
+                    }}
+                    onClick={() => navigate('/auth/register')}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-3px)';
+                      e.currentTarget.style.boxShadow = '0 15px 50px rgba(102, 126, 234, 0.5)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 10px 40px rgba(102, 126, 234, 0.4)';
+                    }}
                   >
-                    <IconClock size={60} />
-                  </ThemeIcon>
-                  <Text size="xl" fw={600} c="dimmed">
-                    Dashboard Preview
-                  </Text>
-                </Stack>
-              </Box>
-            </Box>
-          </Box>
+                    Start Free Trial
+                  </Button>
+                  <Button
+                    size="xl"
+                    radius="xl"
+                    variant="light"
+                    color="grape"
+                    rightSection={<IconBolt size={20} />}
+                    style={{
+                      fontWeight: 700,
+                      paddingLeft: '2.5rem',
+                      paddingRight: '2.5rem',
+                      border: '2px solid rgba(102, 126, 234, 0.2)',
+                      transition: 'all 0.3s ease',
+                    }}
+                    onClick={() => onScrollToSection('features')}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-3px)';
+                      e.currentTarget.style.borderColor = 'rgba(102, 126, 234, 0.4)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.borderColor = 'rgba(102, 126, 234, 0.2)';
+                    }}
+                  >
+                    Watch Demo
+                  </Button>
+                </Group>
+
+                {/* Trust Indicators */}
+                <Text
+                  size="sm"
+                  style={{
+                    color: '#868e96',
+                    animation: 'fadeInUp 1s ease-out 0.8s both',
+                  }}
+                >
+                  ✓ No credit card required · ✓ 14-day free trial · ✓ Cancel anytime
+                </Text>
+              </Stack>
+            </Grid.Col>
+
+            {/* Right Column - Dashboard Image */}
+            <Grid.Col span={{ base: 12, sm: 12, md: 6 }}>
+              <img
+                src={dashboardImage}
+                alt="Dashboard Preview"
+                style={{
+                  width: '100%',
+                  height: 'auto',
+                  display: 'block',
+                  borderRadius: '24px',
+                  border: '1px solid rgba(102, 126, 234, 0.1)',
+                  boxShadow: '0 30px 90px rgba(0, 0, 0, 0.15)',
+                  animation: 'fadeInUp 1s ease-out 1s both',
+                }}
+              />
+            </Grid.Col>
+          </Grid>
         </Stack>
       </Container>
+
+      {/* Animations */}
+      <style>{`
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(50px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: translateY(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </Box>
   );
 }

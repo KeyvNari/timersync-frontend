@@ -12,8 +12,6 @@
         "destination": "/index.html"
       }
     ]
-<<<<<<< HEAD
-=======
   },
   "apphosting": {
     "serverId": "default",
@@ -22,6 +20,5 @@
       "nodeVersion": "18",
       "runtime": "nodejs18"
     }
->>>>>>> 09903d85699dbe9d801d8cbc092fa1a6b22b04e9
   }
 }
