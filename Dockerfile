@@ -20,18 +20,28 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Install serve to serve static files
-RUN npm install -g serve
+# Copy package files for dependency installation
+COPY package.json package-lock.json ./
+
+# Install production dependencies only
+RUN npm ci --only=production
 
 # Copy built dist folder from builder
 COPY --from=builder /app/dist ./dist
+
+# Copy server file
+COPY server.js ./
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV PORT=8080
 
 # Expose port 8080
 EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:8080', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
+  CMD node -e "import('http').then(http => http.get('http://localhost:8080', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)}))" || exit 1
 
-# Start the application on port 8080
-CMD ["serve", "-s", "dist", "-l", "8080"]
+# Start the application
+CMD ["npm", "start"]
