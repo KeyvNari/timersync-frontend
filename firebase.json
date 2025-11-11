@@ -1,0 +1,19 @@
+{
+  "hosting": {
+    "source": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "dist/**"
+    ]
+  },
+  "apphosting": {
+    "serverId": "default",
+    "backendDirectory": ".",
+    "backendBuildConfig": {
+      "nodeVersion": "18",
+      "runtime": "nodejs18"
+    }
+  }
+}
