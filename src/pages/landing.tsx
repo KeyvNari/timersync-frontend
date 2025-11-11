@@ -38,11 +38,14 @@ export default function LandingPage() {
     };
   }, []);
 
-  const getAnimationStyle = (sectionId: string, delay = 0) => ({
-    opacity: visibleSections[sectionId] ? 1 : 0,
-    transform: visibleSections[sectionId] ? 'translateY(0)' : 'translateY(50px)',
-    transition: `opacity 0.8s ease-out ${delay}s, transform 0.8s ease-out ${delay}s`,
-  });
+  const getAnimationStyle = (sectionId: string, delay = 0) => {
+    const isVisible = visibleSections[sectionId];
+    return {
+      opacity: isVisible ? 1 : 1,
+      transform: isVisible ? 'translateY(0)' : 'translateY(0)',
+      transition: isVisible ? `opacity 0.8s ease-out ${delay}s, transform 0.8s ease-out ${delay}s` : 'none',
+    };
+  };
 
   const scrollToSection = (sectionId: string) => {
     const element = sectionRefs.current[sectionId];
@@ -52,7 +55,7 @@ export default function LandingPage() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       {/* Animated Background Elements */}
       <Box
         style={{
@@ -99,7 +102,7 @@ export default function LandingPage() {
       {/* Header */}
       <Header onScrollToSection={scrollToSection} />
 
-      <Stack gap={0} style={{ flex: 1, paddingTop: '70px', position: 'relative', zIndex: 1 }}>
+      <Stack gap={0} style={{ paddingTop: '70px', position: 'relative', zIndex: 1 }}>
         {/* Hero Section */}
         <div
           ref={(el) => {

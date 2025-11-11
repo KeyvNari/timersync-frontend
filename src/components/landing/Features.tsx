@@ -6,12 +6,11 @@ import {
   IconTarget,
   IconFlare,
   IconLock,
-  TablerIconsProps,
 } from '@tabler/icons-react';
-import { ForwardRefExoticComponent, RefAttributes } from 'react';
+import { ComponentType } from 'react';
 
 interface Feature {
-  icon: ForwardRefExoticComponent<TablerIconsProps & RefAttributes<SVGSVGElement>>;
+  icon: ComponentType<{ size: number; color: string }>;
   title: string;
   description: string;
   gradient: { from: string; to: string };

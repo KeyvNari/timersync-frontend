@@ -4,14 +4,13 @@ import {
   IconTrendingUp,
   IconShieldCheck,
   IconInfinity,
-  TablerIconsProps,
 } from '@tabler/icons-react';
-import { ForwardRefExoticComponent, RefAttributes } from 'react';
+import { ComponentType } from 'react';
 
 interface Stat {
   value: string;
   label: string;
-  icon: ForwardRefExoticComponent<TablerIconsProps & RefAttributes<SVGSVGElement>>;
+  icon: ComponentType<{ size: number; color: string; opacity: number }>;
 }
 
 export function Stats() {
