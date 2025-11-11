@@ -17,6 +17,17 @@ export function Footer({ sectionRef, onScrollToSection }: FooterProps) {
       ],
     },
     {
+      title: 'Quick Timers',
+      items: [
+        { label: '5 Min Timer', href: '/timers/5-minute-timer' },
+        { label: '10 Min Timer', href: '/timers/10-minute-timer' },
+        { label: '15 Min Timer', href: '/timers/15-minute-timer' },
+        { label: '20 Min Timer', href: '/timers/20-minute-timer' },
+        { label: '25 Min Timer', href: '/timers/25-minute-timer' },
+        { label: '30 Min Timer', href: '/timers/30-minute-timer' },
+      ],
+    },
+    {
       title: 'Company',
       items: [
         { label: 'About Us', id: null },
@@ -48,7 +59,25 @@ export function Footer({ sectionRef, onScrollToSection }: FooterProps) {
     }
   };
 
-  const LinkComponent = ({ item }: { item: { label: string; id: string | null } }) => {
+  const LinkComponent = ({ item }: { item: any }) => {
+    if (item.href) {
+      return (
+        <Anchor
+          href={item.href}
+          size="sm"
+          style={{ color: '#999', transition: 'color 0.2s', textDecoration: 'none' }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = '#667eea';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = '#999';
+          }}
+        >
+          {item.label}
+        </Anchor>
+      );
+    }
+
     if (item.id) {
       return (
         <Anchor

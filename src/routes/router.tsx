@@ -30,6 +30,11 @@ const router = createBrowserRouter([
     path: '/controller/:roomId/:token/pwd',
     element: LazyPage(() => import('@/pages/controller')),
   },
+  // Timer routes - public, no authentication required
+  {
+    path: '/timers/:slug',
+    element: LazyPage(() => import('@/pages/timers')),
+  },
   ...docsRoutes,
 
   {

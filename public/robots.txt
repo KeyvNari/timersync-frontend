@@ -1,0 +1,14 @@
+# VeroTime robots.txt - SEO Configuration
+User-agent: *
+Allow: /
+Disallow: /auth/
+Disallow: /dashboard/
+Disallow: /admin/
+Disallow: /*.json$
+Disallow: /*.js$
+
+# Allow crawling of timer pages
+Allow: /timers/
+
+# Sitemap reference
+Sitemap: https://verotime.io/sitemap.xml
