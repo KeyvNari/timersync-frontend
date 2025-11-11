@@ -52,7 +52,7 @@ const handleLogout = () => {
       </Menu.Target>
       <Menu.Dropdown>
         <Menu.Item>
-         {user?.username}
+         {user?.email}
         </Menu.Item>
    
     
