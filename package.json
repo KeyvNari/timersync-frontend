@@ -5,11 +5,7 @@
   "version": "0.0.0",
   "scripts": {
     "dev": "vite",
-<<<<<<< HEAD
     "build": "tsc && vite build && firebase deploy",
-=======
-    "build": "tsc && vite build  && firebase deploy",
->>>>>>> 09903d85699dbe9d801d8cbc092fa1a6b22b04e9
     "preview": "vite preview",
     "start": "node server.js",
     "typecheck": "tsc --noEmit",
