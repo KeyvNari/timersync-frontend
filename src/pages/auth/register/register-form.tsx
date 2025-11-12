@@ -14,18 +14,14 @@ import {
 } from '@mantine/core';
 import { IconAlertCircle } from '@tabler/icons-react';
 import { useForm, zodResolver } from '@mantine/form';
-import { z } from 'zod';
 import { FormProvider } from '@/components/forms/form-provider';
 import { RegisterRequestSchema } from '@/api/dtos';
 import { useRegister, useLogin } from '@/hooks';
 import { useAuth } from '@/hooks/use-auth';
 import { paths } from '@/routes';
 
-// Local schema for form validation (allows empty name and username since we'll send empty values)
-const FormValidationSchema = RegisterRequestSchema.extend({
-  name: z.string().min(0), // Allow empty string for form validation
-  username: z.string().min(0), // Allow empty string for form validation
-});
+// Local schema for form validation (matches API requirements)
+const FormValidationSchema = RegisterRequestSchema;
 
 interface RegisterFormProps extends Omit<StackProps, 'children'> {
   onSuccess?: () => void;
@@ -63,15 +59,8 @@ export function RegisterForm({ onSuccess, ...props }: RegisterFormProps) {
       return;
     }
 
-    // Send empty values for name and username
-    const dataToSend = {
-      ...registrationData,
-      name: '',
-      username: '',
-    };
-
     register(
-      { variables: dataToSend },
+      { variables: registrationData },
       {
         onSuccess: () => {
           onSuccess?.();
@@ -171,6 +160,18 @@ export function RegisterForm({ onSuccess, ...props }: RegisterFormProps) {
             {errorSuggestion.message}
           </Alert>
         )}
+        <TextInput
+          label="Name"
+          placeholder="Enter your full name"
+          required
+          {...form.getInputProps('name')}
+        />
+        <TextInput
+          label="Username"
+          placeholder="Choose a username (lowercase letters and numbers only)"
+          required
+          {...form.getInputProps('username')}
+        />
         <TextInput
           label="Email"
           placeholder="Enter your email address"

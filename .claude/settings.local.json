@@ -35,7 +35,8 @@
       "Bash(timeout 5 npm run dev:*)",
       "Bash(node scripts/generate-sitemap.mjs:*)",
       "Bash(timeout 10 curl:*)",
-      "Bash(timeout 5 curl:*)"
+      "Bash(timeout 5 curl:*)",
+      "Bash(ls -la \"c:\\Users\\keyva\\Documents\\codes\\timersync_frontend\\src\"\" 2>&1 || echo \"Directory not found \")"
     ],
     "deny": [],
     "ask": []
