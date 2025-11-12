@@ -10,9 +10,17 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 
 // Serve static files from the dist directory
-app.use(express.static(join(__dirname, 'dist')));
+// The { index: false } option prevents serving index.html automatically for directory requests
+app.use(express.static(join(__dirname, 'dist'), {
+  setHeaders: (res, path) => {
+    if (path.endsWith('sitemap.xml')) {
+      res.set('Content-Type', 'application/xml');
+    }
+  }
+}));
 
-// SPA fallback - serve index.html for all non-file routes
+// SPA fallback - serve index.html for all routes not handled by static middleware
+// express.static only passes control here if the file doesn't exist
 app.get('*', (req, res) => {
   res.sendFile(join(__dirname, 'dist', 'index.html'));
 });
