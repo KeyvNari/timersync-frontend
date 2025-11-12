@@ -15,6 +15,7 @@ import TimerDisplayEditor from '@/components/timer-display-editor';
 import { Messages, Message } from '@/components/messages';
 import TimerAdjustmentControls from '@/components/timer-adjustment-controls';
 import { useWebSocketContext } from '@/providers/websocket-provider';
+import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import classes from './room.module.css';
 
 export interface RoomComponentProps {
@@ -86,6 +87,7 @@ export default function RoomComponent({
 }: RoomComponentProps) {
   const navigate = useNavigate();
   const { defaultDisplayId, adjustTimer, isOperationPending, messages: wsMessages } = useWebSocketContext();
+  const features = useFeatureAccess();
 
   // Get the currently showing message
   const showingMessage = wsMessages?.find(msg => msg.is_showing);
@@ -346,12 +348,32 @@ export default function RoomComponent({
           {showActionButtons && (
             <Group justify="space-between" wrap="wrap" className={classes.actionButtons}>
               <Group gap="xs">
-                <Button variant="default" size="sm" leftSection={<IconPlus size={16} />} onClick={onAddTimer}>
-                  Add Timer
-                </Button>
-                <Button variant="default" size="sm" leftSection={<IconSparkles size={16} />} onClick={onCreateWithAI}>
-                  Create with AI
-                </Button>
+                <Tooltip label={!features.canCreateTimer().isAvailable ? features.canCreateTimer().reason : undefined} position="top" withArrow disabled={features.canCreateTimer().isAvailable}>
+                  <div>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      leftSection={<IconPlus size={16} />}
+                      onClick={onAddTimer}
+                      disabled={!features.canCreateTimer().isAvailable}
+                    >
+                      Add Timer
+                    </Button>
+                  </div>
+                </Tooltip>
+                <Tooltip label={!features.canCreateTimer().isAvailable ? features.canCreateTimer().reason : undefined} position="top" withArrow disabled={features.canCreateTimer().isAvailable}>
+                  <div>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      leftSection={<IconSparkles size={16} />}
+                      onClick={onCreateWithAI}
+                      disabled={!features.canCreateTimer().isAvailable}
+                    >
+                      Create with AI
+                    </Button>
+                  </div>
+                </Tooltip>
               </Group>
               {timers && timers.length > 1 && (
                 <Button

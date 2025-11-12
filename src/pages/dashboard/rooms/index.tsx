@@ -10,7 +10,7 @@ import { CurrentUser } from '@/layouts/dashboard/header/current-user';
 import { Logo } from '@/components/logo';
 import { Box } from '@mantine/core';
 import { paths } from '@/routes/paths';
-import { useGetRooms, useCreateRoom, useUpdateRoom, useDeleteRoom } from '@/hooks';
+import { useGetRooms, useCreateRoom, useUpdateRoom, useDeleteRoom, useFeatureAccess } from '@/hooks';
 import { Room } from '@/api/entities/rooms';
 
 export default function RoomsPage() {
@@ -19,6 +19,7 @@ export default function RoomsPage() {
   const { mutate: createRoom, isPending: isCreating } = useCreateRoom();
   const { mutate: updateRoom, isPending: isUpdating } = useUpdateRoom();
   const { mutate: deleteRoom, isPending: isDeleting } = useDeleteRoom();
+  const features = useFeatureAccess();
 
   const [createOpened, { open: openCreate, close: closeCreate }] = useDisclosure(false);
   const [editOpened, { open: openEdit, close: closeEdit }] = useDisclosure(false);
@@ -46,6 +47,19 @@ export default function RoomsPage() {
         title: 'Validation Error',
         message: 'Room name is required',
         color: 'red',
+      });
+      return;
+    }
+
+    // Check room creation limit
+    const currentRoomCount = roomsResponse?.data?.length || 0;
+    const roomLimit = features.planFeatures?.max_rooms || 0;
+
+    if (roomLimit > 0 && currentRoomCount >= roomLimit) {
+      notifications.show({
+        title: 'Room Limit Reached',
+        message: `You have reached your plan limit of ${roomLimit} room${roomLimit !== 1 ? 's' : ''}. Please upgrade your plan to create more rooms.`,
+        color: 'orange',
       });
       return;
     }
@@ -209,6 +223,14 @@ export default function RoomsPage() {
     { value: 'Pacific/Auckland', label: 'Pacific/Auckland (NZST)' },
   ];
 
+  // Check if room creation is disabled
+  const currentRoomCount = roomsResponse?.data?.length || 0;
+  const roomLimit = features.planFeatures?.max_rooms || 0;
+  const isRoomCreationDisabled = roomLimit > 0 && currentRoomCount >= roomLimit;
+  const createRoomDisabledReason = isRoomCreationDisabled
+    ? `You have reached your plan limit of ${roomLimit} room${roomLimit !== 1 ? 's' : ''}. Please upgrade your plan to create more rooms.`
+    : null;
+
   return (
     <Page title="Rooms">
       <RoomsComponent
@@ -217,6 +239,7 @@ export default function RoomsPage() {
         error={error}
         onRoomSelect={handleRoomSelect}
         showCreateButton={true}
+        createRoomDisabledReason={createRoomDisabledReason}
         onCreateRoom={handleCreateRoom}
         onEditRoom={handleEditRoom}
         onDeleteRoom={handleDeleteRoom}

@@ -22,6 +22,7 @@ import { v4 as uuidv4 } from 'uuid';
 import cx from 'clsx';
 import classes from './messages.module.css';
 import { useWebSocketContext } from '@/providers/websocket-provider';
+import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 
 export interface Message {
   id: string;
@@ -273,6 +274,7 @@ export function Messages({
 }: MessagesProps) {
   // Get WebSocket context
   const wsContext = useWebSocketContext();
+  const features = useFeatureAccess();
 
   // Use local state only if useLocalState is true, otherwise use WebSocket context
   const [localMessages, setLocalMessages] = useState<Message[]>(propMessages || []);
@@ -478,14 +480,19 @@ export function Messages({
             )}
           </Group>
 
-          <Button
-            variant="default"
-            size="sm"
-            onClick={handleAddMessage}
-            style={{ flexShrink: 0 }}
-          >
-            + Add Message
-          </Button>
+          <Tooltip label={!features.canCreateMessage().isAvailable ? features.canCreateMessage().reason : undefined} position="top" withArrow disabled={features.canCreateMessage().isAvailable}>
+            <div>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleAddMessage}
+                style={{ flexShrink: 0 }}
+                disabled={!features.canCreateMessage().isAvailable}
+              >
+                + Add Message
+              </Button>
+            </div>
+          </Tooltip>
         </Group>
       </Box>
 

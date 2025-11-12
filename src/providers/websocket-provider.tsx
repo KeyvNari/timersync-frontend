@@ -17,6 +17,17 @@ import {
   createSimpleWebSocketService,
 } from '@/services/websocket';
 
+interface PlanFeatures {
+  max_rooms: number;
+  max_timers_in_room: number;
+  max_connected_devices: number;
+  can_customize_display: boolean;
+  can_save_display: boolean;
+  can_use_room_messages: boolean;
+  max_messages_per_room: number;
+  agent_monthly_token_limit: number;
+}
+
 interface WebSocketContextValue {
   connected: boolean;
 
@@ -40,6 +51,10 @@ interface WebSocketContextValue {
     token_name?: string | null;
     reason?: string;
   } | null;
+
+  // User plan and features
+  userPlan: string | null;
+  planFeatures: PlanFeatures | null;
 
   // Timer state
   timers: TimerData[];
@@ -136,6 +151,10 @@ export function WebSocketProvider({
     token_name?: string | null;
     reason?: string;
   } | null>(null);
+
+  // User plan and features state
+  const [userPlan, setUserPlan] = useState<string | null>(null);
+  const [planFeatures, setPlanFeatures] = useState<PlanFeatures | null>(null);
 
   const [timers, setTimers] = useState<TimerData[]>([]);
   const [selectedTimerId, setSelectedTimerId] = useState<number | null>(null);
@@ -696,6 +715,23 @@ wsService.on('error', (message: any) => {
         console.warn('⚠️ messages_list event missing messages array:', message);
       }
     });
+
+    // User plan features event
+    wsService.on('user_plan_features', (message: any) => {
+      console.log('💳 Received user_plan_features event:', {
+        plan: message.plan,
+        features: message.features,
+        timestamp: message.timestamp
+      });
+
+      if (message.plan) {
+        setUserPlan(message.plan);
+      }
+
+      if (message.features) {
+        setPlanFeatures(message.features as PlanFeatures);
+      }
+    });
   };
 
   // Connection management
@@ -791,6 +827,8 @@ const disconnect = useCallback(() => {
   setMessages([]);
   setLastError(null);
   setLastSuccess(null);
+  setUserPlan(null);
+  setPlanFeatures(null);
 }, []);
 
   // Timer controls
@@ -1067,6 +1105,8 @@ const deleteMessage = useCallback((messageId: string) => {
     connectionMessage,
     disconnectedByHost,
     revokedToken,
+    userPlan,
+    planFeatures,
     timers,
     selectedTimerId,
     roomInfo,

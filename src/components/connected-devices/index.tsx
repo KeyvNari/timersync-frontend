@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import {
   Paper,
   Title,
@@ -13,7 +14,8 @@ import {
   Divider,
   Box,
   Indicator,
-  Collapse
+  Collapse,
+  Alert
 } from '@mantine/core';
 import {
   PiDevices as DeviceIcon,
@@ -27,6 +29,7 @@ import {
   PiKey as TokenIcon,
   PiTrash as RevokeIcon
 } from 'react-icons/pi';
+import { IconAlertCircle } from '@tabler/icons-react';
 
 // Types based on the backend structure
 interface ConnectionInfo {
@@ -378,6 +381,7 @@ export function ConnectedDevices({
   className
 }: ConnectedDevicesProps) {
   const [connectionList, setConnectionList] = useState<ConnectionInfo[]>(connections);
+  const features = useFeatureAccess();
 
   useEffect(() => {
     console.log('=== ConnectedDevices Update ===');
@@ -504,6 +508,14 @@ export function ConnectedDevices({
       </Box>
 
       <Divider />
+
+      {!features.canConnectDevice().isAvailable && (
+        <Box p="md">
+          <Alert icon={<IconAlertCircle size={16} />} title="Device Limit Reached" color="orange">
+            <Text size="sm">{features.canConnectDevice().reason}</Text>
+          </Alert>
+        </Box>
+      )}
 
       <ScrollArea mah={400}>
         <Stack gap={0}>

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActionIcon,
+  Alert,
   Avatar,
   Badge,
   Box,
@@ -43,6 +44,7 @@ import {
 } from '@tabler/icons-react';
 import TimerDisplay from '@/components/timer-display';
 import { useWebSocketContext } from '@/providers/websocket-provider';
+import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 
 /**
  * Redesigned Timer Display Editor (Tabs + Top Action Bar)
@@ -108,6 +110,7 @@ export default function TimerDisplayEditorV2({
 }: TimerDisplayEditorProps) {
   const theme = useMantineTheme();
   const { setDefaultDisplay, lastError, lastSuccess } = useWebSocketContext();
+  const features = useFeatureAccess();
 
   // prepare initial state with is_default flag based on defaultDisplayId
   const initialWithDefault = initialDisplay
@@ -405,14 +408,18 @@ export default function TimerDisplayEditorV2({
           </Tooltip>
         )}
 
-        <Button
-          leftSection={<IconDeviceFloppy size={16} />}
-          size="sm"
-          onClick={handleSave}
-          disabled={!hasUnsavedChanges || (isCreatingNew && !display.name?.trim())}
-        >
-          {isCreatingNew ? 'Create' : 'Save'}
-        </Button>
+        <Tooltip label={!features.canSaveDisplay().isAvailable ? features.canSaveDisplay().reason : undefined} position="top" withArrow disabled={features.canSaveDisplay().isAvailable}>
+          <div>
+            <Button
+              leftSection={<IconDeviceFloppy size={16} />}
+              size="sm"
+              onClick={handleSave}
+              disabled={!hasUnsavedChanges || (isCreatingNew && !display.name?.trim()) || !features.canSaveDisplay().isAvailable}
+            >
+              {isCreatingNew ? 'Create' : 'Save'}
+            </Button>
+          </div>
+        </Tooltip>
 
         {onCancel && (
           <Button variant="default" size="sm" onClick={onCancel}>
@@ -455,7 +462,13 @@ export default function TimerDisplayEditorV2({
             <Stack gap="md">
               <TopBar />
 
-              <Tabs value={activeTab} onChange={(val) => setActiveTab(val)} variant="pills">
+              {!features.canCustomizeDisplay().isAvailable && (
+                <Alert icon={<IconAlertCircle size={16} />} title="Feature Locked" color="yellow">
+                  <Text size="sm">{features.canCustomizeDisplay().reason}</Text>
+                </Alert>
+              )}
+
+              <Tabs value={activeTab} onChange={(val) => setActiveTab(val)} variant="pills" disabled={!features.canCustomizeDisplay().isAvailable}>
 
                 <Tabs.List>
                   <Tabs.Tab value="layout" leftSection={<IconLayout size={16} />}>

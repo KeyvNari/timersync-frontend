@@ -18,6 +18,7 @@ import {
   Modal,
   Avatar,
   Box,
+  Tooltip,
 } from '@mantine/core';
 import {
   IconDoorEnter,
@@ -53,6 +54,8 @@ export interface RoomsComponentProps {
   fetchRooms?: () => Promise<Room[]>;
   /** Optional: Show create room button */
   showCreateButton?: boolean;
+  /** Optional: Reason why room creation is disabled */
+  createRoomDisabledReason?: string | null;
   /** Optional: Callback for create room */
   onCreateRoom?: () => void;
   /** Optional: Callback for edit room */
@@ -74,6 +77,7 @@ export function RoomsComponent({
   onRoomSelect,
   fetchRooms,
   showCreateButton = true,
+  createRoomDisabledReason = null,
   onCreateRoom,
   onEditRoom,
   onDeleteRoom,
@@ -224,9 +228,17 @@ export function RoomsComponent({
               style={{ width: '300px' }}
             />
             {showCreateButton && (
-              <Button leftSection={<IconPlus size="1rem" />} onClick={onCreateRoom || openCreate}>
-                Create Room
-              </Button>
+              <Tooltip label={createRoomDisabledReason} position="top" withArrow disabled={!createRoomDisabledReason}>
+                <div>
+                  <Button
+                    leftSection={<IconPlus size="1rem" />}
+                    onClick={onCreateRoom || openCreate}
+                    disabled={!!createRoomDisabledReason}
+                  >
+                    Create Room
+                  </Button>
+                </div>
+              </Tooltip>
             )}
             {actionBarRightContent}
           </Group>
@@ -243,12 +255,17 @@ export function RoomsComponent({
                   : 'No rooms yet. Create one to get started!'}
               </Text>
               {showCreateButton && !searchQuery && (
-                <Button
-                  leftSection={<IconPlus size="1rem" />}
-                  onClick={onCreateRoom || openCreate}
-                >
-                  Create Your First Room
-                </Button>
+                <Tooltip label={createRoomDisabledReason} position="top" withArrow disabled={!createRoomDisabledReason}>
+                  <div>
+                    <Button
+                      leftSection={<IconPlus size="1rem" />}
+                      onClick={onCreateRoom || openCreate}
+                      disabled={!!createRoomDisabledReason}
+                    >
+                      Create Your First Room
+                    </Button>
+                  </div>
+                </Tooltip>
               )}
             </Stack>
           </Center>
