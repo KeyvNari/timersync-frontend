@@ -4,7 +4,7 @@ import { ForgotPasswordForm } from './forgot-password-form';
 
 export default function ForgotPasswordPage() {
   return (
-    <Page title="Forgot Password">
+    <Page title="Reset Your Password">
       <Stack gap="xl">
         <Stack>
           <Title order={2}>Forgot your password?</Title>

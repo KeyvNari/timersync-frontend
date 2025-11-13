@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Box, Alert, Loader, Center, Text, Paper, PasswordInput, Button, Stack, Title, LoadingOverlay } from '@mantine/core';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { IconAlertCircle, IconLock } from '@tabler/icons-react';
+import { Helmet } from 'react-helmet-async';
 import { useForm } from '@mantine/form';
 import TimerDisplay from '@/components/timer-display';
 import { useWebSocketContext, useTimerContext } from '@/providers/websocket-provider';
@@ -88,6 +89,9 @@ export default function ViewerPage() {
   const { roomId: roomIdParam, token } = useParams<{ roomId: string; token: string }>();
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Set page title
+  const pageTitle = `Timer Viewer | VeroTime`;
 
   // Use WebSocket context instead of direct service
   const {
@@ -307,7 +311,11 @@ useEffect(() => {
   // Show token revocation message if token has been revoked
   if (revokedToken) {
     return (
-      <Box
+      <>
+        <Helmet>
+          <title>{pageTitle}</title>
+        </Helmet>
+        <Box
         style={{
           width: '100vw',
           height: '100vh',
@@ -357,13 +365,18 @@ useEffect(() => {
           </Paper>
         </Center>
       </Box>
+      </>
     );
   }
 
   // Show password form if required and not authenticated
   if (requiresPassword && !isAuthenticated) {
     return (
-      <Box
+      <>
+        <Helmet>
+          <title>{pageTitle}</title>
+        </Helmet>
+        <Box
         style={{
           width: '100vw',
           height: '100vh',
@@ -412,13 +425,18 @@ useEffect(() => {
           </Paper>
         </Center>
       </Box>
+      </>
     );
   }
 
   // Show loading state while connecting
 if (connectionState === 'connecting') {
   return (
-    <Box
+    <>
+      <Helmet>
+        <title>{pageTitle}</title>
+      </Helmet>
+      <Box
       pos="relative"
       style={{
         width: '100vw',
@@ -435,14 +453,19 @@ if (connectionState === 'connecting') {
         overlayProps={{ radius: 'sm', blur: 2 }}
         loaderProps={{ color: 'blue', type: 'bars' }}
       />
-    </Box>
+      </Box>
+    </>
   );
 }
 
   // Show error state
   if (connectionState === 'error') {
     return (
-      <Box
+      <>
+        <Helmet>
+          <title>{pageTitle}</title>
+        </Helmet>
+        <Box
         style={{
           width: '100vw',
           height: '100vh',
@@ -494,13 +517,18 @@ if (connectionState === 'connecting') {
           </Alert>
         </Center>
       </Box>
+      </>
     );
   }
 
 // Show loading screen only when not connected yet
 if (!connected) {
   return (
-    <Box
+    <>
+      <Helmet>
+        <title>{pageTitle}</title>
+      </Helmet>
+      <Box
       pos="relative"
       style={{
         width: '100vw',
@@ -517,14 +545,19 @@ if (!connected) {
         overlayProps={{ radius: 'sm', blur: 2 }}
         loaderProps={{ color: 'blue', type: 'bars' }}
       />
-    </Box>
+      </Box>
+    </>
   );
 }
 
 // Show message when connected but no timer is available
 if (connected && !displayTimer) {
   return (
-    <Box
+    <>
+      <Helmet>
+        <title>{pageTitle}</title>
+      </Helmet>
+      <Box
       style={{
         width: '100vw',
         height: '100vh',
@@ -547,7 +580,8 @@ if (connected && !displayTimer) {
           </Text>
         </Stack>
       </Center>
-    </Box>
+      </Box>
+    </>
   );
 }
 
@@ -556,7 +590,11 @@ if (connected && !displayTimer) {
   const containerBgColor = displayConfig.background_type === 'transparent' ? 'transparent' : (displayConfig.background_color || '#000000');
 
 return connected && displayTimer ? (
-  <Box
+  <>
+    <Helmet>
+      <title>{pageTitle}</title>
+    </Helmet>
+    <Box
     style={{
       width: '100vw',
       height: '100vh',
@@ -581,10 +619,15 @@ return connected && displayTimer ? (
       in_view_mode={true}
       message={showingMessage}
     />
-  </Box>
+    </Box>
+  </>
 ) : (
   // Fallback loading state
-  <Box
+  <>
+    <Helmet>
+      <title>{pageTitle}</title>
+    </Helmet>
+    <Box
     pos="relative"
     style={{
       width: '100vw',
@@ -602,5 +645,6 @@ return connected && displayTimer ? (
       loaderProps={{ color: 'blue', type: 'bars' }}
     />
   </Box>
+  </>
 );
 }

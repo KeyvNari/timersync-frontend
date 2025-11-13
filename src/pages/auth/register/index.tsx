@@ -7,7 +7,7 @@ import { RegisterForm } from './register-form';
 
 export default function RegisterPage() {
   return (
-    <Page title="Register">
+    <Page title="Create Account - Synchronized Team Timers">
       <Stack gap="xl">
         <Stack>
           <Title order={2}>

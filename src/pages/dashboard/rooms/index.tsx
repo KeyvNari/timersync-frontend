@@ -232,7 +232,7 @@ export default function RoomsPage() {
     : null;
 
   return (
-    <Page title="Rooms">
+    <Page title="Timer Rooms - Create & Manage Synchronized Timers">
       <RoomsComponent
         rooms={roomsResponse?.data} // Pass the rooms data
         isLoading={isLoading}
