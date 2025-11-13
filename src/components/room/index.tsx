@@ -516,10 +516,11 @@ export default function RoomComponent({
         padding={0}
         styles={{
           root: { padding: 0 },
-          inner: { padding: 0 },
+          inner: { padding: 'md' },
           overlay: { padding: 0 },
-          content: { height: '100vh', border: 'none', borderRadius: 0, margin: 0, padding: 0, display: 'flex', flexDirection: 'column' },
-          header: { padding: 'md', borderBottom: '1px solid var(--mantine-color-gray-2)', flexShrink: 0 },
+          content: { height: 'calc(100vh - 2 * var(--mantine-spacing-md))', border: 'none', borderRadius: 'var(--mantine-radius-md)', margin: 0, padding: 0, display: 'flex', flexDirection: 'column' },
+          header: { padding: '12px md', borderBottom: '1px solid var(--mantine-color-gray-2)', flexShrink: 0 },
+          title: { marginLeft: 'lg', marginBottom: 'sm' },
           body: { flex: 1, padding: 0, overflow: 'auto', minHeight: 0 }
         }}
       >

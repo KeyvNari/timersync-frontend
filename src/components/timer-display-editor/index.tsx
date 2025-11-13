@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActionIcon,
-  Avatar,
   Badge,
   Box,
   Button,
@@ -20,10 +19,10 @@ import {
   Text,
   TextInput,
   Tabs,
-  Title,
   Tooltip,
   useMantineTheme,
-  BadgeVariant,
+  Paper,
+  ScrollArea,
 } from '@mantine/core';
 import {
   IconTrash,
@@ -36,26 +35,12 @@ import {
   IconTextSize,
   IconChevronDown,
   IconMaximize,
-  IconStar,
-  IconPlus,
-  IconAlertCircle,
-  IconBolt,
 } from '@tabler/icons-react';
 import TimerDisplay from '@/components/timer-display';
 import { useWebSocketContext } from '@/providers/websocket-provider';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { UpgradeCta } from '@/components/timer-panel/upgrade-cta';
 
-/**
- * Redesigned Timer Display Editor (Tabs + Top Action Bar)
- *
- * - Top bar with select, name, default toggle, Save/Create, Delete, Preview action
- * - Tabs for Layout, Branding, Timer/Clock, Typography & Content, Colors
- * - Live preview on the right, sticky
- * - Unsaved changes indicator + Ctrl/Cmd+S to save
- *
- * Drop-in replacement — keeps same props and external callbacks.
- */
 
 interface TimerDisplayEditorProps {
   initialDisplay?: any;
@@ -126,9 +111,7 @@ export default function TimerDisplayEditorV2({
   const [deleteConfirmOpened, setDeleteConfirmOpened] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [fullscreenPreview, setFullscreenPreview] = useState(false);
-
   const initialRef = useRef<any>(initialWithDefault);
-  const unsavedRef = useRef(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // Option lists
@@ -193,25 +176,19 @@ export default function TimerDisplayEditorV2({
     is_paused: false,
     is_finished: false,
     is_stopped: false,
-    warning_time: 90,
-    critical_time: 30,
   };
 
   // Helper to update display state and mark dirty
   const updateDisplay = (key: string, value: any) => {
-    setDisplay((prev: any) => {
-      const next = { ...prev, [key]: value };
-      return next;
-    });
-    unsavedRef.current = true;
+    setDisplay((prev: any) => ({ ...prev, [key]: value }));
     setHasUnsavedChanges(true);
   };
 
   // Reflect unsaved changes by comparing JSON (simple deep compare)
   useEffect(() => {
-    const isDifferent = JSON.stringify(display) !== JSON.stringify(initialRef.current);
-    unsavedRef.current = isDifferent;
-    setHasUnsavedChanges(isDifferent);
+    setHasUnsavedChanges(
+      JSON.stringify(display) !== JSON.stringify(initialRef.current)
+    );
   }, [display]);
 
   // Selection handler (select existing or create new/copy)
@@ -294,21 +271,17 @@ export default function TimerDisplayEditorV2({
 
   // Save (Create or Update)
   const handleSave = () => {
-    // remove client-side only props before save if necessary
     const { is_default, ...toSave } = display;
     onSave?.(toSave);
-    if (display.is_default && display.id) {
-      setDefaultDisplay?.(display.id);
-    }
+    if (display.is_default && display.id) setDefaultDisplay?.(display.id);
     initialRef.current = display;
-    unsavedRef.current = false;
     setHasUnsavedChanges(false);
   };
 
   // Ctrl/Cmd + S to save
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const isMac = navigator.platform.toUpperCase().includes('MAC');
       if ((isMac ? e.metaKey : e.ctrlKey) && e.key.toLowerCase() === 's') {
         e.preventDefault();
         if (hasUnsavedChanges) handleSave();
@@ -329,139 +302,122 @@ export default function TimerDisplayEditorV2({
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, [fullscreenPreview]);
 
-  // Small UI helpers
-  const showPreviewFullscreen = () => setFullscreenPreview(true);
-
-  // Top action bar component
-  const TopBar = () => (
-    <Group justify="space-between" align="center" mb="sm">
-      <Group align="center" gap="sm">
-        <Select
-          data={displayOptions}
-          value={selectedDisplayId?.toString()}
-          onChange={handleSelect}
-          size="sm"
-          style={{ minWidth: 260 }}
-          rightSection={<IconChevronDown size={16} />}
-        />
-        <TextInput
-          value={display.name}
-          onChange={(e) => updateDisplay('name', e.currentTarget.value)}
-          placeholder="Display name"
-          disabled={!isCreatingNew}
-          size="sm"
-          style={{ minWidth: 220 }}
-          error={nameError || undefined}
-        />
-        <Checkbox
-          label={
-            <Group gap={6} align="center">
-              <IconStar size={20} />
-              <Text size="xs" fw={600}>
-                Set as default
-              </Text>
-            </Group>
-          }
-          checked={display.is_default}
-          onChange={(e) => updateDisplay('is_default', e.currentTarget.checked)}
-          size="xs"
-        />
-        {/* {display.logo_image ? (
-          <Avatar src={display.logo_image} alt="logo" size={28} radius="sm" />
-        ) : (
-          <Tooltip label="No logo uploaded">
-            <Avatar radius="sm" size={28}>
-              <IconPhoto size={14} />
-            </Avatar>
-          </Tooltip>
-        )} */}
-        {display.background_type === 'image' && display.background_image && (
-          <Badge variant="outline" size="sm">
-            Background
-          </Badge>
-        )}
-      </Group>
-
-      <Group gap="xs">
-        <Text size="sm" c={hasUnsavedChanges ? 'orange' : 'teal'} fw={700}>
-          {hasUnsavedChanges ? 'Unsaved changes' : ''}
-        </Text>
-
-        {/* <Tooltip label="Preview fullscreen">
-          <ActionIcon variant="light" onClick={showPreviewFullscreen}>
-            <IconMaximize size={18} />
-          </ActionIcon>
-        </Tooltip> */}
-
-        {!isCreatingNew && onDelete && displays.length > 1 && (
-          <Tooltip label="Delete this display">
-            <ActionIcon
-              color="red"
-              variant="filled"
-              onClick={() => {
-                setDeleteConfirmOpened(true);
-                setDeleteError(null);
-              }}
-            >
-              <IconTrash size={16} />
-            </ActionIcon>
-          </Tooltip>
-        )}
-
-        <Tooltip label={!features.canSaveDisplay().isAvailable ? features.canSaveDisplay().reason : undefined} position="top" withArrow disabled={features.canSaveDisplay().isAvailable}>
-          <div>
-            <Button
-              leftSection={<IconDeviceFloppy size={16} />}
-              size="sm"
-              onClick={handleSave}
-              disabled={!hasUnsavedChanges || (isCreatingNew && !display.name?.trim()) || !features.canSaveDisplay().isAvailable}
-            >
-              {isCreatingNew ? 'Create' : 'Save'}
-            </Button>
-          </div>
-        </Tooltip>
-
-        {onCancel && (
-          <Button variant="default" size="sm" onClick={onCancel}>
-            Close
-          </Button>
-        )}
-      </Group>
-    </Group>
-  );
-
-  // Small card wrapper to keep consistent spacing
-  const SectionCard: React.FC<{ title?: string; icon?: React.ReactNode; children?: React.ReactNode }> = ({
+  const SectionCard = ({
     title,
     icon,
     children,
+  }: {
+    title: string;
+    icon: React.ReactNode;
+    children: React.ReactNode;
   }) => (
-    <Card shadow="sm" radius="md" p="sm" withBorder>
-      {title && (
-        <Group justify="space-between" mb="xs">
-          <Group gap="xs">
-            {icon}
-            <Text fw={700} size="sm">
-              {title}
-            </Text>
-          </Group>
-        </Group>
-      )}
+    <Card withBorder radius="md" p="sm" bg="var(--mantine-color-body)">
+      <Group mb="xs" gap="xs">
+        {icon}
+        <Text fw={600} size="sm">
+          {title}
+        </Text>
+      </Group>
       <Divider mb="sm" />
       {children}
     </Card>
   );
 
   return (
-    <>
-      <Box style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-        <Grid gutter={0} style={{ flex: 1, height: '100%' }}>
-        {/* Left: Controls */}
-        <Grid.Col span={{ base: 12, lg: 5 }} p={0} style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
-          <Box style={{ padding: theme.spacing.md }}>
-            <Stack gap="md">
-              <TopBar />
+    <Box style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Paper
+        withBorder
+        radius={0}
+        p="sm"
+        style={{
+          borderBottom: `1px solid ${theme.colors.gray[3]}`,
+          background:
+            theme.colorScheme === 'dark'
+              ? theme.colors.dark[7]
+              : theme.colors.gray[0],
+        }}
+      >
+        <Group justify="space-between" align="center">
+          <Group gap="sm">
+            <Select
+              data={displayOptions}
+              value={selectedDisplayId?.toString()}
+              onChange={handleSelect}
+              size="sm"
+              rightSection={<IconChevronDown size={14} />}
+              style={{ minWidth: 220 }}
+            />
+            <TextInput
+              value={display.name}
+              onChange={(e) => updateDisplay('name', e.currentTarget.value)}
+              placeholder="Display name"
+              size="sm"
+              style={{ minWidth: 200 }}
+              error={nameError || undefined}
+            />
+            <Checkbox
+              label="Default"
+              checked={display.is_default}
+              onChange={(e) =>
+                updateDisplay('is_default', e.currentTarget.checked)
+              }
+              size="xs"
+            />
+            {hasUnsavedChanges && (
+              <Badge color="orange" variant="light" size="sm">
+                Unsaved
+              </Badge>
+            )}
+          </Group>
+          <Group gap="xs">
+            {!isCreatingNew && onDelete && displays.length > 1 && (
+              <Tooltip label="Delete this display">
+                <ActionIcon
+                  color="red"
+                  variant="subtle"
+                  onClick={() => {
+                    setDeleteConfirmOpened(true);
+                    setDeleteError(null);
+                  }}
+                >
+                  <IconTrash size={16} />
+                </ActionIcon>
+              </Tooltip>
+            )}
+            <Tooltip label={!features.canSaveDisplay().isAvailable ? features.canSaveDisplay().reason : undefined} position="top" withArrow disabled={features.canSaveDisplay().isAvailable}>
+              <div>
+                <Button
+                  leftSection={<IconDeviceFloppy size={16} />}
+                  size="sm"
+                  onClick={handleSave}
+                  disabled={!hasUnsavedChanges || (isCreatingNew && !display.name?.trim()) || !features.canSaveDisplay().isAvailable}
+                >
+                  {isCreatingNew ? 'Create' : 'Save'}
+                </Button>
+              </div>
+            </Tooltip>
+            {onCancel && (
+              <Button variant="default" size="sm" onClick={onCancel}>
+                Close
+              </Button>
+            )}
+          </Group>
+        </Group>
+      </Paper>
 
+      <Grid gutter="xs" style={{ flex: 1, overflow: 'hidden' }}>
+        {/* Left controls */}
+        <Grid.Col
+          span={{ base: 12, lg: 5 }}
+          style={{
+            height: '100%',
+            borderRight: `1px solid ${theme.colors.gray[3]}`,
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <ScrollArea style={{ flex: 1 }}>
+            <Box p="md">
               {!features.canCustomizeDisplay().isAvailable && (
                 <UpgradeCta
                   current={0}
@@ -470,28 +426,38 @@ export default function TimerDisplayEditorV2({
                 />
               )}
 
-              <Tabs value={activeTab} onChange={(val) => setActiveTab(val)} variant="pills" disabled={!features.canCustomizeDisplay().isAvailable}>
-
-                <Tabs.List>
-                  <Tabs.Tab value="layout" leftSection={<IconLayout size={16} />}>
+              <Tabs
+                value={activeTab}
+                onChange={setActiveTab}
+                variant="outline"
+                radius="md"
+              >
+                <Tabs.List grow>
+                  <Tabs.Tab value="layout" leftSection={<IconLayout size={14} />}>
                     Layout
                   </Tabs.Tab>
-                  <Tabs.Tab value="branding" leftSection={<IconPhoto size={16} />}>
+                  <Tabs.Tab value="branding" leftSection={<IconPhoto size={14} />}>
                     Branding
                   </Tabs.Tab>
-                  <Tabs.Tab value="timer" leftSection={<IconClock size={16} />}>
+                  <Tabs.Tab value="timer" leftSection={<IconClock size={14} />}>
                     Timer
                   </Tabs.Tab>
-                  <Tabs.Tab value="content" leftSection={<IconTextSize size={16} />}>
+                  <Tabs.Tab
+                    value="content"
+                    leftSection={<IconTextSize size={14} />}
+                  >
                     Content
                   </Tabs.Tab>
-                  <Tabs.Tab value="colors" leftSection={<IconPalette size={16} />}>
+                  <Tabs.Tab
+                    value="colors"
+                    leftSection={<IconPalette size={14} />}
+                  >
                     Colors
                   </Tabs.Tab>
                 </Tabs.List>
 
                 <Tabs.Panel value="layout" pt="sm">
-                  <SectionCard title="Dimensions & Background" icon={<IconLayout size={18} />}>
+                  <SectionCard title="Layout" icon={<IconLayout size={16} />}>
                     <Stack gap="sm">
                       <Select
                         label="Aspect ratio"
@@ -499,7 +465,6 @@ export default function TimerDisplayEditorV2({
                         value={display.display_ratio}
                         onChange={(v) => updateDisplay('display_ratio', v)}
                       />
-
                       <Select
                         label="Background type"
                         data={[
@@ -510,35 +475,24 @@ export default function TimerDisplayEditorV2({
                         value={display.background_type}
                         onChange={(v) => updateDisplay('background_type', v)}
                       />
-
                       {display.background_type === 'color' && (
                         <ColorInput
                           label="Background color"
                           value={display.background_color}
-                          onChange={(v) => updateDisplay('background_color', v)}
-                          withEyeDropper
+                          onChange={(v) =>
+                            updateDisplay('background_color', v)
+                          }
                         />
                       )}
-
                       {display.background_type === 'image' && (
-                        <Stack gap="xs">
-                          <FileInput
-                            label="Background image"
-                            placeholder="Upload background"
-                            onChange={(f) => f && handleFileUpload(f, 'background_image')}
-                            leftSection={<IconUpload size={14} />}
-                          />
-                          {display.background_image && (
-                            <Group gap="xs">
-                              <Badge variant="light">Image</Badge>
-                              <ActionIcon size="sm" onClick={() => updateDisplay('background_image', null)}>
-                                <IconTrash size={14} />
-                              </ActionIcon>
-                            </Group>
-                          )}
-                        </Stack>
+                        <FileInput
+                          label="Background image"
+                          placeholder="Upload"
+                          onChange={(f) =>
+                            f && handleFileUpload(f, 'background_image')
+                          }
+                        />
                       )}
-
                       <Select
                         label="Progress style"
                         data={progressStyleOptions}
@@ -550,47 +504,42 @@ export default function TimerDisplayEditorV2({
                 </Tabs.Panel>
 
                 <Tabs.Panel value="branding" pt="sm">
-                  <SectionCard title="Logo & Branding" icon={<IconPhoto size={18} />}>
+                  <SectionCard
+                    title="Branding"
+                    icon={<IconPhoto size={16} />}
+                  >
                     <Stack gap="sm">
                       <FileInput
-                        label="Logo image"
+                        label="Logo"
                         placeholder="Upload logo"
-                        onChange={(f) => f && handleFileUpload(f, 'logo_image')}
-                        leftSection={<IconUpload size={14} />}
+                        onChange={(f) =>
+                          f && handleFileUpload(f, 'logo_image')
+                        }
                       />
-                      {display.logo_image && (
-                        <Group gap="xs">
-                          <Badge variant="light">Logo</Badge>
-                          <ActionIcon size="sm" onClick={() => updateDisplay('logo_image', null)}>
-                            <IconTrash size={14} />
-                          </ActionIcon>
-                        </Group>
-                      )}
-
                       <NumberInput
-                        label="Logo size"
+                        label="Logo size %"
                         value={display.logo_size_percent}
-                        onChange={(v) => updateDisplay('logo_size_percent', v)}
-                        min={20}
-                        max={500}
-                        suffix="px"
+                        onChange={(v) =>
+                          updateDisplay('logo_size_percent', v)
+                        }
                       />
-
                       <Select
                         label="Logo position"
                         data={positionOptions}
                         value={display.logo_position}
-                        onChange={(v) => updateDisplay('logo_position', v)}
+                        onChange={(v) =>
+                          updateDisplay('logo_position', v)
+                        }
                       />
                     </Stack>
                   </SectionCard>
                 </Tabs.Panel>
 
                 <Tabs.Panel value="timer" pt="sm">
-                  <SectionCard title="Timer & Clock" icon={<IconClock size={18} />}>
+                  <SectionCard title="Timer" icon={<IconClock size={16} />}>
                     <Stack gap="sm">
                       <Select
-                        label="Timer format"
+                        label="Format"
                         data={[
                           { value: 'mm:ss', label: 'MM:SS' },
                           { value: 'hh:mm:ss', label: 'HH:MM:SS' },
@@ -598,48 +547,52 @@ export default function TimerDisplayEditorV2({
                         value={display.timer_format}
                         onChange={(v) => updateDisplay('timer_format', v)}
                       />
-
                       <Select
-                        label="Timer font"
+                        label="Font"
                         data={monoFontOptions}
                         value={display.timer_font_family}
-                        onChange={(v) => updateDisplay('timer_font_family', v)}
+                        onChange={(v) =>
+                          updateDisplay('timer_font_family', v)
+                        }
                       />
-
                       <NumberInput
-                        label="Timer size"
+                        label="Size %"
                         value={display.timer_size_percent}
-                        onChange={(v) => updateDisplay('timer_size_percent', v)}
-                        min={50}
-                        max={200}
-                        suffix="%"
+                        onChange={(v) =>
+                          updateDisplay('timer_size_percent', v)
+                        }
                       />
-
                       <Select
-                        label="Timer position"
+                        label="Position"
                         data={timerPositionOptions}
                         value={display.timer_position}
-                        onChange={(v) => updateDisplay('timer_position', v)}
+                        onChange={(v) =>
+                          updateDisplay('timer_position', v)
+                        }
                       />
-
                       <Divider />
-
-                      <Group justify="space-between" align="center">
-                        <Text fw={700} size="sm">
-                          Clock
+                      <Group justify="space-between">
+                        <Text size="sm" fw={600}>
+                          Show clock
                         </Text>
                         <Switch
                           checked={display.clock_visible}
-                          onChange={(e) => updateDisplay('clock_visible', e.currentTarget.checked)}
+                          onChange={(e) =>
+                            updateDisplay(
+                              'clock_visible',
+                              e.currentTarget.checked
+                            )
+                          }
                         />
                       </Group>
-
                       {display.clock_visible && (
                         <Select
                           label="Clock font"
                           data={monoFontOptions}
                           value={display.clock_font_family}
-                          onChange={(v) => updateDisplay('clock_font_family', v)}
+                          onChange={(v) =>
+                            updateDisplay('clock_font_family', v)
+                          }
                         />
                       )}
                     </Stack>
@@ -647,219 +600,230 @@ export default function TimerDisplayEditorV2({
                 </Tabs.Panel>
 
                 <Tabs.Panel value="content" pt="sm">
-                  <SectionCard title="Content & Typography" icon={<IconTextSize size={18} />}>
+                  <SectionCard
+                    title="Typography & Content"
+                    icon={<IconTextSize size={16} />}
+                  >
                     <Stack gap="sm">
                       <Select
                         label="Title location"
                         data={displayLocationOptions}
                         value={display.title_display_location}
-                        onChange={(v) => updateDisplay('title_display_location', v)}
+                        onChange={(v) =>
+                          updateDisplay('title_display_location', v)
+                        }
                       />
-
                       <Select
                         label="Speaker location"
                         data={displayLocationOptions}
                         value={display.speaker_display_location}
-                        onChange={(v) => updateDisplay('speaker_display_location', v)}
+                        onChange={(v) =>
+                          updateDisplay('speaker_display_location', v)
+                        }
                       />
-
                       <Divider />
-
                       <Select
                         label="Header font"
                         data={fontOptions}
                         value={display.header_font_family}
-                        onChange={(v) => updateDisplay('header_font_family', v)}
+                        onChange={(v) =>
+                          updateDisplay('header_font_family', v)
+                        }
                       />
-
                       <Select
                         label="Footer font"
                         data={fontOptions}
                         value={display.footer_font_family}
-                        onChange={(v) => updateDisplay('footer_font_family', v)}
+                        onChange={(v) =>
+                          updateDisplay('footer_font_family', v)
+                        }
                       />
-
                       <Select
                         label="Message font"
                         data={fontOptions}
                         value={display.message_font_family}
-                        onChange={(v) => updateDisplay('message_font_family', v)}
+                        onChange={(v) =>
+                          updateDisplay('message_font_family', v)
+                        }
                       />
                     </Stack>
                   </SectionCard>
                 </Tabs.Panel>
 
                 <Tabs.Panel value="colors" pt="sm">
-                  <SectionCard title="Colors & Theme" icon={<IconPalette size={18} />}>
+                  <SectionCard title="Colors" icon={<IconPalette size={16} />}>
                     <Stack gap="sm">
                       <ColorInput
-                        label="Timer color"
+                        label="Timer"
                         value={display.timer_color}
                         onChange={(v) => updateDisplay('timer_color', v)}
-                        withEyeDropper
                       />
                       <ColorInput
-                        label="Clock color"
+                        label="Clock"
                         value={display.clock_color}
                         onChange={(v) => updateDisplay('clock_color', v)}
-                        withEyeDropper
                       />
-
-                      <Divider />
-
                       <ColorInput
-                        label="Header text color"
+                        label="Header"
                         value={display.header_color}
                         onChange={(v) => updateDisplay('header_color', v)}
-                        withEyeDropper
                       />
                       <ColorInput
-                        label="Footer text color"
+                        label="Footer"
                         value={display.footer_color}
                         onChange={(v) => updateDisplay('footer_color', v)}
-                        withEyeDropper
                       />
                       <ColorInput
-                        label="Message color"
+                        label="Message"
                         value={display.message_color}
                         onChange={(v) => updateDisplay('message_color', v)}
-                        withEyeDropper
                       />
-
                       <Divider />
-
-                      <Text fw={700} size="sm">
-                        Progress colors
-                      </Text>
                       <ColorInput
-                        label="Normal"
+                        label="Progress main"
                         value={display.progress_color_main}
-                        onChange={(v) => updateDisplay('progress_color_main', v)}
-                        withEyeDropper
+                        onChange={(v) =>
+                          updateDisplay('progress_color_main', v)
+                        }
                       />
                       <ColorInput
-                        label="Warning"
+                        label="Progress secondary"
                         value={display.progress_color_secondary}
-                        onChange={(v) => updateDisplay('progress_color_secondary', v)}
-                        withEyeDropper
+                        onChange={(v) =>
+                          updateDisplay('progress_color_secondary', v)
+                        }
                       />
                       <ColorInput
-                        label="Critical"
+                        label="Progress tertiary"
                         value={display.progress_color_tertiary}
-                        onChange={(v) => updateDisplay('progress_color_tertiary', v)}
-                        withEyeDropper
+                        onChange={(v) =>
+                          updateDisplay('progress_color_tertiary', v)
+                        }
                       />
                     </Stack>
                   </SectionCard>
                 </Tabs.Panel>
               </Tabs>
-            </Stack>
-          </Box>
+            </Box>
+          </ScrollArea>
         </Grid.Col>
 
-        {/* Right: Live Preview */}
-        <Grid.Col span={{ base: 12, lg: 7 }} p={0} style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
-          <Box style={{ padding: theme.spacing.md, height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <Card withBorder={false} radius={0} p="sm" style={{ flex: 1, display: 'flex', flexDirection: 'column', border: `1px solid ${theme.colors.gray[3]}`, minHeight: 0 }}>
-              <Group justify="space-between" align="center" mb="sm">
-                <div>
-                  {/* <Title order={3}>Live Preview</Title> */}
-                  <Text size="xs" c="dimmed">
-                    Preview updates instantly as you change settings. Some size updates are only shown correctly in the full screen preview.
-                  </Text>
-                </div>
-                <Group>
-                  {/* <Badge color="green" variant="dot">
-                    Real-time
-                  </Badge> */}
-                  <Tooltip label="Toggle fullscreen preview">
-                    <ActionIcon onClick={() => setFullscreenPreview(true)}>
-                      <IconMaximize size={16} />
-                    </ActionIcon>
-                  </Tooltip>
-                </Group>
-              </Group>
-
-              <Divider mb="sm" />
-
-              <Box style={{ flex: 1, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 0, overflow: 'hidden' }}>
-                <Box style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-                  <Box style={{ aspectRatio: display.display_ratio === '4:3' ? '4/3' : display.display_ratio === '21:9' ? '21/9' : display.display_ratio === '1:1' ? '1/1' : '16/9', width: '100%', maxHeight: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <TimerDisplay display={display} timer={mockTimer} />
-                  </Box>
-                </Box>
-              </Box>
-            </Card>
-          </Box>
+        {/* Preview */}
+        <Grid.Col
+          span={{ base: 12, lg: 7 }}
+          style={{
+            background: theme.colorScheme === 'dark'
+              ? theme.colors.dark[7]
+              : theme.colors.gray[1],
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: theme.spacing.md,
+            position: 'relative',
+          }}
+        >
+          <Card
+            withBorder
+            radius="md"
+            style={{
+              width: '100%',
+              maxWidth: '90%',
+              aspectRatio: display.display_ratio.replace(':', '/'),
+              backgroundColor: '#000',
+              position: 'relative',
+            }}
+          >
+            <Box style={{ width: '100%', height: '100%' }}>
+              <TimerDisplay
+                display={display}
+                timer={mockTimer}
+              />
+            </Box>
+            <ActionIcon
+              variant="light"
+              radius="xl"
+              color="gray"
+              style={{
+                position: 'absolute',
+                top: theme.spacing.xs,
+                right: theme.spacing.xs,
+              }}
+              onClick={() => setFullscreenPreview(true)}
+            >
+              <IconMaximize size={16} />
+            </ActionIcon>
+          </Card>
         </Grid.Col>
       </Grid>
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete confirm modal */}
       <Modal
         opened={deleteConfirmOpened}
-        onClose={() => {
-          setDeleteConfirmOpened(false);
-          setDeleteError(null);
-        }}
-        title="Delete Display?"
+        onClose={() => setDeleteConfirmOpened(false)}
+        title="Confirm delete"
         centered
-        size="md"
       >
-        <Stack gap="md">
+        <Stack>
           <Text>
-            Are you sure you want to delete the display <strong>{display.name}</strong>? This action cannot be undone.
+            Are you sure you want to delete <b>{display.name}</b>?
           </Text>
-
-          {display.is_default && !deleteError && (
-            <Text c="orange" fw={700}>
-              Warning: this is your default display. You will need to set a new default after deletion.
+          {deleteError && (
+            <Text c="red" size="sm">
+              {deleteError}
             </Text>
           )}
-
-          {deleteError && (
-            <Card withBorder radius="sm" p="sm" style={{ borderColor: 'rgba(255, 107, 107, 0.3)' }}>
-              <Group gap="sm">
-                <IconAlertCircle color="var(--mantine-color-red-filled)" />
-                <Text c="red" fw={700}>
-                  {deleteError}
-                </Text>
-              </Group>
-            </Card>
-          )}
-
-          <Group justify="flex-end">
+          <Group justify="end">
             <Button
               variant="default"
-              onClick={() => {
-                setDeleteConfirmOpened(false);
-                setDeleteError(null);
-              }}
+              onClick={() => setDeleteConfirmOpened(false)}
             >
               Cancel
             </Button>
-            <Button color="red" onClick={handleDeleteDisplay} disabled={!!deleteError && deleteError.includes('Cannot delete')}>
+            <Button color="red" onClick={handleDeleteDisplay}>
               Delete
             </Button>
           </Group>
         </Stack>
       </Modal>
 
-      {/* Fullscreen Preview - using browser fullscreen API */}
-      {fullscreenPreview && (
-        <Box ref={(el) => {
-          if (el && !document.fullscreenElement) {
-            el.requestFullscreen?.().catch(err => {
-              console.warn('Fullscreen request failed:', err);
-              setFullscreenPreview(false);
-            });
-          }
-        }} style={{ width: '100%', height: '100%', position: 'fixed', top: 0, left: 0, zIndex: 9999 }}>
-          <Box style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#000' }}>
-            <TimerDisplay display={display} timer={mockTimer} in_view_mode />
+      {/* Fullscreen preview */}
+      <Modal
+        fullScreen
+        opened={fullscreenPreview}
+        onClose={() => setFullscreenPreview(false)}
+        withCloseButton={false}
+      >
+        <Box
+          style={{
+            background: '#000',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            height: '100%',
+          }}
+        >
+          <Box style={{ width: '90%', height: '90%' }}>
+            <TimerDisplay
+              display={display}
+              timer={mockTimer}
+            />
           </Box>
+          <ActionIcon
+            variant="filled"
+            color="gray"
+            radius="xl"
+            size="lg"
+            style={{
+              position: 'absolute',
+              top: theme.spacing.md,
+              right: theme.spacing.md,
+            }}
+            onClick={() => setFullscreenPreview(false)}
+          >
+            ✕
+          </ActionIcon>
         </Box>
-      )}
-      </Box>
-    </>
+      </Modal>
+    </Box>
   );
 }
