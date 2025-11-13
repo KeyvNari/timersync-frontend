@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Box, Center, Paper, PasswordInput, Button, Stack, Title, Text } from '@mantine/core';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { IconLock } from '@tabler/icons-react';
 import { useForm } from '@mantine/form';
 import RoomController from '@/components/room-controller';
@@ -13,6 +14,10 @@ export default function ControllerPage() {
   const navigate = useNavigate();
 
   const { lastError } = useWebSocketContext();
+
+  // Page title and description for SEO
+  const pageTitle = 'Timer Controller | VeroTime';
+  const pageDescription = 'Control and manage shared timers in real-time. Synchronize timer settings across multiple displays and devices with secure room tokens.';
 
   // Check if password is required (URL ends with /pwd)
   const requiresPassword = location.pathname.endsWith('/pwd');
@@ -73,7 +78,13 @@ export default function ControllerPage() {
   // Show password form if required and not authenticated
   if (requiresPassword && !isAuthenticated) {
     return (
-      <Box
+      <>
+        <Helmet>
+          <title>{pageTitle}</title>
+          <meta name="description" content={pageDescription} />
+          <meta name="robots" content="noindex" />
+        </Helmet>
+        <Box
         style={{
           width: '100vw',
           height: '100vh',
@@ -122,13 +133,20 @@ export default function ControllerPage() {
           </Paper>
         </Center>
       </Box>
+      </>
     );
   }
 
   // Show RoomController once authenticated (or if no password required)
   if (!roomId || !token) {
     return (
-      <Box
+      <>
+        <Helmet>
+          <title>{pageTitle}</title>
+          <meta name="description" content={pageDescription} />
+          <meta name="robots" content="noindex" />
+        </Helmet>
+        <Box
         style={{
           width: '100vw',
           height: '100vh',
@@ -142,16 +160,24 @@ export default function ControllerPage() {
           <Text c="red">Invalid room link</Text>
         </Center>
       </Box>
+      </>
     );
   }
 
   return (
-    <RoomController
-      authMode="urlToken"
-      roomId={roomId}
-      roomToken={token}
-      tokenPassword={password}
-      requiresPassword={requiresPassword}
-    />
+    <>
+      <Helmet>
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+        <meta name="robots" content="noindex" />
+      </Helmet>
+      <RoomController
+        authMode="urlToken"
+        roomId={roomId}
+        roomToken={token}
+        tokenPassword={password}
+        requiresPassword={requiresPassword}
+      />
+    </>
   );
 }

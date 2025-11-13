@@ -1,6 +1,7 @@
 // src/pages/landing.tsx
 import { Box, Stack } from '@mantine/core';
 import { useEffect, useRef, useState } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { Header } from '@/components/landing/Header';
 import { Hero } from '@/components/landing/Hero';
 import { Stats } from '@/components/landing/Stats';
@@ -56,6 +57,21 @@ export default function LandingPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <Helmet>
+        <title>VeroTime - Create, Customize & Share Timers Instantly</title>
+        <meta name="description" content="Create and customize timers by uploading files or using AI-powered descriptions. Share timers in real-time with others for events, conferences, and study sessions. Free timer synchronization platform." />
+        <meta name="keywords" content="timer, countdown, event timer, timer sharing, real-time sync, conference timer, study timer" />
+        <meta property="og:title" content="VeroTime - Create & Share Timers in Real-Time" />
+        <meta property="og:description" content="Easily create and customize timers by uploading files or using AI-powered descriptions. Share your timers instantly in real-time with others—ideal for managing events, conferences, study sessions, and more." />
+        <meta property="og:image" content="/assets/image_saas.png" />
+        <meta property="og:url" content="https://mantine-dashboard-eight.vercel.app" />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="VeroTime - Create & Share Timers in Real-Time" />
+        <meta name="twitter:description" content="Create and customize timers by uploading files or using AI-powered descriptions. Share timers in real-time with others." />
+        <meta name="twitter:image" content="/assets/image_saas.png" />
+      </Helmet>
+
       {/* Animated Background Elements */}
       <Box
         style={{

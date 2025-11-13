@@ -5,7 +5,9 @@ Disallow: /auth/
 Disallow: /dashboard/
 Disallow: /admin/
 Disallow: /*.json$
-Disallow: /*.js$
+
+# Allow crawling of assets needed for JavaScript rendering
+Allow: /assets/
 
 # Allow crawling of timer pages
 Allow: /timers/
