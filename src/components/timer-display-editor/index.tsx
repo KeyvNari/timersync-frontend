@@ -21,6 +21,7 @@ import {
   Tabs,
   Tooltip,
   useMantineTheme,
+  useMantineColorScheme,
   Paper,
   ScrollArea,
 } from '@mantine/core';
@@ -94,6 +95,7 @@ export default function TimerDisplayEditorV2({
   defaultDisplayId = null,
 }: TimerDisplayEditorProps) {
   const theme = useMantineTheme();
+  const { colorScheme } = useMantineColorScheme();
   const { setDefaultDisplay, lastError, lastSuccess } = useWebSocketContext();
   const features = useFeatureAccess();
 
@@ -331,10 +333,9 @@ export default function TimerDisplayEditorV2({
         p="sm"
         style={{
           borderBottom: `1px solid ${theme.colors.gray[3]}`,
-          background:
-            theme.colorScheme === 'dark'
-              ? theme.colors.dark[7]
-              : theme.colors.gray[0],
+          background: colorScheme === 'dark'
+            ? theme.colors.dark[7]
+            : theme.colors.gray[1],
         }}
       >
         <Group justify="space-between" align="center">
@@ -712,7 +713,7 @@ export default function TimerDisplayEditorV2({
         <Grid.Col
           span={{ base: 12, lg: 7 }}
           style={{
-            background: theme.colorScheme === 'dark'
+            background: colorScheme === 'dark'
               ? theme.colors.dark[7]
               : theme.colors.gray[1],
             display: 'flex',
@@ -731,6 +732,7 @@ export default function TimerDisplayEditorV2({
               aspectRatio: display.display_ratio.replace(':', '/'),
               backgroundColor: '#000',
               position: 'relative',
+              padding: 0,
             }}
           >
             <Box style={{ width: '100%', height: '100%' }}>
@@ -792,6 +794,10 @@ export default function TimerDisplayEditorV2({
         opened={fullscreenPreview}
         onClose={() => setFullscreenPreview(false)}
         withCloseButton={false}
+        styles={{
+          content: { background: '#000', padding: 0 },
+          body: { background: '#000', padding: 0, height: '100%' },
+        }}
       >
         <Box
           style={{
