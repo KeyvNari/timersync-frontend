@@ -90,8 +90,9 @@ export default function ViewerPage() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Set page title
+  // Set page title and description for SEO
   const pageTitle = `Timer Viewer | VeroTime`;
+  const pageDescription = 'View shared timers in real-time. Perfect for presentations, events, and meetings. Watch synchronized timers across multiple devices with VeroTime.';
 
   // Use WebSocket context instead of direct service
   const {
@@ -314,6 +315,8 @@ useEffect(() => {
       <>
         <Helmet>
           <title>{pageTitle}</title>
+          <meta name="description" content={pageDescription} />
+          <meta name="robots" content="noindex" />
         </Helmet>
         <Box
         style={{
@@ -375,6 +378,8 @@ useEffect(() => {
       <>
         <Helmet>
           <title>{pageTitle}</title>
+          <meta name="description" content={pageDescription} />
+          <meta name="robots" content="noindex" />
         </Helmet>
         <Box
         style={{
@@ -435,6 +440,8 @@ if (connectionState === 'connecting') {
     <>
       <Helmet>
         <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+        <meta name="robots" content="noindex" />
       </Helmet>
       <Box
       pos="relative"
@@ -464,6 +471,8 @@ if (connectionState === 'connecting') {
       <>
         <Helmet>
           <title>{pageTitle}</title>
+          <meta name="description" content={pageDescription} />
+          <meta name="robots" content="noindex" />
         </Helmet>
         <Box
         style={{
@@ -527,6 +536,8 @@ if (!connected) {
     <>
       <Helmet>
         <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+        <meta name="robots" content="noindex" />
       </Helmet>
       <Box
       pos="relative"
@@ -556,6 +567,8 @@ if (connected && !displayTimer) {
     <>
       <Helmet>
         <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+        <meta name="robots" content="noindex" />
       </Helmet>
       <Box
       style={{
@@ -593,6 +606,8 @@ return connected && displayTimer ? (
   <>
     <Helmet>
       <title>{pageTitle}</title>
+      <meta name="description" content={pageDescription} />
+      <meta name="robots" content="noindex" />
     </Helmet>
     <Box
     style={{
@@ -626,6 +641,8 @@ return connected && displayTimer ? (
   <>
     <Helmet>
       <title>{pageTitle}</title>
+      <meta name="description" content={pageDescription} />
+      <meta name="robots" content="noindex" />
     </Helmet>
     <Box
     pos="relative"
