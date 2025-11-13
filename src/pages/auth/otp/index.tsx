@@ -5,7 +5,7 @@ import { OtpForm } from './otp-form';
 
 export default function OtpPage() {
   return (
-    <Page title="Otp">
+    <Page title="OTP Verification">
       <Stack gap="xl">
         <Stack>
           <Title order={2}>Enter your OTP?</Title>

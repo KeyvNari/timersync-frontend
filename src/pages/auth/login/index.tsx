@@ -14,7 +14,7 @@ export default function LoginPage() {
   const successMessage = location.state?.message;
 
   return (
-    <Page title="Login">
+    <Page title="Sign In - Access Your Timer Rooms">
       <Stack gap="xl">
         <Stack>
           <Title order={2}>
