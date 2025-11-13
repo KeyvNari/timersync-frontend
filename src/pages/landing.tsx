@@ -64,7 +64,7 @@ export default function LandingPage() {
         <meta property="og:title" content="VeroTime - Create & Share Timers in Real-Time" />
         <meta property="og:description" content="Easily create and customize timers by uploading files or using AI-powered descriptions. Share your timers instantly in real-time with others—ideal for managing events, conferences, study sessions, and more." />
         <meta property="og:image" content="/assets/image_saas.png" />
-        <meta property="og:url" content="https://mantine-dashboard-eight.vercel.app" />
+        <meta property="og:url" content="https://verotime.io" />
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="VeroTime - Create & Share Timers in Real-Time" />

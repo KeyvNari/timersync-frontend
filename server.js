@@ -19,8 +19,18 @@ app.use(express.static(join(__dirname, 'dist'), {
   }
 }));
 
-// SPA fallback - serve index.html for all routes not handled by static middleware
-// express.static only passes control here if the file doesn't exist
+// Serve static landing.html for root path - this ensures Google sees the static HTML
+app.get('/', (req, res) => {
+  res.sendFile(join(__dirname, 'dist', 'landing.html'));
+});
+
+// Serve static landing.html for /landing path as well
+app.get('/landing', (req, res) => {
+  res.sendFile(join(__dirname, 'dist', 'landing.html'));
+});
+
+// SPA fallback - serve index.html for all other routes not handled by static middleware
+// This includes /auth/*, /dashboard/*, /timers/*, /docs/*, etc.
 app.get('*', (req, res) => {
   res.sendFile(join(__dirname, 'dist', 'index.html'));
 });
