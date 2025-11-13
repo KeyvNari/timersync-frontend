@@ -512,8 +512,8 @@ export default function RoomComponent({
         opened={editorOpened}
         onClose={closeEditor}
         size="100%"
-        title={editingDisplay ? "Edit Display Configuration" : "Create New Display"}
         padding={0}
+        withCloseButton={false}
         styles={{
           root: { padding: 0 },
           inner: { padding: 'md' },

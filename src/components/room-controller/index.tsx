@@ -306,7 +306,7 @@ export default function RoomController({
   return (
     <Page
       title={roomInfo?.name || 'Loading Room...' || 'Home'}
-      style={authMode === 'urlToken' ? { height: '100vh' } : { height: '100%' }}
+      style={{ height: '100vh', overflow: 'hidden' }}
     >
       {(roomId && showConnectionNotification) && (
         <div

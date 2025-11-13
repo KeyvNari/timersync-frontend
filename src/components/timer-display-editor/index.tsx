@@ -22,7 +22,6 @@ import {
   Tooltip,
   useMantineTheme,
   useMantineColorScheme,
-  Paper,
   ScrollArea,
 } from '@mantine/core';
 import {
@@ -34,7 +33,6 @@ import {
   IconClock,
   IconLayout,
   IconTextSize,
-  IconChevronDown,
   IconMaximize,
 } from '@tabler/icons-react';
 import TimerDisplay from '@/components/timer-display';
@@ -327,84 +325,71 @@ export default function TimerDisplayEditorV2({
 
   return (
     <Box style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Paper
-        withBorder
-        radius={0}
-        p="sm"
-        style={{
-          borderBottom: `1px solid ${theme.colors.gray[3]}`,
-          background: colorScheme === 'dark'
-            ? theme.colors.dark[7]
-            : theme.colors.gray[1],
-        }}
-      >
-        <Group justify="space-between" align="center">
-          <Group gap="sm">
-            <Select
-              data={displayOptions}
-              value={selectedDisplayId?.toString()}
-              onChange={handleSelect}
-              size="sm"
-              rightSection={<IconChevronDown size={14} />}
-              style={{ minWidth: 220 }}
-            />
-            <TextInput
-              value={display.name}
-              onChange={(e) => updateDisplay('name', e.currentTarget.value)}
-              placeholder="Display name"
-              size="sm"
-              style={{ minWidth: 200 }}
-              error={nameError || undefined}
-            />
-            <Checkbox
-              label="Default"
-              checked={display.is_default}
-              onChange={(e) =>
-                updateDisplay('is_default', e.currentTarget.checked)
-              }
-              size="xs"
-            />
-            {hasUnsavedChanges && (
-              <Badge color="orange" variant="light" size="sm">
-                Unsaved
-              </Badge>
-            )}
-          </Group>
-          <Group gap="xs">
-            {!isCreatingNew && onDelete && displays.length > 1 && (
-              <Tooltip label="Delete this display">
-                <ActionIcon
-                  color="red"
-                  variant="subtle"
-                  onClick={() => {
-                    setDeleteConfirmOpened(true);
-                    setDeleteError(null);
-                  }}
-                >
-                  <IconTrash size={16} />
-                </ActionIcon>
-              </Tooltip>
-            )}
-            <Tooltip label={!features.canSaveDisplay().isAvailable ? features.canSaveDisplay().reason : undefined} position="top" withArrow disabled={features.canSaveDisplay().isAvailable}>
-              <div>
-                <Button
-                  leftSection={<IconDeviceFloppy size={16} />}
-                  size="sm"
-                  onClick={handleSave}
-                  disabled={!hasUnsavedChanges || (isCreatingNew && !display.name?.trim()) || !features.canSaveDisplay().isAvailable}
-                >
-                  {isCreatingNew ? 'Create' : 'Save'}
-                </Button>
-              </div>
-            </Tooltip>
-            {onCancel && (
-              <Button variant="default" size="sm" onClick={onCancel}>
-                Close
-              </Button>
-            )}
-          </Group>
+      <Group justify="space-between" align="center" p="sm" style={{ borderBottom: `1px solid ${theme.colors.gray[3]}` }}>
+        <Group gap="sm">
+          <Select
+            data={displayOptions}
+            value={selectedDisplayId?.toString()}
+            onChange={handleSelect}
+            size="sm"
+            style={{ minWidth: 220 }}
+          />
+          <TextInput
+            value={display.name}
+            onChange={(e) => updateDisplay('name', e.currentTarget.value)}
+            placeholder="Display name"
+            size="sm"
+            style={{ minWidth: 200 }}
+            error={nameError || undefined}
+          />
+          <Checkbox
+            label="Default"
+            checked={display.is_default}
+            onChange={(e) =>
+              updateDisplay('is_default', e.currentTarget.checked)
+            }
+            size="xs"
+          />
+          {hasUnsavedChanges && (
+            <Badge color="orange" variant="light" size="sm">
+              Unsaved
+            </Badge>
+          )}
         </Group>
-      </Paper>
+        <Group gap="xs">
+          {!isCreatingNew && onDelete && displays.length > 1 && (
+            <Tooltip label="Delete this display">
+              <ActionIcon
+                color="red"
+                variant="subtle"
+                onClick={() => {
+                  setDeleteConfirmOpened(true);
+                  setDeleteError(null);
+                }}
+              >
+                <IconTrash size={16} />
+              </ActionIcon>
+            </Tooltip>
+          )}
+          <Tooltip label={!features.canSaveDisplay().isAvailable ? features.canSaveDisplay().reason : undefined} position="top" withArrow disabled={features.canSaveDisplay().isAvailable}>
+            <div>
+              <Button
+                leftSection={<IconDeviceFloppy size={16} />}
+                size="sm"
+                onClick={handleSave}
+                disabled={!hasUnsavedChanges || (isCreatingNew && !display.name?.trim()) || !features.canSaveDisplay().isAvailable}
+              >
+                {isCreatingNew ? 'Create' : 'Save'}
+              </Button>
+            </div>
+          </Tooltip>
+          {onCancel && (
+            <Button variant="default" size="sm" onClick={onCancel}>
+              Close
+            </Button>
+          )}
+        </Group>
+      </Group>
 
       <Grid gutter="xs" style={{ flex: 1, overflow: 'hidden' }}>
         {/* Left controls */}
