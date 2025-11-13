@@ -12,5 +12,12 @@ Allow: /assets/
 # Allow crawling of timer pages
 Allow: /timers/
 
+# Allow Googlebot to crawl more aggressively for better indexing
+User-agent: Googlebot
+Allow: /
+Disallow: /auth/
+Disallow: /dashboard/
+Disallow: /admin/
+
 # Sitemap reference
 Sitemap: https://verotime.io/sitemap.xml
