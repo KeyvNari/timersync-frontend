@@ -464,7 +464,17 @@ export default function TimerDisplayEditorV2({
 
               {!features.canCustomizeDisplay().isAvailable && (
                 <Alert icon={<IconAlertCircle size={16} />} title="Feature Locked" color="yellow">
-                  <Text size="sm">{features.canCustomizeDisplay().reason}</Text>
+                  <Stack gap="sm">
+                    <Text size="sm">{features.canCustomizeDisplay().reason}</Text>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      leftSection={<IconBolt size={16} />}
+                      w="fit-content"
+                    >
+                      Upgrade
+                    </Button>
+                  </Stack>
                 </Alert>
               )}
 

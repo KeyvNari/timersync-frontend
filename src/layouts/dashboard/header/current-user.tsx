@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   PiChatDuotone,
   PiGearSixDuotone,
@@ -19,9 +19,12 @@ type CurrentUserProps = Omit<AvatarProps, 'src' | 'alt'> & ElementProps<'div', k
 
 export function CurrentUser(props: CurrentUserProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { mutate: logout } = useLogout();
   const { setIsAuthenticated } = useAuth();
   const { data: user } = useGetAccountInfo();
+
+  const isRoomsPage = location.pathname === '/dashboard/rooms';
 
 const handleLogout = () => {
   // Navigate immediately before any state changes
@@ -67,11 +70,13 @@ const handleLogout = () => {
           Delete account
         </Menu.Item> */}
 
-        <Menu.Label>Manager</Menu.Label>
-        <Menu.Divider />
-        <Menu.Item leftSection={<PiFileCsv size="1rem" />}>Download timers as csv</Menu.Item>
-
-        <Menu.Divider />
+        {/* <Menu.Label>Manager</Menu.Label> */}
+        {!isRoomsPage && (
+          <>
+            <Menu.Item leftSection={<PiFileCsv size="1rem" />}>Download timers as csv</Menu.Item>
+            <Menu.Divider />
+          </>
+        )}
 
 
         <Menu.Item leftSection={<PiSignOut size="1rem" />} onClick={handleLogout}>

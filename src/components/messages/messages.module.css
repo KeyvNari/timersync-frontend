@@ -225,3 +225,27 @@
   background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
   border-radius: var(--mantine-radius-sm);
 }
+
+/* Upgrade CTA in messages grid - spans full width or takes one column */
+.upgradeCtaWrapper {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+/* Upgrade CTA styling for messages */
+.upgradeCta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: var(--mantine-radius-sm);
+  padding: var(--mantine-spacing-sm) var(--mantine-spacing-md);
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7));
+  border: 1px dashed light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-5));
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.upgradeCta:hover {
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
+  border-color: light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-4));
+}

@@ -23,6 +23,7 @@ import cx from 'clsx';
 import classes from './messages.module.css';
 import { useWebSocketContext } from '@/providers/websocket-provider';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
+import { UpgradeCta } from '@/components/timer-panel/upgrade-cta';
 
 export interface Message {
   id: string;
@@ -528,6 +529,17 @@ export function Messages({
                 onDelete={handleDeleteMessage}
               />
             ))}
+
+            {/* Show upgrade CTA if message limit is reached */}
+            {!features.canCreateMessage().isAvailable && messages.length > 0 && (
+              <Box style={{ gridColumn: '1 / -1', minWidth: 0 }}>
+                <UpgradeCta
+                  current={messages.length}
+                  limit={features.planFeatures?.max_messages_per_room || 0}
+                  featureLabel="messages"
+                />
+              </Box>
+            )}
           </Box>
         )}
       </Box>

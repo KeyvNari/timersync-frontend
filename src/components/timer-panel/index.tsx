@@ -29,6 +29,8 @@ import { useDisclosure } from '@mantine/hooks';
 import { Drawer, Textarea, NumberInput, Checkbox, Stack, Paper, Title, Divider } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { Select } from '@mantine/core';
+import { useFeatureAccess } from '@/hooks/useFeatureAccess';
+import { UpgradeCta } from './upgrade-cta';
 import classes from './timers.module.css';
 
 interface Timer {
@@ -969,6 +971,7 @@ export function Timers({
   forceExecuteLinkRef
 }: TimersProps) {
   const { updateTimer: wsUpdateTimer } = useWebSocketContext();
+  const features = useFeatureAccess();
 
   // Use provided timers or fall back to mock data
   const initialTimers = timers || [...mockTimers].sort((a, b) => a.room_sequence_order - b.room_sequence_order);
@@ -1330,6 +1333,15 @@ const form = useForm({
           ))}
         </SortableContext>
       </DndContext>
+
+      {/* Show upgrade CTA if timer limit is reached */}
+      {!features.canCreateTimer().isAvailable && state.length > 0 && (
+        <UpgradeCta
+          current={state.length}
+          limit={features.planFeatures?.max_timers_in_room || 0}
+          featureLabel="timers"
+        />
+      )}
 
       {/* Updated Drawer with compact layout */}
       <Drawer
