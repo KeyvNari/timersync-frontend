@@ -367,8 +367,9 @@
 .upgradeCta {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   border-radius: var(--mantine-radius-sm);
-  padding: var(--mantine-spacing-sm);
+  padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
   margin-top: var(--mantine-spacing-xs);
   background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7));
   border: 1px dashed light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-5));

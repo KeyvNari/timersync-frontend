@@ -1,5 +1,5 @@
 import { Group, Button, Text, Box } from '@mantine/core';
-import { IconSparkles } from '@tabler/icons-react';
+import { IconBolt } from '@tabler/icons-react';
 import classes from './timers.module.css';
 
 interface UpgradeCtaProps {
@@ -11,20 +11,18 @@ interface UpgradeCtaProps {
 
 export function UpgradeCta({ current, limit, featureLabel = 'items', onUpgradeClick }: UpgradeCtaProps) {
   return (
-    <Box className={classes.upgradeCta} style={{ width: '100%' }}>
-      <Group justify="space-between" align="center" wrap="nowrap" style={{ width: '100%' }}>
-        <Text size="sm" c="dimmed">
-          Upgrade to add more {featureLabel}.
-        </Text>
-        <Button
-          variant="default"
-          size="sm"
-          leftSection={<IconSparkles size={16} />}
-          onClick={onUpgradeClick}
-        >
-          Upgrade
-        </Button>
-      </Group>
-    </Box>
+    <Group justify="space-between" align="center" wrap="nowrap" className={classes.upgradeCta} style={{ width: '100%' }}>
+      <Text size="xs" c="dimmed">
+        Upgrade for more {featureLabel}
+      </Text>
+      <Button
+        variant="default"
+        size="xs"
+        leftSection={<IconBolt size={14} />}
+        onClick={onUpgradeClick}
+      >
+        Upgrade
+      </Button>
+    </Group>
   );
 }

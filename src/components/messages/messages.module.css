@@ -238,7 +238,7 @@
   align-items: center;
   justify-content: space-between;
   border-radius: var(--mantine-radius-sm);
-  padding: var(--mantine-spacing-sm) var(--mantine-spacing-md);
+  padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
   background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7));
   border: 1px dashed light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-5));
   transition: all 0.2s ease;

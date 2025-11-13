@@ -464,8 +464,8 @@ export function ConnectedDevices({
       <Paper withBorder p="md" className={className}>
         <Group justify="space-between">
           <Group gap="xs">
-            <DeviceIcon size="1.2rem" />
-            <Text size="sm" fw={500}>Connected Devices</Text>
+            <DeviceIcon size="0.5rem" />
+            <Text size="sm" fw={300}>Connected Devices</Text>
           </Group>
           <Badge color="teal" variant="light">
             {totalConnections} online

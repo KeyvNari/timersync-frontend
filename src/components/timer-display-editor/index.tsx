@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActionIcon,
-  Alert,
   Avatar,
   Badge,
   Box,
@@ -463,19 +462,18 @@ export default function TimerDisplayEditorV2({
               <TopBar />
 
               {!features.canCustomizeDisplay().isAvailable && (
-                <Alert icon={<IconAlertCircle size={16} />} title="Feature Locked" color="yellow">
-                  <Stack gap="sm">
-                    <Text size="sm">{features.canCustomizeDisplay().reason}</Text>
-                    <Button
-                      variant="default"
-                      size="sm"
-                      leftSection={<IconBolt size={16} />}
-                      w="fit-content"
-                    >
-                      Upgrade
-                    </Button>
-                  </Stack>
-                </Alert>
+                <Group justify="space-between" align="center" wrap="nowrap" p="xs" style={{ borderRadius: 'var(--mantine-radius-sm)', backgroundColor: 'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7))', border: '1px dashed light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-5))' }}>
+                  <Text size="xs" c="dimmed">
+                    {features.canCustomizeDisplay().reason}
+                  </Text>
+                  <Button
+                    variant="default"
+                    size="xs"
+                    leftSection={<IconBolt size={14} />}
+                  >
+                    Upgrade
+                  </Button>
+                </Group>
               )}
 
               <Tabs value={activeTab} onChange={(val) => setActiveTab(val)} variant="pills" disabled={!features.canCustomizeDisplay().isAvailable}>
@@ -773,7 +771,7 @@ export default function TimerDisplayEditorV2({
                 <div>
                   {/* <Title order={3}>Live Preview</Title> */}
                   <Text size="xs" c="dimmed">
-                    Preview updates instantly as you change settings. Some size updates are shown  correclty the in full screen preview.
+                    Preview updates instantly as you change settings. Some size updates are only shown correctly in the full screen preview.
                   </Text>
                 </div>
                 <Group>

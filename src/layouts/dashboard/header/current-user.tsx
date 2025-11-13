@@ -1,16 +1,13 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  PiChatDuotone,
   PiGearSixDuotone,
-  PiHeartDuotone,
-  PiPauseDuotone,
   PiSignOut,
-  PiStarDuotone,
-  PiTrashDuotone,
-  PiUserDuotone,
-  PiUserSwitchDuotone,
   PiFileCsv, 
+  PiArrowCircleRightThin 
 } from 'react-icons/pi';
+import {
+  IconBolt,
+} from '@tabler/icons-react';
 import { Avatar, AvatarProps, ElementProps, Menu } from '@mantine/core';
 import { useAuth, useGetAccountInfo, useLogout } from '@/hooks';
 import { paths } from '@/routes';
@@ -40,6 +37,10 @@ const handleLogout = () => {
   );
 };
 
+const handleGoBackToRooms = () => {
+  navigate(paths.dashboard.rooms);
+};
+
   return (
     <Menu>
       <Menu.Target>
@@ -61,6 +62,7 @@ const handleLogout = () => {
     
         <Menu.Label>Settings</Menu.Label>
         <Menu.Item leftSection={<PiGearSixDuotone size="1rem" />}>Account settings</Menu.Item>
+        <Menu.Item leftSection={<IconBolt size="1rem" />}>Upgrade plan</Menu.Item>
 
         <Menu.Divider />
 
@@ -75,10 +77,11 @@ const handleLogout = () => {
           <>
             <Menu.Item leftSection={<PiFileCsv size="1rem" />}>Download timers as csv</Menu.Item>
             <Menu.Divider />
+            <Menu.Item leftSection={<PiArrowCircleRightThin size="1rem" />} onClick={handleGoBackToRooms}>
+              Go back to rooms
+            </Menu.Item>
           </>
         )}
-
-
         <Menu.Item leftSection={<PiSignOut size="1rem" />} onClick={handleLogout}>
           Logout
         </Menu.Item>
