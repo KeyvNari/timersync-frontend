@@ -9,7 +9,6 @@ import {
   ColorInput,
   Divider,
   FileInput,
-  Grid,
   Group,
   Modal,
   NumberInput,
@@ -22,7 +21,6 @@ import {
   Tooltip,
   useMantineTheme,
   useMantineColorScheme,
-  ScrollArea,
 } from '@mantine/core';
 import {
   IconTrash,
@@ -358,17 +356,20 @@ export default function TimerDisplayEditorV2({
         </Group>
         <Group gap="xs">
           {!isCreatingNew && onDelete && displays.length > 1 && (
-            <Tooltip label="Delete this display">
-              <ActionIcon
-                color="red"
-                variant="subtle"
-                onClick={() => {
-                  setDeleteConfirmOpened(true);
-                  setDeleteError(null);
-                }}
-              >
-                <IconTrash size={16} />
-              </ActionIcon>
+            <Tooltip label={!features.canSaveDisplay().isAvailable ? features.canSaveDisplay().reason : "Delete this display"} position="top" withArrow disabled={features.canSaveDisplay().isAvailable}>
+              <div>
+                <ActionIcon
+                  color="red"
+                  variant="subtle"
+                  disabled={!features.canSaveDisplay().isAvailable}
+                  onClick={() => {
+                    setDeleteConfirmOpened(true);
+                    setDeleteError(null);
+                  }}
+                >
+                  <IconTrash size={16} />
+                </ActionIcon>
+              </div>
             </Tooltip>
           )}
           <Tooltip label={!features.canSaveDisplay().isAvailable ? features.canSaveDisplay().reason : undefined} position="top" withArrow disabled={features.canSaveDisplay().isAvailable}>
@@ -391,56 +392,58 @@ export default function TimerDisplayEditorV2({
         </Group>
       </Group>
 
-      <Grid gutter="xs" style={{ flex: 1, overflow: 'hidden' }}>
-        {/* Left controls */}
-        <Grid.Col
-          span={{ base: 12, lg: 5 }}
+      <Box style={{ flex: 1, display: 'flex', overflow: 'hidden', gap: 'xs' }}>
+        {/* Left controls - independently scrollable */}
+        <Box
           style={{
-            height: '100%',
+            width: '100%',
+            maxWidth: 'calc(42% - 6px)',
             borderRight: `1px solid ${theme.colors.gray[3]}`,
             display: 'flex',
             flexDirection: 'column',
+            overflow: 'hidden',
           }}
         >
-          <ScrollArea style={{ flex: 1 }}>
-            <Box p="md">
-              {!features.canCustomizeDisplay().isAvailable && (
-                <UpgradeCta
-                  current={0}
-                  limit={0}
-                  message={features.canCustomizeDisplay().reason}
-                />
-              )}
-
-              <Tabs
-                value={activeTab}
-                onChange={setActiveTab}
-                variant="outline"
-                radius="md"
+          <Tabs
+            value={activeTab}
+            onChange={setActiveTab}
+            variant="outline"
+            radius="md"
+            style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}
+          >
+            <Tabs.List style={{ flexShrink: 0 }}>
+              <Tabs.Tab value="layout" leftSection={<IconLayout size={14} />}>
+                Layout
+              </Tabs.Tab>
+              <Tabs.Tab value="branding" leftSection={<IconPhoto size={14} />}>
+                Branding
+              </Tabs.Tab>
+              <Tabs.Tab value="timer" leftSection={<IconClock size={14} />}>
+                Timer
+              </Tabs.Tab>
+              <Tabs.Tab
+                value="content"
+                leftSection={<IconTextSize size={14} />}
               >
-                <Tabs.List grow>
-                  <Tabs.Tab value="layout" leftSection={<IconLayout size={14} />}>
-                    Layout
-                  </Tabs.Tab>
-                  <Tabs.Tab value="branding" leftSection={<IconPhoto size={14} />}>
-                    Branding
-                  </Tabs.Tab>
-                  <Tabs.Tab value="timer" leftSection={<IconClock size={14} />}>
-                    Timer
-                  </Tabs.Tab>
-                  <Tabs.Tab
-                    value="content"
-                    leftSection={<IconTextSize size={14} />}
-                  >
-                    Content
-                  </Tabs.Tab>
-                  <Tabs.Tab
-                    value="colors"
-                    leftSection={<IconPalette size={14} />}
-                  >
-                    Colors
-                  </Tabs.Tab>
-                </Tabs.List>
+                Content
+              </Tabs.Tab>
+              <Tabs.Tab
+                value="colors"
+                leftSection={<IconPalette size={14} />}
+              >
+                Colors
+              </Tabs.Tab>
+            </Tabs.List>
+
+            <Box style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+              <Box p="md">
+                {!features.canCustomizeDisplay().isAvailable && (
+                  <UpgradeCta
+                    current={0}
+                    limit={0}
+                    message={features.canCustomizeDisplay().reason}
+                  />
+                )}
 
                 <Tabs.Panel value="layout" pt="sm">
                   <SectionCard title="Layout" icon={<IconLayout size={16} />}>
@@ -689,15 +692,216 @@ export default function TimerDisplayEditorV2({
                     </Stack>
                   </SectionCard>
                 </Tabs.Panel>
-              </Tabs>
-            </Box>
-          </ScrollArea>
-        </Grid.Col>
 
-        {/* Preview */}
-        <Grid.Col
-          span={{ base: 12, lg: 7 }}
+                <Tabs.Panel value="branding" pt="sm">
+                  <SectionCard
+                    title="Branding"
+                    icon={<IconPhoto size={16} />}
+                  >
+                    <Stack gap="sm">
+                      <FileInput
+                        label="Logo"
+                        placeholder="Upload logo"
+                        onChange={(f) =>
+                          f && handleFileUpload(f, 'logo_image')
+                        }
+                      />
+                      <NumberInput
+                        label="Logo size %"
+                        value={display.logo_size_percent}
+                        onChange={(v) =>
+                          updateDisplay('logo_size_percent', v)
+                        }
+                      />
+                      <Select
+                        label="Logo position"
+                        data={positionOptions}
+                        value={display.logo_position}
+                        onChange={(v) =>
+                          updateDisplay('logo_position', v)
+                        }
+                      />
+                    </Stack>
+                  </SectionCard>
+                </Tabs.Panel>
+
+                <Tabs.Panel value="timer" pt="sm">
+                  <SectionCard title="Timer" icon={<IconClock size={16} />}>
+                    <Stack gap="sm">
+                      <Select
+                        label="Format"
+                        data={[
+                          { value: 'mm:ss', label: 'MM:SS' },
+                          { value: 'hh:mm:ss', label: 'HH:MM:SS' },
+                        ]}
+                        value={display.timer_format}
+                        onChange={(v) => updateDisplay('timer_format', v)}
+                      />
+                      <Select
+                        label="Font"
+                        data={monoFontOptions}
+                        value={display.timer_font_family}
+                        onChange={(v) =>
+                          updateDisplay('timer_font_family', v)
+                        }
+                      />
+                      <NumberInput
+                        label="Size %"
+                        value={display.timer_size_percent}
+                        onChange={(v) =>
+                          updateDisplay('timer_size_percent', v)
+                        }
+                      />
+                      <Select
+                        label="Position"
+                        data={timerPositionOptions}
+                        value={display.timer_position}
+                        onChange={(v) =>
+                          updateDisplay('timer_position', v)
+                        }
+                      />
+                      <Divider />
+                      <Group justify="space-between">
+                        <Text size="sm" fw={600}>
+                          Show clock
+                        </Text>
+                        <Switch
+                          checked={display.clock_visible}
+                          onChange={(e) =>
+                            updateDisplay(
+                              'clock_visible',
+                              e.currentTarget.checked
+                            )
+                          }
+                        />
+                      </Group>
+                      {display.clock_visible && (
+                        <Select
+                          label="Clock font"
+                          data={monoFontOptions}
+                          value={display.clock_font_family}
+                          onChange={(v) =>
+                            updateDisplay('clock_font_family', v)
+                          }
+                        />
+                      )}
+                    </Stack>
+                  </SectionCard>
+                </Tabs.Panel>
+
+                <Tabs.Panel value="content" pt="sm">
+                  <SectionCard
+                    title="Typography & Content"
+                    icon={<IconTextSize size={16} />}
+                  >
+                    <Stack gap="sm">
+                      <Select
+                        label="Title location"
+                        data={displayLocationOptions}
+                        value={display.title_display_location}
+                        onChange={(v) =>
+                          updateDisplay('title_display_location', v)
+                        }
+                      />
+                      <Select
+                        label="Speaker location"
+                        data={displayLocationOptions}
+                        value={display.speaker_display_location}
+                        onChange={(v) =>
+                          updateDisplay('speaker_display_location', v)
+                        }
+                      />
+                      <Divider />
+                      <Select
+                        label="Header font"
+                        data={fontOptions}
+                        value={display.header_font_family}
+                        onChange={(v) =>
+                          updateDisplay('header_font_family', v)
+                        }
+                      />
+                      <Select
+                        label="Footer font"
+                        data={fontOptions}
+                        value={display.footer_font_family}
+                        onChange={(v) =>
+                          updateDisplay('footer_font_family', v)
+                        }
+                      />
+                      <Select
+                        label="Message font"
+                        data={fontOptions}
+                        value={display.message_font_family}
+                        onChange={(v) =>
+                          updateDisplay('message_font_family', v)
+                        }
+                      />
+                    </Stack>
+                  </SectionCard>
+                </Tabs.Panel>
+
+                <Tabs.Panel value="colors" pt="sm">
+                  <SectionCard title="Colors" icon={<IconPalette size={16} />}>
+                    <Stack gap="sm">
+                      <ColorInput
+                        label="Timer"
+                        value={display.timer_color}
+                        onChange={(v) => updateDisplay('timer_color', v)}
+                      />
+                      <ColorInput
+                        label="Clock"
+                        value={display.clock_color}
+                        onChange={(v) => updateDisplay('clock_color', v)}
+                      />
+                      <ColorInput
+                        label="Header"
+                        value={display.header_color}
+                        onChange={(v) => updateDisplay('header_color', v)}
+                      />
+                      <ColorInput
+                        label="Footer"
+                        value={display.footer_color}
+                        onChange={(v) => updateDisplay('footer_color', v)}
+                      />
+                      <ColorInput
+                        label="Message"
+                        value={display.message_color}
+                        onChange={(v) => updateDisplay('message_color', v)}
+                      />
+                      <Divider />
+                      <ColorInput
+                        label="Progress main"
+                        value={display.progress_color_main}
+                        onChange={(v) =>
+                          updateDisplay('progress_color_main', v)
+                        }
+                      />
+                      <ColorInput
+                        label="Progress secondary"
+                        value={display.progress_color_secondary}
+                        onChange={(v) =>
+                          updateDisplay('progress_color_secondary', v)
+                        }
+                      />
+                      <ColorInput
+                        label="Progress tertiary"
+                        value={display.progress_color_tertiary}
+                        onChange={(v) =>
+                          updateDisplay('progress_color_tertiary', v)
+                        }
+                      />
+                    </Stack>
+                  </SectionCard>
+                </Tabs.Panel>
+              </Box>
+            </Box>
+          </Tabs>
+        </Box>
+
+        {/* Preview - independent of left panel */}
+        <Box
           style={{
+            flex: 1,
             background: colorScheme === 'dark'
               ? theme.colors.dark[7]
               : theme.colors.gray[1],
@@ -706,6 +910,7 @@ export default function TimerDisplayEditorV2({
             justifyContent: 'center',
             padding: theme.spacing.md,
             position: 'relative',
+            overflow: 'auto',
           }}
         >
           <Card
@@ -740,8 +945,8 @@ export default function TimerDisplayEditorV2({
               <IconMaximize size={16} />
             </ActionIcon>
           </Card>
-        </Grid.Col>
-      </Grid>
+        </Box>
+      </Box>
 
       {/* Delete confirm modal */}
       <Modal
