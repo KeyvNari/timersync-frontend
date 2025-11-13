@@ -304,7 +304,10 @@ export default function RoomController({
   const showConnectionNotification = hasBeenConnected && connectionStatus !== 'connected' && connectionMessage;
 
   return (
-    <Page title={roomInfo?.name || 'Loading Room...' || 'Home'}>
+    <Page
+      title={roomInfo?.name || 'Loading Room...' || 'Home'}
+      style={authMode === 'urlToken' ? { height: '100vh' } : { height: '100%' }}
+    >
       {(roomId && showConnectionNotification) && (
         <div
           style={{
