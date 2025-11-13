@@ -66,7 +66,6 @@ export default function LandingPage() {
           bottom: 0,
           pointerEvents: 'none',
           zIndex: 0,
-          overflow: 'hidden',
         }}
       >
         {/* Gradient Orbs */}
