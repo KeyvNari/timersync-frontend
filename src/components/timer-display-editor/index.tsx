@@ -44,6 +44,7 @@ import {
 import TimerDisplay from '@/components/timer-display';
 import { useWebSocketContext } from '@/providers/websocket-provider';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
+import { UpgradeCta } from '@/components/timer-panel/upgrade-cta';
 
 /**
  * Redesigned Timer Display Editor (Tabs + Top Action Bar)
@@ -462,18 +463,11 @@ export default function TimerDisplayEditorV2({
               <TopBar />
 
               {!features.canCustomizeDisplay().isAvailable && (
-                <Group justify="space-between" align="center" wrap="nowrap" p="xs" style={{ borderRadius: 'var(--mantine-radius-sm)', backgroundColor: 'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7))', border: '1px dashed light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-5))' }}>
-                  <Text size="xs" c="dimmed">
-                    {features.canCustomizeDisplay().reason}
-                  </Text>
-                  <Button
-                    variant="default"
-                    size="xs"
-                    leftSection={<IconBolt size={14} />}
-                  >
-                    Upgrade
-                  </Button>
-                </Group>
+                <UpgradeCta
+                  current={0}
+                  limit={0}
+                  message={features.canCustomizeDisplay().reason}
+                />
               )}
 
               <Tabs value={activeTab} onChange={(val) => setActiveTab(val)} variant="pills" disabled={!features.canCustomizeDisplay().isAvailable}>
