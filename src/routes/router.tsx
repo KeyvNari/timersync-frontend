@@ -38,6 +38,10 @@ const router = createBrowserRouter([
   },
   // Timer routes - public, no authentication required - optimized for speed
   {
+    path: '/timers',
+    element: LazyPage(() => import('@/pages/timers-hub')),
+  },
+  {
     path: '/timers/:slug',
     element: FastLazyPage(() => import('@/pages/timers')),
   },
