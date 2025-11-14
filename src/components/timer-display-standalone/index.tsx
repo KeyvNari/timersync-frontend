@@ -197,17 +197,16 @@ function TimerDisplayStandalone({
         paused_at: null
       };
 
-      // Only update if base has actually changed (start/resume/adjust)
-      const baseChanged = !calculationBase ||
-          calculationBase.actual_start_time?.toISOString() !== newBase.actual_start_time?.toISOString() ||
-          calculationBase.accumulated_seconds !== newBase.accumulated_seconds;
-
-      if (baseChanged) {
-        setCalculationBase(newBase);
-        // Force immediate sync to backend value after adjustment
-        setLocalCurrentTime(timer.current_time_seconds);
-        console.log('🔄 Timer adjusted, forcing sync to backend value:', timer.current_time_seconds);
-      }
+      // Always update calculation base when timer is running - no need for baseChanged check
+      // This ensures the interval effect always has the correct base
+      setCalculationBase(newBase);
+      // Force immediate sync to backend value after adjustment
+      setLocalCurrentTime(timer.current_time_seconds);
+      console.log('🔄 Timer running, updating calculation base:', {
+        actual_start_time: newBase.actual_start_time?.toISOString(),
+        accumulated_seconds: newBase.accumulated_seconds,
+        current_time: timer.current_time_seconds
+      });
     } else if (timer.is_paused && timer.paused_at) {
       setCalculationBase({
         actual_start_time: timer.actual_start_time
@@ -223,7 +222,7 @@ function TimerDisplayStandalone({
       setLocalCurrentTime(timer.current_time_seconds);
       setCalculationBase(null);
     }
-  }, [timer?.is_active, timer?.is_paused, timer?.actual_start_time, timer?.accumulated_seconds, timer?.paused_at]);
+  }, [timer?.is_active, timer?.is_paused, timer?.actual_start_time, timer?.accumulated_seconds, timer?.paused_at, timer?.current_time_seconds];
 
   // Client-side calculation (runs every 100ms for smooth display)
   // MODIFIED: Removed drift detection to prevent resets
@@ -267,7 +266,9 @@ function TimerDisplayStandalone({
     timer?.is_paused,
     timer?.timer_type,
     timer?.duration_seconds,
-    calculationBase
+    calculationBase?.actual_start_time?.toISOString(),
+    calculationBase?.accumulated_seconds,
+    calculationBase?.paused_at?.toISOString()
   ]);
 
   // Separate interval only for date/clock updates
