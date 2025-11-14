@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Container, Stack, Box, Button, Group, Text, Breadcrumbs, Anchor, Title, SimpleGrid } from '@mantine/core';
 import TimerDisplayStandalone from '@/components/timer-display-standalone';
@@ -32,7 +32,7 @@ interface TimerState {
   accumulated_seconds: number;
 }
 
-export function TimerPage({ slug }: TimerPageProps) {
+function TimerPageComponent({ slug }: TimerPageProps) {
   const preset = getTimerPreset(slug);
   const displayConfig = getDefaultDisplay();
   const [timerState, setTimerState] = useState<TimerState | null>(null);
@@ -137,6 +137,47 @@ export function TimerPage({ slug }: TimerPageProps) {
     );
   };
 
+  // Generate structured data (memoized) - MUST be before early returns
+  const structuredData = useMemo(() => {
+    if (!preset) return null;
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'Tool',
+      name: preset.title,
+      description: preset.description,
+      applicationCategory: 'Productivity',
+      url: `${typeof window !== 'undefined' ? window.location.origin : ''}/timers/${preset.slug}`,
+    };
+  }, [preset?.title, preset?.description, preset?.slug]);
+
+  const breadcrumbData = useMemo(() => {
+    if (!preset) return null;
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Home',
+          item: typeof window !== 'undefined' ? window.location.origin : '',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Timers',
+          item: `${typeof window !== 'undefined' ? window.location.origin : ''}/timers`,
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: preset.title,
+          item: `${typeof window !== 'undefined' ? window.location.origin : ''}/timers/${preset.slug}`,
+        },
+      ],
+    };
+  }, [preset?.title, preset?.slug]);
+
   if (!preset || !timerState) {
     return (
       <Container>
@@ -151,41 +192,6 @@ export function TimerPage({ slug }: TimerPageProps) {
     if (isRunning) return 'Running...';
     if (timerState.is_paused) return 'Resume';
     return 'Start';
-  };
-
-  // Generate structured data
-  const structuredData = {
-    '@context': 'https://schema.org',
-    '@type': 'Tool',
-    name: preset.title,
-    description: preset.description,
-    applicationCategory: 'Productivity',
-    url: `${typeof window !== 'undefined' ? window.location.origin : ''}/timers/${preset.slug}`,
-  };
-
-  const breadcrumbData = {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: [
-      {
-        '@type': 'ListItem',
-        position: 1,
-        name: 'Home',
-        item: typeof window !== 'undefined' ? window.location.origin : '',
-      },
-      {
-        '@type': 'ListItem',
-        position: 2,
-        name: 'Timers',
-        item: `${typeof window !== 'undefined' ? window.location.origin : ''}/timers`,
-      },
-      {
-        '@type': 'ListItem',
-        position: 3,
-        name: preset.title,
-        item: `${typeof window !== 'undefined' ? window.location.origin : ''}/timers/${preset.slug}`,
-      },
-    ],
   };
 
   return (
@@ -266,26 +272,132 @@ export function TimerPage({ slug }: TimerPageProps) {
           </Group>
 
           {/* Content Section */}
-          <Box w="100%" mt="xl">
-            <Text size="lg" fw={500} mb="md">
-              {preset.slug.replace(/-/g, ' ').charAt(0).toUpperCase() + preset.slug.replace(/-/g, ' ').slice(1)} Timer
-            </Text>
-            <Text mb="lg" c="dimmed">
-              {preset.content}
-            </Text>
+          <Box w="100%" mt="xl" style={{ maxWidth: '900px', margin: '0 auto' }}>
+            {/* Main Content */}
+            <div style={{ marginBottom: '3rem' }}>
+              <Text size="lg" fw={500} mb="md">
+                About This Timer
+              </Text>
+              <Text mb="lg" style={{ lineHeight: 1.8 }}>
+                {preset.content}
+              </Text>
+            </div>
 
-            {/* Use Cases */}
-            {preset.uses.length > 0 && (
-              <div>
-                <Text fw={500} mb="md">
-                  Perfect For:
+            {/* Why This Duration Section */}
+            {preset.whySection && (
+              <div style={{ marginBottom: '3rem' }}>
+                <Title order={2} size="h3" mb="md" style={{ fontSize: '1.3rem', marginTop: '2rem' }}>
+                  Why {preset.duration / 60} {preset.duration / 60 === 1 ? 'Minute' : 'Minutes'}?
+                </Title>
+                <Text style={{ lineHeight: 1.8, color: '#a6adba' }}>
+                  {preset.whySection}
                 </Text>
+              </div>
+            )}
+
+            {/* How To Use Section */}
+            {preset.howToSection && (
+              <div style={{ marginBottom: '3rem' }}>
+                <Title order={2} size="h3" mb="md" style={{ fontSize: '1.3rem', marginTop: '2rem' }}>
+                  How to Use This Timer
+                </Title>
+                <Text style={{ lineHeight: 1.8, color: '#a6adba' }}>
+                  {preset.howToSection}
+                </Text>
+              </div>
+            )}
+
+            {/* Use Cases Section */}
+            {preset.uses.length > 0 && (
+              <div style={{ marginBottom: '3rem' }}>
+                <Title order={2} size="h3" mb="md" style={{ fontSize: '1.3rem', marginTop: '2rem' }}>
+                  Perfect For:
+                </Title>
                 <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="sm">
                   {preset.uses.map((use, idx) => (
-                    <Text key={idx} c="blue" size="sm">
+                    <Text key={idx} c="blue" size="sm" style={{ lineHeight: 1.6 }}>
                       • {use}
                     </Text>
                   ))}
+                </SimpleGrid>
+              </div>
+            )}
+
+            {/* Tips Section */}
+            {preset.tipsSection && preset.tipsSection.length > 0 && (
+              <div style={{ marginBottom: '3rem' }}>
+                <Title order={2} size="h3" mb="md" style={{ fontSize: '1.3rem', marginTop: '2rem' }}>
+                  Tips for Success
+                </Title>
+                <Stack gap="sm">
+                  {preset.tipsSection.map((tip, idx) => (
+                    <Text key={idx} style={{ lineHeight: 1.6, color: '#a6adba' }}>
+                      {idx + 1}. {tip}
+                    </Text>
+                  ))}
+                </Stack>
+              </div>
+            )}
+
+            {/* FAQ Section */}
+            {preset.faqSection && preset.faqSection.length > 0 && (
+              <div style={{ marginBottom: '3rem' }}>
+                <Title order={2} size="h3" mb="md" style={{ fontSize: '1.3rem', marginTop: '2rem' }}>
+                  Frequently Asked Questions
+                </Title>
+                <Stack gap="lg">
+                  {preset.faqSection.map((faq, idx) => (
+                    <div key={idx}>
+                      <Text fw={500} mb="xs" style={{ color: '#fff' }}>
+                        Q: {faq.question}
+                      </Text>
+                      <Text size="sm" style={{ lineHeight: 1.8, color: '#a6adba', marginLeft: '1rem' }}>
+                        A: {faq.answer}
+                      </Text>
+                    </div>
+                  ))}
+                </Stack>
+              </div>
+            )}
+
+            {/* Related Timers Section */}
+            {preset.relatedTimers && preset.relatedTimers.length > 0 && (
+              <div style={{ marginTop: '4rem', paddingTop: '2rem', borderTop: '1px solid #333' }}>
+                <Title order={2} size="h3" mb="md" style={{ fontSize: '1.3rem' }}>
+                  Other Useful Timers
+                </Title>
+                <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
+                  {preset.relatedTimers.map((slug) => {
+                    const relatedPreset = getTimerPreset(slug);
+                    return relatedPreset ? (
+                      <Anchor
+                        key={slug}
+                        href={`/timers/${slug}`}
+                        style={{
+                          padding: '1rem',
+                          border: '1px solid #333',
+                          borderRadius: '0.5rem',
+                          textDecoration: 'none',
+                          transition: 'all 0.2s ease',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.borderColor = '#10B981';
+                          e.currentTarget.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.borderColor = '#333';
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }}
+                      >
+                        <Text fw={500} size="sm">
+                          {relatedPreset.title}
+                        </Text>
+                        <Text size="xs" c="dimmed" mt="xs">
+                          {relatedPreset.duration / 60} min timer
+                        </Text>
+                      </Anchor>
+                    ) : null;
+                  })}
                 </SimpleGrid>
               </div>
             )}
@@ -295,3 +407,5 @@ export function TimerPage({ slug }: TimerPageProps) {
     </>
   );
 }
+
+export const TimerPage = memo(TimerPageComponent);

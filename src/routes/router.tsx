@@ -12,6 +12,12 @@ import { paths } from './paths';
 // Landing page without loading screen
 const LandingPage = lazy(() => import('@/pages/landing'));
 
+// Fast lazy page without loading screen - for timer pages and other fast-loading routes
+const FastLazyPage = (callback: () => Promise<{ default: any }>) => {
+  const Component = lazy(callback);
+  return <Suspense fallback={null}><Component /></Suspense>;
+};
+
 const router = createBrowserRouter([
   // Controller routes - no authentication guards needed
   {
@@ -30,10 +36,10 @@ const router = createBrowserRouter([
     path: '/controller/:roomId/:token/pwd',
     element: LazyPage(() => import('@/pages/controller')),
   },
-  // Timer routes - public, no authentication required
+  // Timer routes - public, no authentication required - optimized for speed
   {
     path: '/timers/:slug',
-    element: LazyPage(() => import('@/pages/timers')),
+    element: FastLazyPage(() => import('@/pages/timers')),
   },
   ...docsRoutes,
 
