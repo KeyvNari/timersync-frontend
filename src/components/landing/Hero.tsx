@@ -51,8 +51,8 @@ export function Hero({ onScrollToSection, animationStyle }: HeroProps) {
           right: 0,
           bottom: 0,
           backgroundImage: `
-            linear-gradient(rgba(102, 126, 234, 0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(102, 126, 234, 0.03) 1px, transparent 1px)
+            linear-gradient(rgba(37, 99, 235, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(37, 99, 235, 0.03) 1px, transparent 1px)
           `,
           backgroundSize: '50px 50px',
           opacity: 0.5,
@@ -65,14 +65,12 @@ export function Hero({ onScrollToSection, animationStyle }: HeroProps) {
           <Badge
             size="xl"
             variant="light"
+            color="blue"
             leftSection={<IconSparkles size={16} />}
             style={{
-              background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(167, 139, 250, 0.1) 100%)',
-              color: '#667eea',
               fontWeight: 600,
               padding: '12px 24px',
               fontSize: '14px',
-              border: '1px solid rgba(102, 126, 234, 0.2)',
               animation: 'slideDown 0.8s ease-out',
             }}
           >
@@ -93,7 +91,7 @@ export function Hero({ onScrollToSection, animationStyle }: HeroProps) {
                       fontWeight: 900,
                       textAlign: 'start',
                       lineHeight: 1.1,
-                      background: 'linear-gradient(135deg, #1a1a1a 0%, #667eea 100%)',
+                      background: 'linear-gradient(135deg, #1a1a1a 0%, var(--mantine-color-blue-6) 100%)',
                       WebkitBackgroundClip: 'text',
                       WebkitTextFillColor: 'transparent',
                       letterSpacing: '-2px',
@@ -109,7 +107,7 @@ export function Hero({ onScrollToSection, animationStyle }: HeroProps) {
                       fontWeight: 900,
                       textAlign: 'start',
                       lineHeight: 1.1,
-                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      background: 'linear-gradient(135deg, var(--mantine-color-blue-6) 0%, var(--mantine-color-blue-8) 100%)',
                       WebkitBackgroundClip: 'text',
                       WebkitTextFillColor: 'transparent',
                       letterSpacing: '-2px',
@@ -139,25 +137,9 @@ export function Hero({ onScrollToSection, animationStyle }: HeroProps) {
                   <Button
                     size="xl"
                     radius="xl"
-                    variant="gradient"
-                    gradient={{ from: 'grape', to: 'violet' }}
+                    color="blue"
                     rightSection={<IconArrowRight size={20} />}
-                    style={{
-                      fontWeight: 700,
-                      paddingLeft: '2.5rem',
-                      paddingRight: '2.5rem',
-                      boxShadow: '0 10px 40px rgba(102, 126, 234, 0.4)',
-                      transition: 'all 0.3s ease',
-                    }}
                     onClick={() => navigate('/auth/register')}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-3px)';
-                      e.currentTarget.style.boxShadow = '0 15px 50px rgba(102, 126, 234, 0.5)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = '0 10px 40px rgba(102, 126, 234, 0.4)';
-                    }}
                   >
                     Start Free Trial
                   </Button>
@@ -165,24 +147,8 @@ export function Hero({ onScrollToSection, animationStyle }: HeroProps) {
                     size="xl"
                     radius="xl"
                     variant="light"
-                    color="grape"
                     rightSection={<IconBolt size={20} />}
-                    style={{
-                      fontWeight: 700,
-                      paddingLeft: '2.5rem',
-                      paddingRight: '2.5rem',
-                      border: '2px solid rgba(102, 126, 234, 0.2)',
-                      transition: 'all 0.3s ease',
-                    }}
                     onClick={() => onScrollToSection('features')}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-3px)';
-                      e.currentTarget.style.borderColor = 'rgba(102, 126, 234, 0.4)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.borderColor = 'rgba(102, 126, 234, 0.2)';
-                    }}
                   >
                     Watch Demo
                   </Button>
@@ -211,7 +177,7 @@ export function Hero({ onScrollToSection, animationStyle }: HeroProps) {
                   height: 'auto',
                   display: 'block',
                   borderRadius: '24px',
-                  border: '1px solid rgba(102, 126, 234, 0.1)',
+                  border: '1px solid rgba(37, 99, 235, 0.1)',
                   boxShadow: '0 30px 90px rgba(0, 0, 0, 0.15)',
                   animation: 'fadeInUp 1s ease-out 1s both',
                 }}

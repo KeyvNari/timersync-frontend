@@ -15,7 +15,7 @@ export function CTA({ sectionRef, animationStyle }: CTAProps) {
       id="cta"
       ref={sectionRef}
       style={{
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: 'linear-gradient(135deg, var(--mantine-color-blue-6) 0%, var(--mantine-color-blue-8) 100%)',
         padding: '6rem 1rem',
         position: 'relative',
         overflow: 'hidden',
@@ -78,24 +78,8 @@ export function CTA({ sectionRef, animationStyle }: CTAProps) {
               size="xl"
               radius="xl"
               rightSection={<IconArrowRight size={20} />}
-              style={{
-                backgroundColor: 'white',
-                color: '#667eea',
-                fontWeight: 700,
-                paddingLeft: '2.5rem',
-                paddingRight: '2.5rem',
-                boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
-                transition: 'all 0.3s ease',
-              }}
+              variant="white"
               onClick={() => navigate('/auth/register')}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-3px)';
-                e.currentTarget.style.boxShadow = '0 15px 50px rgba(0, 0, 0, 0.3)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 10px 40px rgba(0, 0, 0, 0.2)';
-              }}
             >
               Start Free Trial
             </Button>

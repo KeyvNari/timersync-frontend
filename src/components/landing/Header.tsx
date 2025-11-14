@@ -44,7 +44,7 @@ export function Header({ onScrollToSection }: HeaderProps) {
         zIndex: 1000,
         backgroundColor: scrolled ? 'rgba(255, 255, 255, 0.8)' : 'white',
         backdropFilter: scrolled ? 'blur(20px) saturate(180%)' : 'none',
-        borderBottom: scrolled ? '1px solid rgba(102, 126, 234, 0.1)' : 'none',
+        borderBottom: scrolled ? '1px solid rgba(37, 99, 235, 0.1)' : 'none',
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         boxShadow: scrolled ? '0 4px 30px rgba(0, 0, 0, 0.05)' : 'none',
       }}
@@ -68,19 +68,10 @@ export function Header({ onScrollToSection }: HeaderProps) {
                 key={item.id}
                 component="button"
                 onClick={() => handleNavClick(item.id)}
-                style={{
-                  color: '#495057',
-                  fontWeight: 600,
-                  fontSize: '15px',
-                  transition: 'all 0.2s ease',
-                  position: 'relative',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = '#667eea';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = '#495057';
-                }}
+                underline="never"
+                c="var(--mantine-color-gray-7)"
+                fw={600}
+                size="sm"
               >
                 {item.label}
               </Anchor>
@@ -88,31 +79,13 @@ export function Header({ onScrollToSection }: HeaderProps) {
             <Button
               variant="subtle"
               onClick={() => navigate('/auth/login')}
-              style={{
-                fontWeight: 600,
-                color: '#495057',
-              }}
             >
               Sign In
             </Button>
             <Button
-              variant="gradient"
-              gradient={{ from: 'grape', to: 'violet' }}
+              color="blue"
               onClick={() => navigate('/auth/register')}
               rightSection={<IconArrowRight size={18} />}
-              style={{
-                fontWeight: 600,
-                boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
-                transition: 'all 0.3s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.4)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.3)';
-              }}
             >
               Get Started
             </Button>
@@ -131,7 +104,9 @@ export function Header({ onScrollToSection }: HeaderProps) {
               key={item.id}
               component="button"
               onClick={() => handleNavClick(item.id)}
-              style={{ color: '#495057', fontWeight: 600, fontSize: '16px' }}
+              underline="never"
+              c="var(--mantine-color-gray-7)"
+              fw={600}
             >
               {item.label}
             </Anchor>
@@ -140,8 +115,7 @@ export function Header({ onScrollToSection }: HeaderProps) {
             Sign In
           </Button>
           <Button
-            variant="gradient"
-            gradient={{ from: 'grape', to: 'violet' }}
+            color="blue"
             onClick={() => navigate('/auth/register')}
             fullWidth
             size="md"

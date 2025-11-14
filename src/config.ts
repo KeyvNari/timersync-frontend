@@ -1,6 +1,6 @@
 export const app = {
   name: 'VeroTime',
-  apiBaseUrl: 'http://localhost:8002',
+  apiBaseUrl: 'https://api.verotime.io',
   fakeBackend: false,
   redirectQueryParamName: 'r',
   accessTokenStoreKey: 'access_token',

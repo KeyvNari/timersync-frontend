@@ -95,7 +95,6 @@ export function Pricing({ sectionRef, animationStyle, onAnimationStyleChange }: 
           <Badge
             size="lg"
             variant="light"
-            color="grape"
             style={{ fontSize: '13px', fontWeight: 600 }}
           >
             PRICING
@@ -106,7 +105,7 @@ export function Pricing({ sectionRef, animationStyle, onAnimationStyleChange }: 
               fontSize: 'clamp(2rem, 4vw, 3.5rem)',
               fontWeight: 900,
               textAlign: 'center',
-              background: 'linear-gradient(135deg, #1a1a1a 0%, #667eea 100%)',
+              background: 'linear-gradient(135deg, #1a1a1a 0%, var(--mantine-color-blue-6) 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               letterSpacing: '-1px',
@@ -137,8 +136,8 @@ export function Pricing({ sectionRef, animationStyle, onAnimationStyleChange }: 
                 p="xl"
                 radius="xl"
                 style={{
-                  backgroundColor: plan.highlighted ? '#667eea' : 'white',
-                  border: plan.highlighted ? '2px solid #667eea' : '1px solid #f1f3f5',
+                  backgroundColor: plan.highlighted ? 'var(--mantine-color-blue-6)' : 'white',
+                  border: plan.highlighted ? '2px solid var(--mantine-color-blue-6)' : '1px solid #f1f3f5',
                   position: 'relative',
                   ...animStyle,
                   transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -146,30 +145,30 @@ export function Pricing({ sectionRef, animationStyle, onAnimationStyleChange }: 
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = plan.highlighted ? 'scale(1.05)' : 'translateY(-8px)';
                   e.currentTarget.style.boxShadow = plan.highlighted
-                    ? '0 30px 80px rgba(102, 126, 234, 0.35)'
-                    : '0 20px 60px rgba(102, 126, 234, 0.15)';
+                    ? '0 30px 80px rgba(37, 99, 235, 0.35)'
+                    : '0 20px 60px rgba(37, 99, 235, 0.15)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = 'scale(1)';
                   e.currentTarget.style.boxShadow = plan.highlighted
-                    ? '0 20px 60px rgba(102, 126, 234, 0.25)'
+                    ? '0 20px 60px rgba(37, 99, 235, 0.25)'
                     : 'none';
                 }}
               >
                 {plan.highlighted && (
                   <Badge
                     variant="light"
+                    color="blue"
                     style={{
                       position: 'absolute',
                       top: -12,
                       left: '50%',
                       transform: 'translateX(-50%)',
                       backgroundColor: 'white',
-                      color: '#667eea',
                       fontWeight: 700,
                       padding: '8px 16px',
                       fontSize: '12px',
-                      boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
+                      boxShadow: '0 4px 15px rgba(37, 99, 235, 0.3)',
                     }}
                   >
                     ⭐ MOST POPULAR
@@ -226,18 +225,9 @@ export function Pricing({ sectionRef, animationStyle, onAnimationStyleChange }: 
                     size="lg"
                     radius="xl"
                     fullWidth
-                    variant={plan.highlighted ? 'white' : 'gradient'}
-                    gradient={{ from: 'grape', to: 'violet' }}
+                    color={plan.highlighted ? 'blue' : 'blue'}
+                    variant={plan.highlighted ? 'white' : 'filled'}
                     rightSection={<IconArrowRight size={18} />}
-                    style={{
-                      fontWeight: 700,
-                      ...(plan.highlighted
-                        ? {
-                            backgroundColor: 'white',
-                            color: '#667eea',
-                          }
-                        : {}),
-                    }}
                     onClick={() => navigate('/auth/register')}
                   >
                     {plan.cta}
@@ -250,7 +240,7 @@ export function Pricing({ sectionRef, animationStyle, onAnimationStyleChange }: 
                           size={24}
                           radius="xl"
                           variant="light"
-                          color={plan.highlighted ? 'white' : 'grape'}
+                          color={plan.highlighted ? 'white' : 'blue'}
                           style={{
                             flexShrink: 0,
                             ...(plan.highlighted

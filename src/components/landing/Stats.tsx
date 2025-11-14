@@ -24,7 +24,7 @@ export function Stats() {
   return (
     <Box
       style={{
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: 'linear-gradient(135deg, var(--mantine-color-blue-6) 0%, var(--mantine-color-blue-8) 100%)',
         padding: '4rem 1rem',
       }}
     >

@@ -66,7 +66,6 @@ export function Testimonials({ sectionRef, animationStyle, onAnimationStyleChang
           <Badge
             size="lg"
             variant="light"
-            color="grape"
             style={{ fontSize: '13px', fontWeight: 600 }}
           >
             TESTIMONIALS
@@ -77,7 +76,7 @@ export function Testimonials({ sectionRef, animationStyle, onAnimationStyleChang
               fontSize: 'clamp(2rem, 4vw, 3.5rem)',
               fontWeight: 900,
               textAlign: 'center',
-              background: 'linear-gradient(135deg, #1a1a1a 0%, #667eea 100%)',
+              background: 'linear-gradient(135deg, #1a1a1a 0%, var(--mantine-color-blue-6) 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               letterSpacing: '-1px',
@@ -115,8 +114,8 @@ export function Testimonials({ sectionRef, animationStyle, onAnimationStyleChang
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = 'translateY(-8px)';
-                  e.currentTarget.style.boxShadow = '0 20px 60px rgba(102, 126, 234, 0.12)';
-                  e.currentTarget.style.borderColor = 'rgba(102, 126, 234, 0.2)';
+                  e.currentTarget.style.boxShadow = '0 20px 60px rgba(37, 99, 235, 0.12)';
+                  e.currentTarget.style.borderColor = 'rgba(37, 99, 235, 0.2)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = 'translateY(0)';
