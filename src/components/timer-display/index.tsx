@@ -161,6 +161,7 @@ function TimerDisplay({
 
   // Local state for client-side timer calculation
   const [localCurrentTime, setLocalCurrentTime] = useState(0);
+  const [clientServerSkew, setClientServerSkew] = useState(0); // Track time difference between client and server
   const [calculationBase, setCalculationBase] = useState<{
     actual_start_time: Date | null;
     accumulated_seconds: number;
@@ -204,6 +205,19 @@ function TimerDisplay({
 
       if (baseChanged) {
         setCalculationBase(newBase);
+
+        // Calculate client-server time skew on state change
+        if (newBase.actual_start_time) {
+          const now = new Date();
+          const sessionSeconds = Math.floor(
+            (now.getTime() - newBase.actual_start_time.getTime()) / 1000
+          );
+          // Skew is the difference between calculated session time and backend time
+          const skew = sessionSeconds - (timer.current_time_seconds - newBase.accumulated_seconds);
+          setClientServerSkew(skew);
+          console.log('⏱️ Calculated client-server skew:', skew, 'seconds');
+        }
+
         // Force immediate sync to backend value after adjustment
         setLocalCurrentTime(timer.current_time_seconds);
         console.log('🔄 Timer adjusted, forcing sync to backend value:', timer.current_time_seconds);
@@ -216,12 +230,14 @@ function TimerDisplay({
         accumulated_seconds: timer.accumulated_seconds || 0,
         paused_at: new Date(timer.paused_at)
       });
+      setClientServerSkew(0); // Reset skew when paused
       // Use backend value for paused timer
       setLocalCurrentTime(timer.current_time_seconds);
     } else {
       // Stopped/inactive - use backend value directly
       setLocalCurrentTime(timer.current_time_seconds);
       setCalculationBase(null);
+      setClientServerSkew(0); // Reset skew when stopped
     }
   }, [timer?.is_active, timer?.is_paused, timer?.actual_start_time, timer?.accumulated_seconds, timer?.paused_at]);
 
@@ -237,9 +253,12 @@ function TimerDisplay({
     const intervalId = setInterval(() => {
       const now = new Date();
 
-      // Calculate session seconds since actual_start_time
+      // Adjust client time by skew to sync with server time
+      const adjustedNow = new Date(now.getTime() - clientServerSkew * 1000);
+
+      // Calculate session seconds since actual_start_time using adjusted time
       const sessionSeconds = Math.floor(
-        (now.getTime() - calculationBase.actual_start_time!.getTime()) / 1000
+        (adjustedNow.getTime() - calculationBase.actual_start_time!.getTime()) / 1000
       );
 
       // Total elapsed = accumulated + current session
@@ -275,7 +294,8 @@ function TimerDisplay({
     timer?.timer_type,
     timer?.duration_seconds,
     timer?.current_time_seconds,
-    calculationBase
+    calculationBase,
+    clientServerSkew
   ]);
 
   // Separate interval only for date/clock updates

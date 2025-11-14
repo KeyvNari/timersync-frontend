@@ -222,7 +222,7 @@ function TimerDisplayStandalone({
       setLocalCurrentTime(timer.current_time_seconds);
       setCalculationBase(null);
     }
-  }, [timer?.is_active, timer?.is_paused, timer?.actual_start_time, timer?.accumulated_seconds, timer?.paused_at, timer?.current_time_seconds];
+  }, [timer?.is_active, timer?.is_paused, timer?.actual_start_time, timer?.accumulated_seconds, timer?.paused_at, timer?.current_time_seconds]);
 
   // Client-side calculation (runs every 100ms for smooth display)
   // MODIFIED: Removed drift detection to prevent resets
