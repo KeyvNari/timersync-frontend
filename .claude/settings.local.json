@@ -6,7 +6,9 @@
       "Bash(nul)",
       "Bash(npx tsc:*)",
       "Bash(find:*)",
-      "Bash(copy:*)"
+      "Bash(copy:*)",
+      "Bash(firebase deploy:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []

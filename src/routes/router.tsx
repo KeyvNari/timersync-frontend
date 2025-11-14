@@ -172,6 +172,11 @@ const router = createBrowserRouter([
       */
     ],
   },
+  // Catch-all 404 route
+  {
+    path: '*',
+    element: <Navigate to="/" replace />,
+  },
 ]);
 
 export function Router() {
