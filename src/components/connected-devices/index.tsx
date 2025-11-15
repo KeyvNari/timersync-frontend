@@ -276,7 +276,6 @@ function ConnectionItem({
   onDisconnect?: (connectionId: string) => void;
   isGrouped?: boolean;
 }) {
-  console.log('Rendering connection:', connection.connection_name, 'Full connection object:', connection);
   const [expanded, setExpanded] = useState(true);
   const deviceType = getDeviceType(connection.user_agent);
   const isOnline = connection.last_ping ?
@@ -285,12 +284,6 @@ function ConnectionItem({
   // Check if this is the current user's connection
   // Backend might send 'self' instead of 'is_self'
   const isSelf = connection.is_self === true || (connection as any).self === true;
-  console.log('isSelf check:', {
-    is_self: connection.is_self,
-    self: (connection as any).self,
-    isSelf: isSelf,
-    connectionName: connection.connection_name
-  });
 
   return (
     <Box p="md">
@@ -384,19 +377,6 @@ export function ConnectedDevices({
   const features = useFeatureAccess();
 
   useEffect(() => {
-    console.log('=== ConnectedDevices Update ===');
-    console.log('Raw connections:', JSON.stringify(connections, null, 2));
-    console.log('Connection details:', connections.map(c => ({
-      name: c.connection_name,
-      access_token_id: c.access_token_id,
-      access_token_name: c.access_token_name,
-      type_of_token_id: typeof c.access_token_id,
-      is_null: c.access_token_id === null,
-      is_undefined: c.access_token_id === undefined,
-      is_empty_string: c.access_token_id === '',
-      hasToken_check: c.access_token_id != null && c.access_token_id !== '',
-      all_keys: Object.keys(c)
-    })));
     setConnectionList(connections);
   }, [connections]);
 
@@ -421,13 +401,6 @@ export function ConnectedDevices({
     // Create a unique key for grouping - handle null/undefined/empty string consistently
     const hasToken = connection.access_token_id != null && connection.access_token_id !== '';
     const tokenKey = hasToken ? `token_${connection.access_token_id}` : 'direct';
-
-    console.log('Grouping connection:', {
-      connection_name: connection.connection_name,
-      access_token_id: connection.access_token_id,
-      access_token_name: connection.access_token_name,
-      tokenKey
-    });
 
     if (!groups.has(tokenKey)) {
       // Determine the token name with priority: access_token_name > fallback

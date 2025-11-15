@@ -195,10 +195,23 @@ export function WebSocketProvider({
 const setupEventHandlers = (wsService: SimpleWebSocketService) => {
   // Use lowercase to match what backend actually sends
   wsService.on('success', (message: any) => {
-    console.log('Received success message:', message);
-
     // Clear any disconnection state on successful connection
     setDisconnectedByHost(null);
+
+    // Check if this is a token revocation success
+    if (message.token_id && message.message && message.message.toLowerCase().includes('revoked')) {
+      removePendingOperation(`token_revoke_${message.token_id}`);
+
+      // Remove the revoked token from connections list (for admin's view)
+      setConnections((prev) => {
+        const tokenIdStr = String(message.token_id);
+        const updated = prev.filter(conn => String(conn.access_token_id) !== tokenIdStr);
+        return updated;
+      });
+
+      setLastSuccess(message.message);
+      return; // Don't process as connection success
+    }
 
     // Check if this is a timer operation success
     if (message.timer_id && message.message) {
@@ -246,12 +259,11 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
         });
       } else if (message.message.includes('Timer created successfully')) {
         // Timer was created successfully, request updated timer list
-        console.log('Timer created successfully, refreshing timers...');
         setTimeout(() => {
           wsService.requestRoomTimers();
         }, 100);
       }
-      
+
       setLastSuccess(message.message);
       return; // Don't process as connection success
     }
@@ -263,21 +275,11 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
       setSelectedTimerId(message.room_info?.selected_timer_id || null);
 
       // Load initial messages if provided in room_info
-      console.log('🔍 Checking for initial messages in room_info:', {
-        hasMessages: !!message.room_info?.messages,
-        isArray: Array.isArray(message.room_info?.messages),
-        messageCount: message.room_info?.messages?.length,
-        messages: message.room_info?.messages
-      });
-
       if (message.room_info?.messages && Array.isArray(message.room_info.messages)) {
-        console.log('✅ Setting initial messages from room_info:', message.room_info.messages);
         // Deduplicate initial messages
         const messageMap = new Map<string, MessageData>();
         message.room_info.messages.forEach((msg: MessageData) => messageMap.set(msg.id, msg));
         setMessages(Array.from(messageMap.values()));
-      } else {
-        console.log('⚠️ No messages in room_info on initial connection');
       }
 
       setLastSuccess(message.message || 'Connected successfully');
@@ -289,13 +291,12 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
 
         // Always request messages to ensure they're loaded
         // (Backend should include them in room_info, but this is a fallback)
-        console.log('📨 Requesting messages list...');
         wsService.requestMessages();
       }, 100);
     } else {
       // This is likely a successful operation response
       setLastSuccess(message.message);
-      
+
       // If it's a generic success message that might be from timer creation,
       // request timer refresh just in case
       if (message.message && (
@@ -311,7 +312,6 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
 
 
    wsService.on('timer_created', (message: any) => {
-    console.log('Timer created event received:', message);
     if (message.timer_data) {
       setTimers((prev) => {
         const newTimers = [...prev, message.timer_data];
@@ -336,14 +336,6 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
   });
     // Timer events
  wsService.on('timer_update', (message: any) => {
-  console.log('📍 TIMER_UPDATE received:', {
-    timer_id: message.timer_data?.id,
-    current_time: message.timer_data?.current_time_seconds,
-    is_active: message.timer_data?.is_active,
-    is_manual_start: message.timer_data?.is_manual_start,
-    full_data: message.timer_data
-  });
-
   setTimers((prev) => {
     const timerData = message.timer_data;
     if (!timerData?.id) {
@@ -369,7 +361,6 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
     // Only update time-related and state fields from the server
     let finalTimerData;
     if (hasPendingUpdate) {
-      console.log(`⏳ Pending update for timer ${timerData.id}, preserving optimistic values`);
       // Preserve all fields from the existing timer EXCEPT time/state fields that the server manages
       finalTimerData = {
         ...existingTimer,  // Keep optimistic updates
@@ -389,7 +380,6 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
         last_calculated_at: timerData.last_calculated_at,
       };
     } else if (isPartOfBulkUpdate) {
-      console.log(`⏳ Bulk update pending for timer ${timerData.id}, preserving optimistic values including linked_timer_id`);
       // During bulk update (linking operation), preserve local state completely
       // Only update runtime state fields that don't affect linking
       finalTimerData = {
@@ -441,12 +431,9 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
 });
 
 wsService.on('timer_bulk_update', (message: any) => {
-  console.log('📍 TIMER_BULK_UPDATE received:', message.timers?.length, 'timers');
-
   setTimers((prev) => {
     const updatedTimers = message.timers;
     if (!updatedTimers || !Array.isArray(updatedTimers)) {
-      console.log('❌ No timers array in bulk update');
       return prev;
     }
 
@@ -473,13 +460,6 @@ wsService.on('timer_bulk_update', (message: any) => {
 });
 
 wsService.on('timer_adjust_success', (message: any) => {
-  console.log('✅ TIMER_ADJUST_SUCCESS received:', {
-    timer_id: message.timer_id,
-    current_time_seconds: message.current_time_seconds,
-    time_stamp: message.time_stamp,
-    timestamp: message.timestamp
-  });
-
   // Clear the pending adjustment operation for this specific timer
   if (message.timer_id) {
     removePendingOperation(`timer_adjust_${message.timer_id}`);
@@ -570,12 +550,6 @@ wsService.on('error', (message: any) => {
 
     // Connection events
     wsService.on('connection_count', (message: any) => {
-      console.log('📡 connection_count event:', {
-        count: message.count,
-        has_current_connections: !!message.current_connections,
-        connections_sample: message.current_connections?.[0],
-        has_disconnected: !!message.disconnected_connection
-      });
       setConnectionCount(message.count || 0);
       if (message.current_connections) {
         setConnections(message.current_connections);
@@ -587,18 +561,10 @@ wsService.on('error', (message: any) => {
     });
 
     wsService.on('CONNECTION_UPDATE', (message: any) => {
-      console.log('📡 CONNECTION_UPDATE event:', {
-        connections_count: message.connections?.length,
-        connections_sample: message.connections?.[0]
-      });
       setConnections(message.connections || []);
     });
 
     wsService.on('CONNECTIONS_LIST', (message: any) => {
-      console.log('📡 CONNECTIONS_LIST event:', {
-        connections_count: message.connections?.length,
-        connections_sample: message.connections?.[0]
-      });
       setConnections(message.connections || []);
     });
 
@@ -631,14 +597,11 @@ wsService.on('error', (message: any) => {
     });
 
     wsService.on('default_display_id', (message: any) => {
-      console.log('Received default display ID:', message.default_display_id);
       setDefaultDisplayId(message.default_display_id);
     });
 
     // Disconnection by host event
     wsService.on('disconnected_by_host', (message: any) => {
-      console.log('Received disconnected_by_host event:', message);
-
       // Stop any ongoing connection health monitoring
       if (wsServiceRef.current) {
         wsServiceRef.current.disconnect();
@@ -674,7 +637,12 @@ wsService.on('error', (message: any) => {
 
     // Token revocation event
     wsService.on('room_access_token_revoked', (message: any) => {
-      console.log('Received room_access_token_revoked event:', message);
+      // Remove all connections that used the revoked token
+      setConnections((prev) => {
+        const tokenIdStr = String(message.token_id);
+        const updated = prev.filter(conn => String(conn.access_token_id) !== tokenIdStr);
+        return updated;
+      });
 
       // Store revocation details
       setRevokedToken({
@@ -692,11 +660,6 @@ wsService.on('error', (message: any) => {
 
     // Message events
     wsService.on('messages_list', (message: any) => {
-      console.log('📨 Received messages_list event:', {
-        messageCount: message.messages?.length,
-        messages: message.messages,
-        timestamp: message.timestamp
-      });
       if (message.messages && Array.isArray(message.messages)) {
         // Deduplicate messages by ID before setting
         setMessages(prevMessages => {
@@ -711,19 +674,11 @@ wsService.on('error', (message: any) => {
 
           return Array.from(messageMap.values());
         });
-      } else {
-        console.warn('⚠️ messages_list event missing messages array:', message);
       }
     });
 
     // User plan features event
     wsService.on('user_plan_features', (message: any) => {
-      console.log('💳 Received user_plan_features event:', {
-        plan: message.plan,
-        features: message.features,
-        timestamp: message.timestamp
-      });
-
       if (message.plan) {
         setUserPlan(message.plan);
       }
@@ -920,7 +875,6 @@ const adjustTimer = useCallback((timerId: number, newTimeSeconds: number) => {
 }, [addPendingOperation, removePendingOperation]);
 
 const updateTimer = useCallback((timerId: number, updates: Partial<TimerData>) => {
-  console.log(`🔄 updateTimer called for timer ${timerId}:`, updates);
   addPendingOperation(`timer_update_${timerId}`);
 
   // Apply optimistic update immediately
@@ -933,7 +887,6 @@ const updateTimer = useCallback((timerId: number, updates: Partial<TimerData>) =
     // Store previous state for rollback
     const rollbackTimeout = setTimeout(() => {
       // Rollback if no confirmation after 5 seconds
-      console.warn(`⚠️ No confirmation for timer ${timerId} update, rolling back...`);
       setTimers(rollbackPrev => {
         const rollbackIndex = rollbackPrev.findIndex(t => t.id === timerId);
         if (rollbackIndex === -1) return rollbackPrev;
@@ -953,7 +906,6 @@ const updateTimer = useCallback((timerId: number, updates: Partial<TimerData>) =
     // Apply optimistic update
     const newTimers = [...prev];
     newTimers[index] = { ...currentTimer, ...updates };
-    console.log(`✅ Applied optimistic update for timer ${timerId}:`, newTimers[index]);
     return newTimers;
   });
 
@@ -962,7 +914,6 @@ const updateTimer = useCallback((timerId: number, updates: Partial<TimerData>) =
 
   // Extended failsafe: clear pending state after 15 seconds (increased from 10s)
   setTimeout(() => {
-    console.log(`⏱️ Failsafe: Clearing pending operation for timer ${timerId}`);
     removePendingOperation(`timer_update_${timerId}`);
   }, 15000);
 }, [addPendingOperation, removePendingOperation]);
@@ -1072,18 +1023,14 @@ const revokeAccessToken = useCallback((tokenId: number) => {
 
 // Message management
 const addMessage = useCallback((messageData: Omit<MessageData, 'id'>) => {
-  console.log('📤 Adding message:', messageData);
   wsServiceRef.current?.addMessage(messageData);
 }, []);
 
 const updateMessage = useCallback((messageId: string, updateData: Partial<MessageData>) => {
-  console.log('📤 Updating message:', { messageId, updateData });
   wsServiceRef.current?.updateMessage(messageId, updateData);
 }, []);
 
 const deleteMessage = useCallback((messageId: string) => {
-  console.log('📤 Deleting message:', messageId);
-
   // Immediately remove from local state (trust the delete request)
   setMessages(prevMessages => prevMessages.filter(msg => msg.id !== messageId));
 

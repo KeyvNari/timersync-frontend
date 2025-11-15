@@ -21,7 +21,6 @@ export function useGetRooms(page: number = 1, itemsPerPage: number = 10) {
   return useQuery({
     queryKey: [QUERY_KEY, { page, itemsPerPage }],
     queryFn: async () => {
-      console.log('[useGetRooms] Fetching rooms with params:', { page, items_per_page: itemsPerPage });
       // Use the correct parameter names that match your backend
       const response = await client.get('/api/v1/rooms', {
         params: {
@@ -29,10 +28,7 @@ export function useGetRooms(page: number = 1, itemsPerPage: number = 10) {
           items_per_page: itemsPerPage, // Backend expects items_per_page, not itemsPerPage
         },
       });
-      console.log('[useGetRooms] Raw API response:', response.data);
       const parsed = RoomsResponseSchema.parse(response.data);
-      console.log('[useGetRooms] Parsed rooms data:', parsed);
-      console.log('[useGetRooms] Number of rooms:', parsed.data.length);
       return parsed;
     },
     staleTime: 0, // Consider data stale immediately
@@ -48,17 +44,13 @@ export function useCreateRoom(options?: UseMutationOptions<Room, Error, CreateRo
     ...options,
     mutationFn: createRoom,
     onSuccess: async (data, variables, context) => {
-      console.log('[useCreateRoom] Starting refetch...');
-      console.log('[useCreateRoom] Query cache:', queryClient.getQueryCache().getAll());
       // Refetch ALL queries that start with the rooms query key (partial matching)
-      const result = await queryClient.refetchQueries({
+      await queryClient.refetchQueries({
         predicate: (query) => {
           const matches = query.queryKey[0] === QUERY_KEY;
-          console.log('[useCreateRoom] Query key check:', query.queryKey, 'matches:', matches);
           return matches;
         }
       });
-      console.log('[useCreateRoom] Refetch completed:', result);
       // Call the custom onSuccess if provided
       if (options?.onSuccess) {
         await (options.onSuccess as any)(data, variables, context);

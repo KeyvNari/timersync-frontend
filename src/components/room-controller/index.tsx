@@ -78,49 +78,42 @@ export default function RoomController({
 
   // Event handlers for Timers component
   const handleTimerStart = useCallback((timer: any) => {
-    console.log('Starting timer:', timer.id);
     if (authMode === 'authGuard' ? isAuthenticated : true) {
       startTimer(timer.id);
     }
   }, [authMode, isAuthenticated, startTimer]);
 
   const handleTimerPause = useCallback((timer: any) => {
-    console.log('Pausing timer:', timer.id);
     if (authMode === 'authGuard' ? isAuthenticated : true) {
       pauseTimer(timer.id);
     }
   }, [authMode, isAuthenticated, pauseTimer]);
 
   const handleTimerStop = useCallback((timer: any) => {
-    console.log('Stopping timer:', timer.id);
     if (authMode === 'authGuard' ? isAuthenticated : true) {
       stopTimer(timer.id);
     }
   }, [authMode, isAuthenticated, stopTimer]);
 
   const handleTimerSelect = useCallback((timer: any) => {
-    console.log('Selecting timer:', timer.id);
     if (authMode === 'authGuard' ? isAuthenticated : true) {
       selectTimer(timer.id);
     }
   }, [authMode, isAuthenticated, selectTimer]);
 
   const handleTimerUpdate = useCallback((timer: any, field: string, value: any) => {
-    console.log('Updating timer:', timer.id, field, value);
     if (authMode === 'authGuard' ? isAuthenticated : true) {
       updateTimer(timer.id, { [field]: value });
     }
   }, [authMode, isAuthenticated, updateTimer]);
 
   const handleTimerDelete = useCallback((timer: any) => {
-    console.log('Deleting timer:', timer.id);
     if (authMode === 'authGuard' ? isAuthenticated : true) {
       deleteTimer(timer.id);
     }
   }, [authMode, isAuthenticated, deleteTimer]);
 
   const handleTimerReorder = useCallback((reorderedTimers: any[]) => {
-    console.log('Reordering timers:', reorderedTimers.map(t => ({ id: t.id, order: t.room_sequence_order, link: t.linked_timer_id })));
     if (authMode === 'authGuard' ? isAuthenticated : true) {
       // Send bulk update with all timer order changes AND link updates
       const updates = reorderedTimers.map(timer => ({
@@ -168,7 +161,6 @@ export default function RoomController({
           // Dashboard mode: use localStorage token
           const userToken = localStorage.getItem(app.accessTokenStoreKey);
           if (!userToken) {
-            console.error('❌ No authentication token found!');
             return;
           }
           connectOptions.token = userToken;
@@ -182,7 +174,7 @@ export default function RoomController({
 
         await connect(roomId, connectOptions);
       } catch (error) {
-        console.error('Failed to connect to room:', error);
+        // Connection failed, will retry
       }
     };
 
@@ -196,9 +188,7 @@ export default function RoomController({
   }, [roomId]);
 
   const handleRoomNameSave = (newName: string) => {
-    console.log('Saving room name:', newName);
     if ((authMode === 'authGuard' && !isAuthenticated) || !roomId) {
-      console.warn('Cannot update room: not authenticated or no room ID');
       return;
     }
 
@@ -208,9 +198,7 @@ export default function RoomController({
   };
 
   const handleTimeZoneSave = (newTimeZone: string) => {
-    console.log('Saving timezone:', newTimeZone);
     if ((authMode === 'authGuard' && !isAuthenticated) || !roomId) {
-      console.warn('Cannot update room: not authenticated or no room ID');
       return;
     }
 
@@ -222,13 +210,11 @@ export default function RoomController({
   const [shareOpened, { open: openShare, close: closeShare }] = useDisclosure(false);
 
   const handleShare = () => {
-    console.log('Share room:', roomId);
     openShare();
   };
 
   const handleAddTimer = useCallback(() => {
     if ((authMode === 'authGuard' && !isAuthenticated) || !roomId) {
-      console.warn('Cannot create timer: not authenticated or no room ID');
       return;
     }
 
@@ -256,8 +242,6 @@ export default function RoomController({
       show_speaker: false,
       show_notes: false,
     });
-
-    console.log(`Creating timer: Timer ${nextNumber}`);
   }, [authMode, isAuthenticated, roomId, timers, createTimer]);
 
   const [aiChatOpened, { open: openAIChat, close: closeAIChat }] = useDisclosure(false);
@@ -280,7 +264,6 @@ export default function RoomController({
       if (authMode === 'authGuard') {
         const userToken = localStorage.getItem(app.accessTokenStoreKey);
         if (!userToken) {
-          console.error('❌ No authentication token found!');
           return;
         }
         connectOptions.token = userToken;
@@ -293,7 +276,7 @@ export default function RoomController({
 
       await connect(roomId, connectOptions);
     } catch (error) {
-      console.error('Failed to reconnect to room:', error);
+      // Reconnection failed, will retry
     }
   }, [roomId, authMode, roomToken, tokenPassword, requiresPassword, connect]);
 

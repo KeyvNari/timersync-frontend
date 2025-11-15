@@ -168,10 +168,7 @@ function TimerDisplayStandalone({
   } | null>(null);
 
   useEffect(() => {
-    console.log('⏱️ TimerDisplayStandalone received update:', {
-      current_time: timer?.current_time_seconds,
-      is_active: timer?.is_active
-    });
+    // Timer update notification
   }, [timer?.current_time_seconds, timer?.is_active]);
 
   const safeDisplay = display ?? defaultDisplay;
@@ -202,11 +199,7 @@ function TimerDisplayStandalone({
       setCalculationBase(newBase);
       // Force immediate sync to backend value after adjustment
       setLocalCurrentTime(timer.current_time_seconds);
-      console.log('🔄 Timer running, updating calculation base:', {
-        actual_start_time: newBase.actual_start_time?.toISOString(),
-        accumulated_seconds: newBase.accumulated_seconds,
-        current_time: timer.current_time_seconds
-      });
+      // Timer running, updating calculation base
     } else if (timer.is_paused && timer.paused_at) {
       setCalculationBase({
         actual_start_time: timer.actual_start_time
@@ -765,14 +758,7 @@ switch (safeDisplay.background_type || 'color') {
 
   // Debug logging
   useEffect(() => {
-    console.log('📨 TimerDisplayStandalone - Message prop:', {
-      message,
-      displayMessage,
-      timerNotesMessage,
-      hasMessage: !!message,
-      messageContent: message?.content,
-      isShowing: message?.is_showing
-    });
+    // Message prop update
   }, [message, displayMessage]);
 
   // Determine message styling - use message properties if available, otherwise use display defaults

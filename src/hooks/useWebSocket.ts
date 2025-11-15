@@ -155,7 +155,6 @@ export function useWebSocket(roomId: number, options: UseWebSocketOptions = {}):
 
     const handleError = (message: WebSocketMessage) => {
       if (message.type === 'error') {
-        console.error('WebSocket error:', message.message);
         onError?.(new Error(message.message));
       }
     };
@@ -232,7 +231,6 @@ export function useWebSocket(roomId: number, options: UseWebSocketOptions = {}):
   useEffect(() => {
     if (enabled && wsServiceRef.current && !connected) {
       wsServiceRef.current.connect().catch(error => {
-        console.error('Failed to connect WebSocket:', error);
         onError?.(error);
       });
     }
@@ -257,7 +255,6 @@ export function useWebSocket(roomId: number, options: UseWebSocketOptions = {}):
   // Timer controls
   const startTimer = useCallback((timerId: number) => {
     if (!wsServiceRef.current || !permissions.can_control) {
-      console.warn('Cannot start timer: insufficient permissions');
       return;
     }
     wsServiceRef.current.startTimer(timerId);
@@ -265,7 +262,6 @@ export function useWebSocket(roomId: number, options: UseWebSocketOptions = {}):
 
   const pauseTimer = useCallback((timerId: number) => {
     if (!wsServiceRef.current || !permissions.can_control) {
-      console.warn('Cannot pause timer: insufficient permissions');
       return;
     }
     wsServiceRef.current.pauseTimer(timerId);
@@ -273,7 +269,6 @@ export function useWebSocket(roomId: number, options: UseWebSocketOptions = {}):
 
   const stopTimer = useCallback((timerId: number) => {
     if (!wsServiceRef.current || !permissions.can_control) {
-      console.warn('Cannot stop timer: insufficient permissions');
       return;
     }
     wsServiceRef.current.stopTimer(timerId);
@@ -298,13 +293,12 @@ export function useWebSocket(roomId: number, options: UseWebSocketOptions = {}):
 
 const refreshConnections = useCallback(() => {
   if (!wsServiceRef.current) return;
-  
+
   // Don't request connections if we don't have permission
   if (!permissions.can_view_connections) {
-    console.debug('Skipping connection request - insufficient permissions');
     return;
   }
-  
+
   wsServiceRef.current.requestConnections();
 }, [permissions.can_view_connections]);
 

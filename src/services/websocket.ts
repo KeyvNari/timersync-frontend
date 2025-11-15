@@ -161,7 +161,6 @@ export class SimpleWebSocketService {
   // Heartbeat methods
   private startHeartbeat(): void {
     this.stopHeartbeat(); // Clear any existing heartbeat
-    console.log('Starting heartbeat monitoring');
 
     // Send ping every 10 seconds
     this.pingInterval = setInterval(() => {
@@ -182,7 +181,6 @@ export class SimpleWebSocketService {
 
   private sendPing(): void {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-      console.warn('Cannot send ping - WebSocket not connected');
       return;
     }
 
@@ -195,16 +193,12 @@ export class SimpleWebSocketService {
       timestamp: new Date().toISOString()
     }));
 
-    console.log('Sent ping');
-
     // Set timeout for pong response
     this.pongTimeout = setTimeout(() => {
       if (!this.isAlive) {
         this.missedPings++;
-        console.warn(`No pong received, missed ping #${this.missedPings}`);
 
         if (this.missedPings >= SimpleWebSocketService.MAX_MISSED_PINGS) {
-          console.warn('Too many missed pings - forcing reconnect');
           this.forceReconnect();
         }
       }
@@ -212,7 +206,6 @@ export class SimpleWebSocketService {
   }
 
   private forceReconnect(): void {
-    console.log('Forcing reconnect due to missed pings');
     this.connectionHealthCallback?.('reconnecting', 'Connection lost, attempting to reconnect...');
     this.ws?.close(1000, 'Missed pings - reconnecting');
     this.scheduleReconnect();
@@ -226,7 +219,6 @@ export class SimpleWebSocketService {
     return new Promise((resolve, reject) => {
       try {
         const wsUrl = this.buildWebSocketUrl();
-        console.log('Connecting to WebSocket:', wsUrl);
 
         this.ws = new WebSocket(wsUrl);
 
@@ -234,7 +226,6 @@ export class SimpleWebSocketService {
         let connectionAcknowledged = false;
 
         this.ws.onopen = () => {
-          console.log('WebSocket connection opened, waiting for server acknowledgment...');
           // Don't set isConnected or resolve yet - wait for server to accept
         };
 
@@ -243,7 +234,6 @@ export class SimpleWebSocketService {
 
           // Handle pong messages for heartbeat
           if (message.type === 'pong') {
-            console.log('Received pong');
             this.isAlive = true; // Mark as alive when we get pong
             this.missedPings = 0; // Reset missed ping counter
             if (this.pongTimeout) {
@@ -256,7 +246,6 @@ export class SimpleWebSocketService {
           // First message should be SUCCESS or connection acknowledgment
           if (!connectionAcknowledged) {
             if (message.type === 'SUCCESS' || message.type === 'success') {
-              console.log('Server acknowledged connection');
               connectionAcknowledged = true;
               this.isConnected = true;
               this.reconnectAttempts = 0;
@@ -272,7 +261,6 @@ export class SimpleWebSocketService {
               resolve();
               return; // Return after processing success, but subsequent messages will be processed below
             } else if (message.type === 'ERROR' || message.type === 'error') {
-              console.error('Connection rejected:', message);
               reject(new Error(message.message || 'Connection rejected'));
               this.ws?.close();
               return;
@@ -287,7 +275,6 @@ export class SimpleWebSocketService {
         };
 
         this.ws.onclose = (event) => {
-          console.log('WebSocket closed:', event.code, event.reason);
           this.isConnected = false;
           this.stopHeartbeat();
 
@@ -309,7 +296,6 @@ export class SimpleWebSocketService {
         };
 
         this.ws.onerror = (error) => {
-          console.error('WebSocket error:', error);
           reject(error);
         };
 
@@ -343,8 +329,6 @@ export class SimpleWebSocketService {
 
   send(message: WebSocketMessage): void {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-      console.warn('WebSocket not connected, queueing message:', message);
-
       // Queue user actions (not pings or system messages) for retry on reconnect
       if (message.type !== 'ping' && message.type !== 'pong') {
         this.pendingOperations.push({
@@ -356,13 +340,10 @@ export class SimpleWebSocketService {
       return;
     }
 
-    console.log('mydebug OUTGOING WS:', message);
-
     try {
+      console.log('[websocket out]', message);
       this.ws.send(JSON.stringify(message));
     } catch (error) {
-      console.error('Error sending WebSocket message:', error);
-
       // Queue for retry if it's a user action
       if (message.type !== 'ping' && message.type !== 'pong') {
         this.pendingOperations.push({
@@ -378,18 +359,14 @@ export class SimpleWebSocketService {
   private processPendingOperations(): void {
     if (this.pendingOperations.length === 0) return;
 
-    console.log(`Processing ${this.pendingOperations.length} pending operations...`);
-
     const now = Date.now();
     const validOperations = this.pendingOperations.filter(op => {
       // Remove operations older than timeout
       if (now - op.timestamp > SimpleWebSocketService.OPERATION_TIMEOUT) {
-        console.warn('Dropping expired operation:', op.message);
         return false;
       }
       // Remove operations that exceeded retry limit
       if (op.retries >= SimpleWebSocketService.MAX_OPERATION_RETRIES) {
-        console.warn('Dropping operation after max retries:', op.message);
         return false;
       }
       return true;
@@ -400,7 +377,6 @@ export class SimpleWebSocketService {
     // Resend valid operations
     validOperations.forEach(op => {
       op.retries++;
-      console.log(`Retrying operation (attempt ${op.retries}):`, op.message);
       this.send(op.message);
     });
   }
@@ -624,12 +600,6 @@ export class SimpleWebSocketService {
     const baseUrl = app.apiBaseUrl.replace(/^http/, 'ws');
     const url = new URL(`${baseUrl}/api/v1/ws/room/${this.options.roomId}`);
 
-    console.log('🔧 Building WebSocket URL with options:', {
-      hasToken: !!this.options.token,
-      hasRoomToken: !!this.options.roomToken,
-      hasTokenPassword: !!this.options.tokenPassword,
-    });
-
     // Priority: roomToken > token (for viewer vs dashboard modes)
     if (this.options.roomToken) {
       // Viewer mode - use room token from URL
@@ -640,11 +610,8 @@ export class SimpleWebSocketService {
     } else if (this.options.token) {
       // Dashboard mode - use user's access token
       url.searchParams.set('token', this.options.token);
-    } else {
-      console.warn('⚠️ No token provided to WebSocket connection!');
     }
 
-    console.log('🔗 Final WebSocket URL:', url.toString());
     return url.toString();
   }
 
@@ -652,7 +619,7 @@ export class SimpleWebSocketService {
     try {
       const message: WebSocketMessage = JSON.parse(data);
 
-      console.log('mydebug INCOMING WS:', message);
+      console.log('[websocket in]', message);
 
       // Process handlers immediately without console.log in production
       const handlers = this.eventHandlers.get(message.type);
@@ -666,7 +633,6 @@ export class SimpleWebSocketService {
       }
     } catch (error) {
       // Only log errors, not every message
-      console.error('Error parsing WebSocket message:', error);
     }
   }
 
@@ -681,14 +647,12 @@ export class SimpleWebSocketService {
       30000
     );
 
-    console.log(`Scheduling reconnect attempt ${this.reconnectAttempts} in ${delay}ms`);
-
     this.reconnectTimer = setTimeout(async () => {
       this.reconnectTimer = null;
       try {
         await this.connect();
       } catch (error) {
-        console.error('Reconnect attempt failed:', error);
+        // Reconnect attempt failed, will retry on next schedule
       }
     }, delay);
   }

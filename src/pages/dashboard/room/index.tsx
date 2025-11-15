@@ -51,7 +51,6 @@ export default function RoomPage() {
         });
         setConnectionState('connected');
       } catch (error) {
-        console.error('Failed to connect to room:', error);
         setConnectionState('error');
       }
     };

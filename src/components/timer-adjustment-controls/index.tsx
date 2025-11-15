@@ -38,12 +38,7 @@ export function TimerAdjustmentControls({
 
   const handleAdjust = (adjustmentSeconds: number) => {
     const newTime = currentTimeSeconds + adjustmentSeconds;
-    console.log('🎛️ Timer adjustment:', {
-      timerId,
-      currentTime: currentTimeSeconds,
-      adjustment: adjustmentSeconds,
-      newTime
-    });
+    // Timer adjustment applied
     onAdjustTime(timerId, newTime);
   };
 

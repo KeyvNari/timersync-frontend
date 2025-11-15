@@ -195,13 +195,7 @@ export default function RoomsPage() {
     });
   };
 
-  // Debug logging
-  console.log('Rooms Page - Data:', {
-    rooms: roomsResponse?.data,
-    isLoading,
-    error,
-    hasRooms: !!roomsResponse?.data?.length
-  });
+  // Rooms data loaded
 
   // Common time zones
   const timeZones = [

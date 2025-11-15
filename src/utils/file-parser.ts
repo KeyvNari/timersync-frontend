@@ -4,7 +4,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 
 // Set worker source for PDF.js - use local worker to match API version
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.mjs', import.meta.url).toString();
-console.log("pdfjsLib.version", pdfjsLib.version);
+
 // Maximum file size: 5MB
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 

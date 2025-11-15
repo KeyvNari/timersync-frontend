@@ -94,10 +94,8 @@ function handleRequestError(error: unknown) {
   }
 
   if (error instanceof ZodError) {
-    console.error(error.format());
+    // Validation error
   }
-
-  console.log(error);
 
   throw error;
 }

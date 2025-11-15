@@ -1103,7 +1103,6 @@ export function Timers({
     state.forEach((timer) => {
       events?.onTimerStop?.(timer);
     });
-    console.log('Linking all timers and resetting them');
   };
 
   // Handle link/unlink all timers
@@ -1126,7 +1125,6 @@ export function Timers({
       const newState = unlinkAllTimers();
       handlers.setState(newState);
       events?.onTimerReorder?.(newState);
-      console.log('Unlinking all timers');
     }
   };
 
@@ -1183,7 +1181,6 @@ export function Timers({
             const updated = timersToUpdate.find(t => t.id === timer.id);
             return updated || timer;
           });
-          console.log(`Breaking ${timersToUpdate.length} timer link(s) due to reordering`);
         }
       }
 

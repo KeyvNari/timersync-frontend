@@ -11,7 +11,6 @@ import { IconShare, IconDownload, IconArrowRight } from '@tabler/icons-react';
 export function Header() {
   const handleRoomNameSave = (newName: string) => {
     // TODO: Backend integration - save the room name
-    console.log('Room name saved:', newName);
   };
 
   return (

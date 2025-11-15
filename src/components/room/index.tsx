@@ -94,12 +94,7 @@ export default function RoomComponent({
 
   // Debug logging for messages
   useEffect(() => {
-    console.log('🏠 Room - Messages state:', {
-      allMessages: wsMessages,
-      messageCount: wsMessages?.length,
-      showingMessage,
-      hasShowingMessage: !!showingMessage
-    });
+    // Messages state tracked internally
   }, [wsMessages, showingMessage]);
 
   // Display Editor state
@@ -145,7 +140,7 @@ export default function RoomComponent({
   }, [fullscreenOpened, closeFullscreen]);
 
   const handleLeftWidthChange = (width: number) => {
-    console.log('Left panel width changed to:', width);
+    // Panel width changed
   };
 
   // Handle link state changes from Timers component
@@ -189,8 +184,6 @@ export default function RoomComponent({
   };
 
   const handleSaveDisplay = (displayData: any) => {
-    console.log('Saving display:', displayData);
-
     // Clear any previous errors
     setDisplayNameError(null);
 

@@ -289,23 +289,14 @@ export function Messages({
 
   // Debug logging - track when messages change from context
   useEffect(() => {
-    console.log('📬 Messages component: Context messages changed:', {
-      useLocalState,
-      messageCount: messages.length,
-      messages: messages,
-      wsContextMessages: wsContext?.messages,
-      wsContextMessagesCount: wsContext?.messages?.length
-    });
+    // Messages state tracked internally
   }, [messages, wsContext?.messages, useLocalState]);
 
   // Debug logging - track component mount/unmount
   useEffect(() => {
-    console.log('🎬 Messages component mounted', {
-      useLocalState,
-      initialMessageCount: messages.length
-    });
+    // Component lifecycle tracked
     return () => {
-      console.log('🎬 Messages component unmounted');
+      // Component unmounting
     };
   }, []);
 

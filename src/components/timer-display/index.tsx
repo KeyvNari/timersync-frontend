@@ -169,10 +169,7 @@ function TimerDisplay({
   } | null>(null);
 
   useEffect(() => {
-    console.log('⏱️ TimerDisplay received update:', {
-      current_time: timer?.current_time_seconds,
-      is_active: timer?.is_active
-    });
+    // Timer update notification
   }, [timer?.current_time_seconds, timer?.is_active]);
 
   const safeDisplay = display ?? defaultDisplay;
@@ -215,12 +212,12 @@ function TimerDisplay({
           // Skew is the difference between calculated session time and backend time
           const skew = sessionSeconds - (timer.current_time_seconds - newBase.accumulated_seconds);
           setClientServerSkew(skew);
-          console.log('⏱️ Calculated client-server skew:', skew, 'seconds');
+          // Client-server skew calculated
         }
 
         // Force immediate sync to backend value after adjustment
         setLocalCurrentTime(timer.current_time_seconds);
-        console.log('🔄 Timer adjusted, forcing sync to backend value:', timer.current_time_seconds);
+        // Timer adjusted, syncing to backend value
       }
     } else if (timer.is_paused && timer.paused_at) {
       setCalculationBase({
@@ -280,7 +277,7 @@ function TimerDisplay({
 
       // Only resync if drift > 3 seconds
       if (drift > 3) {
-        console.warn(`⚠️ Timer drift detected: ${drift.toFixed(2)}s, resyncing to backend value`);
+        // Timer drift detected, resyncing
         setLocalCurrentTime(backendTime);
       } else {
         setLocalCurrentTime(calculatedTime);
@@ -792,14 +789,7 @@ switch (safeDisplay.background_type || 'color') {
 
   // Debug logging
   useEffect(() => {
-    console.log('📨 TimerDisplay - Message prop:', {
-      message,
-      displayMessage,
-      timerNotesMessage,
-      hasMessage: !!message,
-      messageContent: message?.content,
-      isShowing: message?.is_showing
-    });
+    // Message prop update
   }, [message, displayMessage]);
 
   // Determine message styling - use message properties if available, otherwise use display defaults

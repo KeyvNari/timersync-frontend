@@ -16,12 +16,10 @@ client.interceptors.request.use(
   (config) => {
     // Skip adding bearer token for controller routes - they use room tokens instead
     if (config.url?.includes('/controller') || window.location.pathname.startsWith('/controller')) {
-      console.log('🔑 Request interceptor - Skipping bearer token for controller route');
       return config;
     }
 
     const token = localStorage.getItem(app.accessTokenStoreKey);
-    console.log('🔑 Request interceptor - Token exists:', !!token); // Debug log
     if (token) {
       config.headers.authorization = `Bearer ${token}`;
     }
@@ -37,13 +35,6 @@ client.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Add debugging
-    console.log('Response interceptor triggered:', {
-      url: originalRequest.url,
-      status: error.response?.status,
-      hasRetry: originalRequest._retry
-    });
-
     // Don't try to refresh tokens for login/auth endpoints or controller routes
     const isAuthEndpoint = originalRequest.url?.includes('/login') ||
                           originalRequest.url?.includes('/refresh') ||
@@ -53,10 +44,7 @@ client.interceptors.response.use(
     const isControllerRoute = window.location.pathname.startsWith('/controller') ||
                              window.location.pathname.startsWith('/viewer');
 
-    console.log('Is auth endpoint:', isAuthEndpoint, 'Is controller route:', isControllerRoute);
-
     if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
-      console.log('Attempting token refresh...');
       originalRequest._retry = true;
 
       try {
@@ -72,7 +60,6 @@ client.interceptors.response.use(
         originalRequest.headers.authorization = `Bearer ${newToken}`;
         return client(originalRequest);
       } catch (refreshError) {
-        console.log('Token refresh failed:', refreshError);
         removeClientAccessToken();
 
         // Only redirect to login if not on controller/viewer routes

@@ -83,7 +83,6 @@ export function RegisterForm({ onSuccess, ...props }: RegisterFormProps) {
                 navigate(paths.dashboard.root, { replace: true });
               },
               onError: (error: any) => {
-                console.error('Auto-login failed:', error);
                 // Fall back to login page if auto-login fails
                 navigate(paths.auth.login, {
                   replace: true,

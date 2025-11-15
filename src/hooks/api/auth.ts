@@ -16,7 +16,6 @@ export const useLogin = createPostMutationHook({
       setClientAccessToken(data.access_token);
     },
     onError: (error) => {
-      console.error('Login error:', error);
       notifications.show({ 
         title: 'Login Failed',
         message: error?.message || 'Invalid credentials', 
@@ -56,8 +55,6 @@ export const useRegister = createPostMutationHook({
       });
     },
     onError: (error: any) => {
-      console.error('Registration error:', error);
-
       // Handle validation errors from backend
       if (error?.detail && Array.isArray(error.detail)) {
         const errorMessages = error.detail.map((err: any) => err.msg).join(', ');

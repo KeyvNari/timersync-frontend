@@ -88,8 +88,6 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
 
   // Handler for token verification results
   const handleTokenVerification = (message: any) => {
-    console.log('🔍 Token verification result:', message);
-
     if (message.type === 'room_access_token_verify_result') {
       // Backend now includes the token string in the response
       const verifiedToken = message.token;
@@ -103,7 +101,6 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
         if (isCurrentToken) {
           // Mark this token as revoked (UI will update automatically)
           setRevokedTokens(prev => new Set(prev).add(verifiedToken));
-          console.log('Current token revoked:', message.message);
         }
       }
 
@@ -195,7 +192,7 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
             const qrCodeDataUrl = await QRCode.toDataURL(link);
             setQrCodes(prev => new Map(prev.set(token.token, qrCodeDataUrl)));
           } catch (error) {
-            console.error('Failed to generate QR code for token:', error);
+            // Failed to generate QR code
           }
         }
       }
@@ -234,25 +231,17 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
 
     const handleTokenCreate = async (message: any) => {
       if (message.token) {
-        // Debug logging
-        console.log('📝 Token created:', message.token);
-        console.log('🔒 Password protected fields:', {
-          password_protected: message.token.password_protected,
-          is_password_protected: message.token.is_password_protected
-        });
-
+        // Token created successfully
         // Check both field names for password protection
         const isProtected = message.token.password_protected ?? message.token.is_password_protected ?? false;
-        console.log('🔐 Final isProtected value:', isProtected);
 
         // Generate QR code for the new token
         const link = generateLink(message.token.token, message.token.access_level as AccessLevel, isProtected);
-        console.log('🔗 Generated link:', link);
         try {
           const qrCodeDataUrl = await QRCode.toDataURL(link);
           setQrCodes(prev => new Map(prev.set(message.token.token, qrCodeDataUrl)));
         } catch (error) {
-          console.error('Failed to generate QR code:', error);
+          // Failed to generate QR code
         }
 
         setCreatedTokens(prev => [...prev, message.token]);

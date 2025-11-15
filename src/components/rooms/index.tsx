@@ -108,16 +108,12 @@ export function RoomsComponent({
   const handleDeleteRoom = (roomId: number) => {
     if (onDeleteRoom) {
       onDeleteRoom(roomId);
-    } else {
-      console.log('Delete room:', roomId);
     }
   };
 
   const handleEditRoom = (roomId: number) => {
     if (onEditRoom) {
       onEditRoom(roomId);
-    } else {
-      console.log('Edit room:', roomId);
     }
   };
 

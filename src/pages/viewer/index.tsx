@@ -160,7 +160,7 @@ export default function ViewerPage() {
   if (connected) {
     // Add wildcard listener to see ALL messages
     const wildcardHandler = (message: any) => {
-      console.log('🌟 Wildcard caught message:', message);
+      // Wildcard message caught
     };
     
     addEventListener('*', wildcardHandler);
@@ -216,7 +216,7 @@ useEffect(() => {
           maxReconnectAttempts: 5,
         });
       } catch (error) {
-        console.error('Failed to connect:', error);
+        // Connection failed
         setConnectionState('error');
         setErrorMessage('Failed to connect to room... Check your link.');
       }
@@ -235,11 +235,7 @@ useEffect(() => {
 
 
 useEffect(() => {
-  console.log('🎯 Viewer - Timer selection changed:', {
-    selectedTimerId,
-    selectedTimer: getSelectedTimer(),
-    totalTimers: timers?.length
-  });
+  // Timer selection changed
 }, [selectedTimerId, timers]);
 
   // Handle password submission
@@ -260,12 +256,7 @@ useEffect(() => {
 
   // Debug logging for messages
   useEffect(() => {
-    console.log('👁️ Viewer - Messages state:', {
-      allMessages: messages,
-      messageCount: messages?.length,
-      showingMessage,
-      hasShowingMessage: !!showingMessage
-    });
+    // Messages state updated
   }, [messages, showingMessage]);
 
   // Merge display data with defaults for full Display type
