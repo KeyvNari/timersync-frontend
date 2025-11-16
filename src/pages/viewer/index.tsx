@@ -105,6 +105,7 @@ export default function ViewerPage() {
     requestConnections,
     displays,
     revokedToken,
+    tokenEvent,
     messages
   } = useWebSocketContext();
 
@@ -382,6 +383,100 @@ useEffect(() => {
                   <Text size="sm" c="var(--mantine-color-dimmed)" ta="center">
                     Token: {revokedToken.token_name}
                   </Text>
+                )}
+              </Stack>
+
+              <Button
+                variant="default"
+                size="md"
+                onClick={handleGoBack}
+                fullWidth
+              >
+                Go to VeroTime
+              </Button>
+            </Stack>
+          </Paper>
+        </Box>
+      </>
+    );
+  }
+
+  // Show token expiration/revocation event message if token event occurs during connection
+  if (tokenEvent) {
+    return (
+      <>
+        <Helmet>
+          <title>{pageTitle}</title>
+          <meta name="description" content={pageDescription} />
+          <meta name="robots" content="noindex" />
+        </Helmet>
+        <Box
+          style={{
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'var(--mantine-color-dark-8)',
+            margin: 0,
+            padding: 0,
+            overflow: 'hidden',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Paper
+            p="xl"
+            radius="md"
+            maw={500}
+            w="90%"
+            style={{
+              backgroundColor: 'var(--mantine-color-body)',
+            }}
+          >
+            <Stack gap="lg">
+              <Center>
+                <img
+                  src="/logo-dark-full.png"
+                  alt="VeroTime"
+                  style={{
+                    height: '40px',
+                    maxWidth: '100%',
+                    objectFit: 'contain',
+                  }}
+                />
+              </Center>
+
+              <Center>
+                <IconAlertCircle
+                  size={64}
+                  color={tokenEvent.type === 'token_expired' ? 'var(--mantine-color-orange-6)' : 'var(--mantine-color-red-6)'}
+                  stroke={1.5}
+                />
+              </Center>
+
+              <Stack gap="md">
+                <Stack gap="xs">
+                  <Title order={2} ta="center" c={tokenEvent.type === 'token_expired' ? 'var(--mantine-color-orange-6)' : 'var(--mantine-color-red-6)'}>
+                    {tokenEvent.type === 'token_expired' ? 'Token Expired' : 'Token Revoked'}
+                  </Title>
+                  <Text size="md" ta="center" c="var(--mantine-color-text)">
+                    {tokenEvent.message}
+                  </Text>
+                  {roomInfo?.name && (
+                    <Text size="sm" ta="center" c="var(--mantine-color-dimmed)" fw={500}>
+                      Room: {roomInfo.name}
+                    </Text>
+                  )}
+                </Stack>
+
+                {tokenEvent.reason && tokenEvent.reason.trim() && !tokenEvent.reason.includes('token_') && (
+                  <Alert
+                    icon={<IconAlertCircle size={16} />}
+                    color={tokenEvent.type === 'token_expired' ? 'orange' : 'red'}
+                    title={tokenEvent.type === 'token_expired' ? 'Details' : 'Reason'}
+                    variant="light"
+                  >
+                    <Text size="sm">{tokenEvent.reason}</Text>
+                  </Alert>
                 )}
               </Stack>
 

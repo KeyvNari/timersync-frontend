@@ -50,6 +50,7 @@ export default function RoomController({
     connectionMessage,
     disconnectedByHost,
     revokedToken,
+    tokenEvent,
     connect,
     disconnect,
     displays,
@@ -477,6 +478,89 @@ export default function RoomController({
                 <Text size="sm" c="var(--mantine-color-dimmed)" ta="center">
                   Token: {revokedToken.token_name}
                 </Text>
+              )}
+            </Stack>
+
+            <Button
+              variant="default"
+              size="md"
+              onClick={() => window.location.href = 'https://www.verotime.io'}
+              fullWidth
+            >
+              Go to VeroTime
+            </Button>
+          </Stack>
+        </Paper>
+      </Modal>
+
+      {/* Token Expiration/Revocation Event Modal */}
+      <Modal
+        opened={!!tokenEvent && roomId !== null}
+        onClose={() => {}} // Modal cannot be closed by user
+        centered
+        size="md"
+        padding="xl"
+        closeOnClickOutside={false}
+        closeOnEscape={false}
+        withCloseButton={false}
+        styles={{
+          content: {
+            backgroundColor: 'var(--mantine-color-body)',
+          }
+        }}
+      >
+        <Paper
+          p="xl"
+          radius="md"
+          style={{
+            backgroundColor: 'var(--mantine-color-body)',
+          }}
+        >
+          <Stack gap="lg">
+            <Center>
+              <img
+                src="/logo-dark-full.png"
+                alt="VeroTime"
+                style={{
+                  height: '40px',
+                  maxWidth: '100%',
+                  objectFit: 'contain',
+                }}
+              />
+            </Center>
+
+            <Center>
+              <IconAlertCircle
+                size={64}
+                color={tokenEvent?.type === 'token_expired' ? 'var(--mantine-color-orange-6)' : 'var(--mantine-color-red-6)'}
+                stroke={1.5}
+              />
+            </Center>
+
+            <Stack gap="md">
+              <Stack gap="xs">
+                <Title order={2} ta="center" c={tokenEvent?.type === 'token_expired' ? 'var(--mantine-color-orange-6)' : 'var(--mantine-color-red-6)'}>
+                  {tokenEvent?.type === 'token_expired' ? 'Token Expired' : 'Token Revoked'}
+                </Title>
+                <Text size="md" ta="center" c="var(--mantine-color-text)">
+                  {tokenEvent?.message}
+                </Text>
+                {roomInfo?.name && (
+                  <Text size="sm" ta="center" c="var(--mantine-color-dimmed)" fw={500}>
+                    Room: {roomInfo.name}
+                  </Text>
+                )}
+              </Stack>
+
+              {tokenEvent?.reason && tokenEvent.reason.trim() && !tokenEvent.reason.includes('token_') && (
+                <Alert
+                  icon={<IconAlertCircle size={16} />}
+                  color={tokenEvent.type === 'token_expired' ? 'orange' : 'red'}
+                  title={tokenEvent.type === 'token_expired' ? 'Details' : 'Reason'}
+                  variant="light"
+                >
+                  <Text size="sm">{tokenEvent.reason}</Text>
+                </Alert>
               )}
             </Stack>
 

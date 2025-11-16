@@ -52,6 +52,13 @@ interface WebSocketContextValue {
     reason?: string;
   } | null;
 
+  // Token expiration/revocation events
+  tokenEvent: {
+    type: 'token_expired' | 'token_revoked';
+    message: string;
+    reason?: string;
+  } | null;
+
   // User plan and features
   userPlan: string | null;
   planFeatures: PlanFeatures | null;
@@ -149,6 +156,13 @@ export function WebSocketProvider({
     message: string;
     token_id: number;
     token_name?: string | null;
+    reason?: string;
+  } | null>(null);
+
+  // Token expiration/revocation event state (for connection-time events)
+  const [tokenEvent, setTokenEvent] = useState<{
+    type: 'token_expired' | 'token_revoked';
+    message: string;
     reason?: string;
   } | null>(null);
 
@@ -695,6 +709,34 @@ wsService.on('error', (message: any) => {
         setPlanFeatures(message.features as PlanFeatures);
       }
     });
+
+    // Token expiration event
+    wsService.on('token_expired', (message: any) => {
+      setTokenEvent({
+        type: 'token_expired',
+        message: message.message || 'Your access token has expired. Please refresh your credentials.',
+        reason: message.reason
+      });
+
+      // Disconnect and show error
+      setConnected(false);
+      setConnectionStatus('disconnected');
+      setConnectionMessage('Token expired');
+    });
+
+    // Token revocation event
+    wsService.on('token_revoked', (message: any) => {
+      setTokenEvent({
+        type: 'token_revoked',
+        message: message.message || 'Your access token has been revoked. You will be disconnected.',
+        reason: message.reason
+      });
+
+      // Disconnect and show error
+      setConnected(false);
+      setConnectionStatus('disconnected');
+      setConnectionMessage('Token revoked');
+    });
   };
 
   // Connection management
@@ -780,6 +822,7 @@ const disconnect = useCallback(() => {
   setConnectionStatus('disconnected');
   setConnectionMessage('Disconnected by user');
   setDisconnectedByHost(null);
+  setTokenEvent(null);
   setTimers([]);
   setSelectedTimerId(null);
   setRoomInfo(null);
@@ -1060,6 +1103,7 @@ const deleteMessage = useCallback((messageId: string) => {
     connectionMessage,
     disconnectedByHost,
     revokedToken,
+    tokenEvent,
     userPlan,
     planFeatures,
     timers,

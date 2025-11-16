@@ -55,7 +55,7 @@ export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerC
     {
       id: '1',
       role: 'assistant',
-      content: 'Hello! How can I help you create a timer today? I can create timers for you based on your description. You can also upload a file and let me analyze it.',
+      content: 'Hello! How can I help you create a timer today? I can create timers for you based on your description. You can also upload a file and let me analyze it. I can also remove all or specific timers.',
       timestamp: new Date(),
     },
   ]);
@@ -257,7 +257,6 @@ export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerC
           </Box>
           <div>
             <Text fw={600} size="lg" c="gray.9" style={{ lineHeight: 1.2 }}>AI Timer Assistant</Text>
-            <Text size="xs" c="gray.6" fw={400}>Powered by intelligent automation</Text>
           </div>
         </Group>
       }
@@ -543,7 +542,7 @@ export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerC
               </FileButton>
 
               <TextInput
-                placeholder="Describe the timer you want to create..."
+                placeholder="Describe the timers you want to create or upload a file"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.currentTarget.value)}
                 onKeyDown={handleKeyPress}
