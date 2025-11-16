@@ -239,6 +239,9 @@ export default function RoomComponent({
   const activeTimer = timers?.find((timer) => timer.is_active);
   const displayTimer = selectedTimer || activeTimer || timers?.[0];
 
+  // Check if any timer is currently running (not paused, finished, or stopped)
+  const isAnyTimerRunning = timers?.some((timer) => timer.is_active && !timer.is_paused) || false;
+
   // Get matching display config
   const matchedDisplay = displayTimer
     ? displays.find((d) => d.id === displayTimer.display_id)
@@ -294,14 +297,19 @@ export default function RoomComponent({
 
         <Group gap="sm">
           {showActionButtons && (
-            <Button
-              variant="default"
-              size="sm"
-              leftSection={<IconSettings size={16} />}
-              onClick={handleOpenDisplayEditor}
-            >
-              Display Settings
-            </Button>
+            <Tooltip label="Cannot change display settings while a timer is running" disabled={!isAnyTimerRunning} position="top" withArrow>
+              <div>
+                <Button
+                  variant="default"
+                  size="sm"
+                  leftSection={<IconSettings size={16} />}
+                  onClick={handleOpenDisplayEditor}
+                  disabled={isAnyTimerRunning}
+                >
+                  Display Settings
+                </Button>
+              </div>
+            </Tooltip>
           )}
           {showShareButton && (
             <Button
