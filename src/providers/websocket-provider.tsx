@@ -725,7 +725,12 @@ wsService.on('error', (message: any) => {
         reason: message.reason
       });
 
-      // Disconnect and show error
+      // Disconnect websocket and show error
+      if (wsServiceRef.current) {
+        wsServiceRef.current.disconnect();
+        wsServiceRef.current = null;
+      }
+
       setConnected(false);
       setConnectionStatus('disconnected');
       setConnectionMessage('Token expired');
@@ -739,7 +744,12 @@ wsService.on('error', (message: any) => {
         reason: message.reason
       });
 
-      // Disconnect and show error
+      // Disconnect websocket and show error
+      if (wsServiceRef.current) {
+        wsServiceRef.current.disconnect();
+        wsServiceRef.current = null;
+      }
+
       setConnected(false);
       setConnectionStatus('disconnected');
       setConnectionMessage('Token revoked');
