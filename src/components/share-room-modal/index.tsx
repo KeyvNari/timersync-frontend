@@ -78,6 +78,7 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
   const [currentToken, setCurrentToken] = useState<{ [key in AccessLevel]?: RoomAccessToken }>({});
   const [qrCodes, setQrCodes] = useState<Map<string, string>>(new Map());
   const [isVerifying, setIsVerifying] = useState(false);
+  const [hasFormChanges, setHasFormChanges] = useState(false);
 
   const { wsService } = useWebSocketContext();
 
@@ -177,6 +178,11 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
 
   // Ref to track verification timeout
   const verificationTimeoutRef = React.useRef<number | null>(null);
+
+  // Reset form changes state when tab changes
+  useEffect(() => {
+    setHasFormChanges(false);
+  }, [activeTab]);
 
   useEffect(() => {
     // Track when modal opens/closes
@@ -315,6 +321,7 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
         setTokenName('');
         setPassword('');
         setIsPasswordProtected(false);
+        setHasFormChanges(false);
       }
       wsService.off('success', handleTokenCreate);
       setIsLoading(false);
@@ -367,15 +374,13 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
       return [
         { icon: IconCheck, text: 'View current running timer display' },
         { icon: IconCheck, text: 'Full control over all timers and messages' },
-        { icon: IconCheck, text: 'Manage displays and connections' },
-        { icon: IconCheck, text: 'Disconnect other connections' }
+        { icon: IconCheck, text: 'Manage displays and connections' }
       ];
     } else {
       return [
         { icon: IconCheck, text: 'View current running timer display' },
         { icon: IconLetterXSmall, text: 'Full control over all timers and messages' },
-        { icon: IconLetterXSmall, text: 'Manage displays and connections' },
-        { icon: IconLetterXSmall, text: 'Disconnect other connections' }
+        { icon: IconLetterXSmall, text: 'Manage displays and connections' }
   
       ];
     }
@@ -407,7 +412,10 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
                 label="Link Name (Optional)"
                 placeholder="e.g., John's Link, Team Access"
                 value={tokenName}
-                onChange={(e) => setTokenName(e.target.value)}
+                onChange={(e) => {
+                  setTokenName(e.target.value);
+                  setHasFormChanges(true);
+                }}
                 size="sm"
               />
 
@@ -415,7 +423,10 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
                 <Checkbox
                   label="Password protect this link"
                   checked={isPasswordProtected}
-                  onChange={(e) => setIsPasswordProtected(e.currentTarget.checked)}
+                  onChange={(e) => {
+                    setIsPasswordProtected(e.currentTarget.checked);
+                    setHasFormChanges(true);
+                  }}
                   mb="xs"
                 />
 
@@ -423,7 +434,10 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
                   <PasswordInput
                     placeholder="Enter password (min 6 characters)"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      setHasFormChanges(true);
+                    }}
                     required
                     size="sm"
                     error={password.length > 0 && password.length < 6 ? 'Min 6 characters' : null}
@@ -469,7 +483,7 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
             </Card>
 
             {/* Current Link Display */}
-            {token && (
+            {token && !hasFormChanges && (
               <Card withBorder style={{ flex: 1 }}>
                 <Group justify="space-between" mb="sm">
                   <Title order={5}>Current Link</Title>
@@ -551,9 +565,9 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
       <Modal
         opened={opened}
         onClose={onClose}
-        title={`Share ${roomName}`}
         size="xl"
         centered
+        withCloseButton={true}
       >
         {isVerifying ? (
           <Center py="xl">
