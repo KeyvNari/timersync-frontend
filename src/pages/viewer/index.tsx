@@ -368,17 +368,6 @@ useEffect(() => {
                   )}
                 </Stack>
 
-                {revokedToken.reason && (
-                  <Alert
-                    icon={<IconAlertCircle size={16} />}
-                    color="red"
-                    title="Reason"
-                    variant="light"
-                  >
-                    <Text size="sm">{revokedToken.reason}</Text>
-                  </Alert>
-                )}
-
                 {revokedToken.token_name && (
                   <Text size="sm" c="var(--mantine-color-dimmed)" ta="center">
                     Token: {revokedToken.token_name}
@@ -467,17 +456,6 @@ useEffect(() => {
                     </Text>
                   )}
                 </Stack>
-
-                {tokenEvent.reason && tokenEvent.reason.trim() && !tokenEvent.reason.includes('token_') && (
-                  <Alert
-                    icon={<IconAlertCircle size={16} />}
-                    color={tokenEvent.type === 'token_expired' ? 'orange' : 'red'}
-                    title={tokenEvent.type === 'token_expired' ? 'Details' : 'Reason'}
-                    variant="light"
-                  >
-                    <Text size="sm">{tokenEvent.reason}</Text>
-                  </Alert>
-                )}
               </Stack>
 
               <Button
