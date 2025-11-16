@@ -297,7 +297,7 @@ useEffect(() => {
   // Handle going back or disconnecting
   const handleGoBack = () => {
     disconnect(); // Clean up WebSocket connection
-    navigate(-1); // Go back to previous page
+    window.location.href = 'https://www.verotime.io';
   };
 
   // Show token revocation message if token has been revoked
@@ -310,55 +310,92 @@ useEffect(() => {
           <meta name="robots" content="noindex" />
         </Helmet>
         <Box
-        style={{
-          width: '100vw',
-          height: '100vh',
-          backgroundColor: '#000000',
-          margin: 0,
-          padding: 0,
-          overflow: 'hidden',
-        }}
-      >
-        <Center h="100%">
-          <Paper shadow="xl" p="xl" radius="md" maw={500} w="90%">
+          style={{
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'var(--mantine-color-dark-8)',
+            margin: 0,
+            padding: 0,
+            overflow: 'hidden',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Paper
+            p="xl"
+            radius="md"
+            maw={500}
+            w="90%"
+            style={{
+              backgroundColor: 'var(--mantine-color-body)',
+            }}
+          >
             <Stack gap="lg">
               <Center>
-                <IconAlertCircle size={64} color="var(--mantine-color-red-6)" />
+                <img
+                  src="/logo-dark-full.png"
+                  alt="VeroTime"
+                  style={{
+                    height: '40px',
+                    maxWidth: '100%',
+                    objectFit: 'contain',
+                  }}
+                />
               </Center>
 
-              <div>
-                <Title order={2} ta="center" mb="xs" c="red">
-                  Access Revoked
-                </Title>
-                <Text size="md" ta="center" mb="md">
-                  {revokedToken.message}
-                </Text>
-                {revokedToken.reason && (
-                  <Alert color="red" variant="light" mb="md">
-                    <Text size="sm" fw={500}>
-                      Reason: {revokedToken.reason}
+              <Center>
+                <IconAlertCircle
+                  size={64}
+                  color="var(--mantine-color-red-6)"
+                  stroke={1.5}
+                />
+              </Center>
+
+              <Stack gap="md">
+                <Stack gap="xs">
+                  <Title order={2} ta="center" c="var(--mantine-color-red-6)">
+                    Access Revoked
+                  </Title>
+                  <Text size="md" ta="center" c="var(--mantine-color-text)">
+                    {revokedToken.message}
+                  </Text>
+                  {roomInfo?.name && (
+                    <Text size="sm" ta="center" c="var(--mantine-color-dimmed)" fw={500}>
+                      Room: {roomInfo.name}
                     </Text>
+                  )}
+                </Stack>
+
+                {revokedToken.reason && (
+                  <Alert
+                    icon={<IconAlertCircle size={16} />}
+                    color="red"
+                    title="Reason"
+                    variant="light"
+                  >
+                    <Text size="sm">{revokedToken.reason}</Text>
                   </Alert>
                 )}
+
                 {revokedToken.token_name && (
-                  <Text size="sm" c="dimmed" ta="center">
+                  <Text size="sm" c="var(--mantine-color-dimmed)" ta="center">
                     Token: {revokedToken.token_name}
                   </Text>
                 )}
-              </div>
+              </Stack>
 
               <Button
-                variant="light"
+                variant="default"
                 size="md"
                 onClick={handleGoBack}
                 fullWidth
               >
-                Go Back
+                Go to VeroTime
               </Button>
             </Stack>
           </Paper>
-        </Center>
-      </Box>
+        </Box>
       </>
     );
   }

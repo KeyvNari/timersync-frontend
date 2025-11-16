@@ -9,7 +9,8 @@ import { useSafeAuth, useGetAccountInfo } from '@/hooks';
 import { app } from '@/config';
 import { useDisclosure } from '@mantine/hooks';
 import { AITimerChat } from '@/components/ai-timer-chat';
-import { Modal, Button, Text, Group, Stack, Box } from '@mantine/core';
+import { Modal, Button, Text, Group, Stack, Box, Paper, Center, Title, Alert } from '@mantine/core';
+import { IconAlertCircle } from '@tabler/icons-react';
 import ShareRoomModal from '@/components/share-room-modal';
 
 export interface RoomControllerProps {
@@ -408,46 +409,87 @@ export default function RoomController({
         onClose={() => {}} // Modal cannot be closed by user
         centered
         size="md"
-        title="Access Revoked"
+        padding="xl"
         closeOnClickOutside={false}
         closeOnEscape={false}
         withCloseButton={false}
         styles={{
-          header: { backgroundColor: '#f59f00', color: 'white', borderRadius: '8px 8px 0 0' },
-          content: { borderRadius: '8px' },
-          title: { fontWeight: 'bold' }
+          content: {
+            backgroundColor: 'var(--mantine-color-body)',
+          }
         }}
       >
-        <Stack gap="md" align="center">
-          <Text size="lg" ta="center">
-            Your access has been revoked
-          </Text>
+        <Paper
+          p="xl"
+          radius="md"
+          style={{
+            backgroundColor: 'var(--mantine-color-body)',
+          }}
+        >
+          <Stack gap="lg">
+            <Center>
+              <img
+                src="/logo-dark-full.png"
+                alt="VeroTime"
+                style={{
+                  height: '40px',
+                  maxWidth: '100%',
+                  objectFit: 'contain',
+                }}
+              />
+            </Center>
 
-          {revokedToken?.token_name && (
-            <Text size="sm" c="dimmed" ta="center">
-              Token: {revokedToken.token_name}
-            </Text>
-          )}
+            <Center>
+              <IconAlertCircle
+                size={64}
+                color="var(--mantine-color-red-6)"
+                stroke={1.5}
+              />
+            </Center>
 
-          <Text size="sm" c="dimmed" ta="center">
-            {revokedToken?.message || 'Your access token has been revoked'}
-          </Text>
+            <Stack gap="md">
+              <Stack gap="xs">
+                <Title order={2} ta="center" c="var(--mantine-color-red-6)">
+                  Access Revoked
+                </Title>
+                <Text size="md" ta="center" c="var(--mantine-color-text)">
+                  {revokedToken?.message || 'Your access token has been revoked'}
+                </Text>
+                {roomInfo?.name && (
+                  <Text size="sm" ta="center" c="var(--mantine-color-dimmed)" fw={500}>
+                    Room: {roomInfo.name}
+                  </Text>
+                )}
+              </Stack>
 
-          {revokedToken?.reason && (
-            <Text size="xs" c="dimmed" ta="center" fs="italic">
-              {revokedToken.reason}
-            </Text>
-          )}
+              {revokedToken?.reason && (
+                <Alert
+                  icon={<IconAlertCircle size={16} />}
+                  color="red"
+                  title="Reason"
+                  variant="light"
+                >
+                  <Text size="sm">{revokedToken.reason}</Text>
+                </Alert>
+              )}
 
-          <Group mt="lg">
-            <Button variant="outline" onClick={() => window.history.back()}>
-              Go to TimerSync
+              {revokedToken?.token_name && (
+                <Text size="sm" c="var(--mantine-color-dimmed)" ta="center">
+                  Token: {revokedToken.token_name}
+                </Text>
+              )}
+            </Stack>
+
+            <Button
+              variant="default"
+              size="md"
+              onClick={() => window.location.href = 'https://www.verotime.io'}
+              fullWidth
+            >
+              Go to VeroTime
             </Button>
-            <Button color="blue" onClick={handleRetryConnection}>
-              Try Again
-            </Button>
-          </Group>
-        </Stack>
+          </Stack>
+        </Paper>
       </Modal>
 
       {/* Share Room Modal */}
