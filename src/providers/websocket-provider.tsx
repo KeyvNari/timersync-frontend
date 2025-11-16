@@ -637,25 +637,33 @@ wsService.on('error', (message: any) => {
 
     // Token revocation event
     wsService.on('room_access_token_revoked', (message: any) => {
-      // Remove all connections that used the revoked token
+      const tokenIdStr = String(message.token_id);
+
+      // Check if the revoked token belongs to the current user
+      let isCurrentUserRevoked = false;
       setConnections((prev) => {
-        const tokenIdStr = String(message.token_id);
+        const revokedConn = prev.find(conn => String(conn.access_token_id) === tokenIdStr && conn.is_self);
+        isCurrentUserRevoked = !!revokedConn;
+
+        // Remove all connections that used the revoked token
         const updated = prev.filter(conn => String(conn.access_token_id) !== tokenIdStr);
         return updated;
       });
 
-      // Store revocation details
-      setRevokedToken({
-        message: message.message || 'Your access token has been revoked',
-        token_id: message.token_id,
-        token_name: message.token_name,
-        reason: message.reason || 'Token revoked by room administrator'
-      });
+      // Only show revocation modal if the revoked token belongs to the current user
+      if (isCurrentUserRevoked) {
+        setRevokedToken({
+          message: message.message || 'Your access token has been revoked',
+          token_id: message.token_id,
+          token_name: message.token_name,
+          reason: message.reason || 'Token revoked by room administrator'
+        });
 
-      // The connection will be closed by the server shortly,
-      // but we prepare for disconnection
-      setConnectionStatus('disconnected');
-      setConnectionMessage('Access token revoked');
+        // The connection will be closed by the server shortly,
+        // but we prepare for disconnection
+        setConnectionStatus('disconnected');
+        setConnectionMessage('Access token revoked');
+      }
     });
 
     // Message events
