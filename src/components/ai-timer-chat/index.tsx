@@ -55,7 +55,7 @@ export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerC
     {
       id: '1',
       role: 'assistant',
-      content: 'Hello! How can I help you create a timer today? I can create timers for you based on your description. You can also upload a file and let me analyze it. I can also remove all or specific timers.',
+      content: 'Hi! I can help you create custom timers. Just describe what you need, or upload a file for me to analyze. I can also manage your existing timers by removing specific ones or clearing them all.',
       timestamp: new Date(),
     },
   ]);

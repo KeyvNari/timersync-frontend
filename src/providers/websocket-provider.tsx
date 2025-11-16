@@ -649,7 +649,7 @@ wsService.on('error', (message: any) => {
       setLastSuccess(null);
     });
 
-    // Token revocation event
+    // Token revocation event - central handler for all token revocations
     wsService.on('room_access_token_revoked', (message: any) => {
       const tokenIdStr = String(message.token_id);
 
@@ -678,6 +678,13 @@ wsService.on('error', (message: any) => {
         setConnectionStatus('disconnected');
         setConnectionMessage('Access token revoked');
       }
+    });
+
+    // Token verification result - when tokens are verified as invalid, they're handled elsewhere
+    // (The share modal will remove them from display when they're marked as invalid)
+    wsService.on('room_access_token_verify_result', (message: any) => {
+      // Token verification results are consumed by the share modal
+      // If invalid, the modal will remove it from the UI
     });
 
     // Message events

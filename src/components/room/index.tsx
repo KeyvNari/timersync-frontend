@@ -76,7 +76,6 @@ export default function RoomComponent({
   onCreateDisplay,
   onUpdateDisplay,
   onDeleteDisplay,
-  onDisconnectDevice,
   onRevokeAccessToken,
   onMessagesChange,
   showBackButton = false,
@@ -478,7 +477,6 @@ export default function RoomComponent({
         connections={connections}
         currentUserAccess={userAccessLevel}
         compactMode={false}
-        onDisconnectDevice={onDisconnectDevice}
         onRevokeAccessToken={onRevokeAccessToken}
       />
     </Box>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Modal,
   Text,
@@ -77,94 +77,142 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
   const [createdTokens, setCreatedTokens] = useState<RoomAccessToken[]>([]);
   const [currentToken, setCurrentToken] = useState<{ [key in AccessLevel]?: RoomAccessToken }>({});
   const [qrCodes, setQrCodes] = useState<Map<string, string>>(new Map());
-  const [revokedTokens, setRevokedTokens] = useState<Set<string>>(new Set());
   const [isVerifying, setIsVerifying] = useState(false);
 
   const { wsService } = useWebSocketContext();
+
+  // Use ref to track if component is still mounted to prevent state updates after unmount
+  const isMountedRef = React.useRef(true);
 
   // QR code modal
   const [qrOpened, { open: openQr, close: closeQr }] = useDisclosure(false);
   const [currentQrToken, setCurrentQrToken] = useState<RoomAccessToken | null>(null);
 
-  // Handler for token verification results
-  const handleTokenVerification = (message: any) => {
-    if (message.type === 'room_access_token_verify_result') {
-      // Backend now includes the token string in the response
-      const verifiedToken = message.token;
+  // Ref to store the current verification handler to clean it up properly
+  const verificationHandlerRef = React.useRef<((message: any) => void) | null>(null);
+  // Ref to store the tokens that were being verified in the current verification run
+  const verifyingTokensRef = React.useRef<Set<string>>(new Set());
 
-      if (!message.valid && verifiedToken) {
-        // Only mark tokens that are currently displayed (viewer or full)
-        const isCurrentToken = Object.values(currentToken).some(
-          token => token && token.token === verifiedToken
-        );
-
-        if (isCurrentToken) {
-          // Mark this token as revoked (UI will update automatically)
-          setRevokedTokens(prev => new Set(prev).add(verifiedToken));
-        }
-      }
-
-      // Mark verification as complete
-      setIsVerifying(false);
-    }
-  };
-
-  // Setup listener for token verification
-  const setupTokenVerificationListener = () => {
-    if (!wsService) return;
-    wsService.on('room_access_token_verify_result', handleTokenVerification);
-  };
-
-  // Verify all current tokens
-  const verifyCurrentTokens = () => {
-    if (!wsService) return;
-
+  // Verify current tokens and remove any that are invalid
+  const verifyCurrentTokens = useCallback(() => {
     const tokensToVerify = Object.values(currentToken).filter(token => token);
 
-    // If there are tokens to verify, set loading state
-    if (tokensToVerify.length > 0) {
-      setIsVerifying(true);
+    if (!wsService || tokensToVerify.length === 0) {
+      setIsVerifying(false);
+      return;
     }
 
-    // Verify the current token for each access level
+    // Clean up any existing listeners from previous verification
+    if (verificationHandlerRef.current && wsService) {
+      wsService.off('room_access_token_verify_result', verificationHandlerRef.current);
+    }
+    if (verificationTimeoutRef.current) {
+      clearTimeout(verificationTimeoutRef.current);
+    }
+
+    setIsVerifying(true);
+    let tokensChecked = 0;
+    const expectedTokenCount = tokensToVerify.length;
+    // Create a fresh set from the current tokens to verify
+    const tokensToVerifySet = new Set(tokensToVerify.map(t => t.token));
+    // Update the ref to track which tokens we're currently verifying
+    verifyingTokensRef.current = tokensToVerifySet;
+
+    // Setup listener for verification results - only for current tokens
+    const handleVerificationResult = (message: any) => {
+      if (!isMountedRef.current) return;
+
+      const verifiedToken = message.token;
+      // Only process results for tokens we're currently verifying (use ref for freshest data)
+      if (!verifyingTokensRef.current.has(verifiedToken)) return;
+
+      // If token is invalid, remove it from current tokens
+      if (!message.valid && verifiedToken) {
+        setCurrentToken(prev => {
+          const newState = { ...prev };
+          if (prev.full?.token === verifiedToken) {
+            newState.full = undefined;
+          }
+          if (prev.viewer?.token === verifiedToken) {
+            newState.viewer = undefined;
+          }
+          return newState;
+        });
+      }
+
+      tokensChecked++;
+      if (tokensChecked >= expectedTokenCount) {
+        if (isMountedRef.current) {
+          setIsVerifying(false);
+        }
+        if (verificationHandlerRef.current && wsService) {
+          wsService.off('room_access_token_verify_result', verificationHandlerRef.current);
+        }
+        if (verificationTimeoutRef.current) {
+          clearTimeout(verificationTimeoutRef.current);
+        }
+      }
+    };
+
+    verificationHandlerRef.current = handleVerificationResult;
+    wsService.on('room_access_token_verify_result', handleVerificationResult);
+
+    // Failsafe: clear loading after 5 seconds
+    verificationTimeoutRef.current = window.setTimeout(() => {
+      if (isMountedRef.current) {
+        setIsVerifying(false);
+      }
+      if (verificationHandlerRef.current && wsService) {
+        wsService.off('room_access_token_verify_result', verificationHandlerRef.current);
+      }
+    }, 5000);
+
+    // Send verification requests only for current tokens
     tokensToVerify.forEach(token => {
       if (token) {
         wsService.verifyRoomAccessToken(token.token);
       }
     });
+  }, [currentToken, wsService]);
 
-    // If no tokens to verify, mark as complete immediately
-    if (tokensToVerify.length === 0) {
-      setIsVerifying(false);
-    }
-  };
+  // Ref to track verification timeout
+  const verificationTimeoutRef = React.useRef<number | null>(null);
 
   useEffect(() => {
+    // Track when modal opens/closes
     if (opened) {
-      // Reset states when modal opens
-      setIsVerifying(true);
-      setRevokedTokens(new Set());
+      isMountedRef.current = true;
       loadTokens();
-      setupTokenVerificationListener();
     } else {
-      // Reset verification state when modal closes
+      isMountedRef.current = false;
       setIsVerifying(false);
+      // Clean up verification timeout and listener
+      if (verificationTimeoutRef.current) {
+        clearTimeout(verificationTimeoutRef.current);
+      }
+      if (verificationHandlerRef.current && wsService) {
+        wsService.off('room_access_token_verify_result', verificationHandlerRef.current);
+      }
     }
 
     return () => {
-      // Cleanup listeners when modal closes
-      if (wsService) {
-        wsService.off('room_access_token_verify_result', handleTokenVerification);
+      isMountedRef.current = false;
+      // Clean up timeout and listener on unmount
+      if (verificationTimeoutRef.current) {
+        clearTimeout(verificationTimeoutRef.current);
+      }
+      if (verificationHandlerRef.current && wsService) {
+        wsService.off('room_access_token_verify_result', verificationHandlerRef.current);
       }
     };
-  }, [opened]);
+  }, [opened, wsService]);
 
-  // Verify tokens when modal opens and tokens are loaded
+  // Verify tokens when they're loaded
   useEffect(() => {
     if (opened && Object.keys(currentToken).length > 0) {
       verifyCurrentTokens();
     }
-  }, [opened, currentToken]);
+  }, [opened, currentToken, wsService]);
 
   const loadTokens = async () => {
     if (!wsService) return;
@@ -172,12 +220,18 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
     wsService.listRoomAccessTokens();
 
     const handleTokenList = async (message: any) => {
+      // Check if component is still mounted before updating state
+      if (!isMountedRef.current) return;
+
       if (message.tokens) {
         setCreatedTokens(message.tokens);
 
-        // Set current token for each access level (most recent)
-        const fullToken = message.tokens.find((t: RoomAccessToken) => t.access_level === 'full');
-        const viewerToken = message.tokens.find((t: RoomAccessToken) => t.access_level === 'viewer');
+        // Set current token for each access level (most recent - get the last one)
+        const fullTokens = message.tokens.filter((t: RoomAccessToken) => t.access_level === 'full');
+        const viewerTokens = message.tokens.filter((t: RoomAccessToken) => t.access_level === 'viewer');
+
+        const fullToken = fullTokens.length > 0 ? fullTokens[fullTokens.length - 1] : undefined;
+        const viewerToken = viewerTokens.length > 0 ? viewerTokens[viewerTokens.length - 1] : undefined;
 
         setCurrentToken({
           full: fullToken,
@@ -186,11 +240,16 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
 
         // Generate QR codes for all tokens
         for (const token of message.tokens) {
+          // Check again before state updates in async loop
+          if (!isMountedRef.current) return;
+
           const isProtected = token.password_protected ?? token.is_password_protected ?? false;
           const link = generateLink(token.token, token.access_level as AccessLevel, isProtected);
           try {
             const qrCodeDataUrl = await QRCode.toDataURL(link);
-            setQrCodes(prev => new Map(prev.set(token.token, qrCodeDataUrl)));
+            if (isMountedRef.current) {
+              setQrCodes(prev => new Map(prev.set(token.token, qrCodeDataUrl)));
+            }
           } catch (error) {
             // Failed to generate QR code
           }
@@ -337,9 +396,6 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
     // Check both field names for password protection
     const isProtected = token ? (token.password_protected ?? token.is_password_protected ?? false) : false;
 
-    // Check if current token is revoked
-    const isTokenRevoked = token ? revokedTokens.has(token.token) : false;
-
     return (
       <Grid gutter="xl" mt="md">
         {/* Left Column - Generate New Link */}
@@ -412,40 +468,8 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
               </List>
             </Card>
 
-            {/* Revoked Token Alert */}
-            {isTokenRevoked && token && (
-              <Alert
-                icon={<IconAlertCircle size={16} />}
-                title="Token Revoked"
-                color="red"
-                variant="light"
-              >
-                <Text size="sm" mb="sm">
-                  This access token has been revoked and is no longer valid. Please generate a new link.
-                </Text>
-                <Button
-                  size="xs"
-                  leftSection={<IconRefresh size={14} />}
-                  onClick={() => {
-                    // Clear the revoked state and remove from current token
-                    setRevokedTokens(prev => {
-                      const newSet = new Set(prev);
-                      newSet.delete(token.token);
-                      return newSet;
-                    });
-                    setCurrentToken(prev => ({
-                      ...prev,
-                      [level]: undefined,
-                    }));
-                  }}
-                >
-                  Generate New Link
-                </Button>
-              </Alert>
-            )}
-
             {/* Current Link Display */}
-            {token && !isTokenRevoked && (
+            {token && (
               <Card withBorder style={{ flex: 1 }}>
                 <Group justify="space-between" mb="sm">
                   <Title order={5}>Current Link</Title>
