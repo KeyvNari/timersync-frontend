@@ -15,21 +15,21 @@ import {
   Box,
   Indicator,
   Collapse,
-  Alert
+  Alert,
+  Modal,
+  Button
 } from '@mantine/core';
 import {
   PiDevices as DeviceIcon,
   PiUser as UserIcon,
   PiEye as ViewerIcon,
   PiCrown as AdminIcon,
-  PiSignOut as DisconnectIcon,
   PiDotsThreeOutline as DetailsIcon,
   PiCaretDown as CaretDownIcon,
   PiCaretRight as CaretRightIcon,
-  PiKey as TokenIcon,
-  PiTrash as RevokeIcon
+  PiKey as TokenIcon
 } from 'react-icons/pi';
-import { IconAlertCircle } from '@tabler/icons-react';
+import { IconAlertCircle, IconShieldOff } from '@tabler/icons-react';
 
 // Types based on the backend structure
 interface ConnectionInfo {
@@ -53,8 +53,6 @@ interface ConnectedDevicesProps {
   connections?: ConnectionInfo[];
   /** Current user's access level - only 'full' access shows detailed info */
   currentUserAccess?: 'viewer' | 'full';
-  /** Callback when user wants to disconnect a device */
-  onDisconnectDevice?: (connectionId: string) => void;
   /** Callback when user wants to revoke an access token */
   onRevokeAccessToken?: (tokenId: number) => void;
   /** Show only basic connection count */
@@ -156,15 +154,14 @@ interface ConnectionGroup {
 function ConnectionGroupItem({
   group,
   currentUserAccess,
-  onDisconnect,
   onRevokeToken
 }: {
   group: ConnectionGroup;
   currentUserAccess: 'viewer' | 'full';
-  onDisconnect?: (connectionId: string) => void;
   onRevokeToken?: (tokenId: number) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
+  const [revokeModalOpen, setRevokeModalOpen] = useState(false);
   const connectionCount = group.connections.length;
   const onlineCount = group.connections.filter(c => {
     if (!c.last_ping) return true;
@@ -226,22 +223,58 @@ function ConnectionGroupItem({
           </Group>
 
           {currentUserAccess === 'full' && group.tokenId && !hasSelfConnection && onRevokeToken && (
-            <Tooltip label="Revoke access token (disconnects all devices)" withinPortal>
-              <ActionIcon
-                variant="subtle"
-                color="red"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (window.confirm(`Revoke token "${group.tokenName}"? This will disconnect all ${String(connectionCount)} device(s) using this token.`)) {
-                    const tokenId = typeof group.tokenId === 'number' ? group.tokenId : Number(group.tokenId);
-                    onRevokeToken(tokenId);
-                  }
-                }}
+            <>
+              <Tooltip label="Revoke access token (disconnects all devices)" withinPortal>
+                <ActionIcon
+                  variant="subtle"
+                  color="red"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setRevokeModalOpen(true);
+                  }}
+                >
+                  <IconShieldOff size="0.9rem" />
+                </ActionIcon>
+              </Tooltip>
+              <Modal
+                opened={revokeModalOpen}
+                onClose={() => setRevokeModalOpen(false)}
+                title="Revoke Access?"
+                centered
               >
-                <RevokeIcon size="0.9rem" />
-              </ActionIcon>
-            </Tooltip>
+                <Stack gap="md">
+                  <div>
+                    <Text fw={500} mb="xs">
+                      Revoke access for "{group.tokenName}"?
+                    </Text>
+                    <Text size="sm" c="dimmed">
+                      This will immediately disconnect {connectionCount} {connectionCount === 1 ? 'device' : 'devices'} currently using this access token.
+                    </Text>
+                  </div>
+                  <Alert icon={<IconShieldOff size={16} />} color="orange" title="This action cannot be undone">
+                    <Text size="sm">
+                      Once revoked, any devices using this token will be disconnected and will need a new access token to reconnect.
+                    </Text>
+                  </Alert>
+                  <Group justify="flex-end" gap="sm">
+                    <Button variant="default" onClick={() => setRevokeModalOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button
+                      color="red"
+                      onClick={() => {
+                        const tokenId = typeof group.tokenId === 'number' ? group.tokenId : Number(group.tokenId);
+                        onRevokeToken(tokenId);
+                        setRevokeModalOpen(false);
+                      }}
+                    >
+                      Revoke Access
+                    </Button>
+                  </Group>
+                </Stack>
+              </Modal>
+            </>
           )}
         </Group>
 
@@ -252,7 +285,6 @@ function ConnectionGroupItem({
                 <ConnectionItem
                   connection={connection}
                   currentUserAccess={currentUserAccess}
-                  onDisconnect={onDisconnect}
                   isGrouped={true}
                 />
                 {index < group.connections.length - 1 && <Divider ml="xl" />}
@@ -268,12 +300,10 @@ function ConnectionGroupItem({
 function ConnectionItem({
   connection,
   currentUserAccess,
-  onDisconnect,
   isGrouped = false
 }: {
   connection: ConnectionInfo;
   currentUserAccess: 'viewer' | 'full';
-  onDisconnect?: (connectionId: string) => void;
   isGrouped?: boolean;
 }) {
   const [expanded, setExpanded] = useState(true);
@@ -335,18 +365,6 @@ function ConnectionItem({
               </ActionIcon>
             </Tooltip>
           )}
-          {currentUserAccess === 'full' && !isSelf && onDisconnect && (
-            <Tooltip label="Disconnect device" withinPortal>
-              <ActionIcon
-                variant="subtle"
-                color="red"
-                size="xs"
-                onClick={() => onDisconnect(connection.connection_id)}
-              >
-                <DisconnectIcon size="0.8rem" />
-              </ActionIcon>
-            </Tooltip>
-          )}
         </Group>
       </Group>
 
@@ -368,7 +386,6 @@ function ConnectionItem({
 export function ConnectedDevices({
   connections = mockConnections,
   currentUserAccess = 'full',
-  onDisconnectDevice,
   onRevokeAccessToken,
   compactMode = false,
   className
@@ -379,14 +396,6 @@ export function ConnectedDevices({
   useEffect(() => {
     setConnectionList(connections);
   }, [connections]);
-
-  const handleDisconnect = (connectionId: string) => {
-    if (onDisconnectDevice) {
-      onDisconnectDevice(connectionId);
-      // Optimistically remove from local state
-      setConnectionList(prev => prev.filter(conn => conn.connection_id !== connectionId));
-    }
-  };
 
   const handleRevokeToken = (tokenId: number) => {
     if (onRevokeAccessToken) {
@@ -497,7 +506,6 @@ export function ConnectedDevices({
               <ConnectionGroupItem
                 group={group}
                 currentUserAccess={currentUserAccess}
-                onDisconnect={handleDisconnect}
                 onRevokeToken={handleRevokeToken}
               />
               {index < groupsArray.length - 1 && <Divider />}

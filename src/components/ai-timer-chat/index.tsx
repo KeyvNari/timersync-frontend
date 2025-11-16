@@ -67,6 +67,8 @@ export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerC
   const [hasFileSent, setHasFileSent] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [feedbackId, setFeedbackId] = useState<string | null>(null);
+  const [feedbackType, setFeedbackType] = useState<'good' | 'bad' | null>(null);
   const resetRef = useRef<() => void>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const viewport = useRef<HTMLDivElement>(null);
@@ -170,6 +172,17 @@ export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerC
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const handleFeedback = (messageId: string, type: 'good' | 'bad') => {
+    setFeedbackId(messageId);
+    setFeedbackType(type);
+
+    // Reset feedback state after animation
+    setTimeout(() => {
+      setFeedbackId(null);
+      setFeedbackType(null);
+    }, 2000);
+  };
+
   const handleClearChat = () => {
     setMessages([
       {
@@ -240,55 +253,38 @@ export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerC
     <Modal
       opened={opened}
       onClose={onClose}
-      size="1200px"
-      title={
-        <Group gap="sm" style={{ padding: '4px 0' }}>
-          <Box
-            style={{
-              background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
-              borderRadius: '12px',
-              padding: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <IconSparkles size={20} color="white" />
-          </Box>
-          <div>
-            <Text fw={600} size="lg" c="gray.9" style={{ lineHeight: 1.2 }}>AI Timer Assistant</Text>
-          </div>
-        </Group>
-      }
+      title="Timer Assistant"
+      centered
+      size="90%"
       padding={0}
       styles={{
+        header: {
+          padding: 'var(--mantine-spacing-md)',
+          borderBottom: '1px solid var(--mantine-color-default-border)',
+          backgroundColor: 'var(--mantine-color-body)',
+        },
         body: {
-          height: 'calc(85vh - 80px)',
+          padding: 0,
           display: 'flex',
           flexDirection: 'column',
+          height: '80vh',
+          backgroundColor: 'var(--mantine-color-body)',
         },
         content: {
-          height: '85vh',
-          border: 'none',
-          borderRadius: '20px',
           overflow: 'hidden',
-          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.15)',
-        },
-        header: {
-          borderBottom: '1px solid var(--mantine-color-gray-2)',
-          padding: '20px 24px',
-          background: 'white',
+          borderRadius: 'var(--mantine-radius-md)',
+          backgroundColor: 'var(--mantine-color-body)',
         }
       }}
     >
-      <Stack gap={0} style={{ height: '100%', backgroundColor: '#F9FAFB' }}>
+      <Stack gap={0} style={{ height: '100%', backgroundColor: 'var(--mantine-color-body)' }}>
         <ScrollArea
           style={{ flex: 1 }}
-          p="xl"
+          p="lg"
           type="auto"
           viewportRef={viewport}
         >
-          <Stack gap="lg">
+          <Stack gap="md">
             {messages.map((message, index) => (
               <Transition
                 key={message.id}
@@ -300,102 +296,96 @@ export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerC
                 {(styles) => (
                   <Box style={styles}>
                     {message.role === 'assistant' ? (
-                      <Group align="flex-start" gap="md" wrap="nowrap">
-                        <Box
+                      <Group align="flex-start" gap="sm" wrap="nowrap">
+                        <Avatar
+                          size="sm"
+                          radius="md"
+                          color="blue"
                           style={{
-                            background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
-                            borderRadius: '16px',
-                            padding: '10px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
                             flexShrink: 0,
-                            boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)',
+                            backgroundColor: 'var(--mantine-color-blue-light)',
                           }}
                         >
-                          <IconSparkles size={18} color="white" />
-                        </Box>
+                          <IconSparkles size={16} />
+                        </Avatar>
                         <Stack gap="xs" style={{ flex: 1, maxWidth: '85%' }}>
                           <Paper
                             p="lg"
-                            radius="xl"
+                            radius="md"
+                            withBorder
                             style={{
                               backgroundColor: 'white',
-                              border: '1px solid #E5E7EB',
-                              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
                             }}
                           >
                             <Box className="markdown-content">
                               <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
                             </Box>
                           </Paper>
-                          <Group gap="xs" ml="md">
-                            <Tooltip label={copiedId === message.id ? "Copied!" : "Copy"}>
-                              <ActionIcon
-                                size="md"
-                                variant="subtle"
-                                color="gray"
-                                radius="xl"
-                                onClick={() => handleCopyMessage(message.content, message.id)}
-                              >
-                                {copiedId === message.id ? (
-                                  <IconCheck size={16} />
-                                ) : (
-                                  <IconCopy size={16} />
-                                )}
-                              </ActionIcon>
-                            </Tooltip>
-                            <Tooltip label="Good answer">
-                              <ActionIcon
-                                size="md"
-                                variant="subtle"
-                                color="gray"
-                                radius="xl"
-                              >
-                                <IconThumbUp size={16} />
-                              </ActionIcon>
-                            </Tooltip>
-                            <Tooltip label="Bad answer">
-                              <ActionIcon
-                                size="md"
-                                variant="subtle"
-                                color="gray"
-                                radius="xl"
-                              >
-                                <IconThumbDown size={16} />
-                              </ActionIcon>
-                            </Tooltip>
-                          </Group>
+                          {index > 0 && (
+                            <Group gap="xs" ml="sm">
+                              <Tooltip label={copiedId === message.id ? "Copied!" : "Copy"}>
+                                <ActionIcon
+                                  size="xs"
+                                  variant="subtle"
+                                  color="gray"
+                                  onClick={() => handleCopyMessage(message.content, message.id)}
+                                >
+                                  {copiedId === message.id ? (
+                                    <IconCheck size={14} />
+                                  ) : (
+                                    <IconCopy size={14} />
+                                  )}
+                                </ActionIcon>
+                              </Tooltip>
+                              <Tooltip label="Good answer">
+                                <ActionIcon
+                                  size="xs"
+                                  variant={feedbackId === message.id && feedbackType === 'good' ? 'filled' : 'subtle'}
+                                  color={feedbackId === message.id && feedbackType === 'good' ? 'green' : 'gray'}
+                                  onClick={() => handleFeedback(message.id, 'good')}
+                                >
+                                  <IconThumbUp size={14} />
+                                </ActionIcon>
+                              </Tooltip>
+                              <Tooltip label="Bad answer">
+                                <ActionIcon
+                                  size="xs"
+                                  variant={feedbackId === message.id && feedbackType === 'bad' ? 'filled' : 'subtle'}
+                                  color={feedbackId === message.id && feedbackType === 'bad' ? 'red' : 'gray'}
+                                  onClick={() => handleFeedback(message.id, 'bad')}
+                                >
+                                  <IconThumbDown size={14} />
+                                </ActionIcon>
+                              </Tooltip>
+                            </Group>
+                          )}
                         </Stack>
                       </Group>
                     ) : (
-                      <Group align="flex-start" gap="md" wrap="nowrap" justify="flex-end">
+                      <Group align="flex-start" gap="sm" wrap="nowrap" justify="flex-end">
                         <Stack gap="xs" align="flex-end" style={{ flex: 1, maxWidth: '85%' }}>
                           <Paper
                             p="lg"
-                            radius="xl"
+                            radius="md"
                             style={{
-                              background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
+                              backgroundColor: 'var(--mantine-color-blue-6)',
                               color: 'white',
-                              boxShadow: '0 4px 16px rgba(79, 70, 229, 0.25)',
                             }}
                           >
-                            <Text size="sm" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, color: 'white' }}>
+                            <Text style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
                               {message.content}
                             </Text>
                           </Paper>
                         </Stack>
                         <Avatar
-                          size="lg"
-                          radius="xl"
+                          size="sm"
+                          radius="md"
                           color="gray"
                           style={{
-                            border: '2px solid #E5E7EB',
                             flexShrink: 0,
-                            backgroundColor: '#F3F4F6',
                           }}
                         >
-                          <IconUser size={20} color="#4B5563" />
+                          <IconUser size={16} />
                         </Avatar>
                       </Group>
                     )}
@@ -405,33 +395,29 @@ export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerC
             ))}
 
             {isThinking && (
-              <Group align="flex-start" gap="md" wrap="nowrap">
-                <Box
+              <Group align="flex-start" gap="sm" wrap="nowrap">
+                <Avatar
+                  size="sm"
+                  radius="md"
+                  color="blue"
                   style={{
-                    background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
-                    borderRadius: '16px',
-                    padding: '10px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
                     flexShrink: 0,
-                    boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)',
+                    backgroundColor: 'var(--mantine-color-blue-light)',
                   }}
                 >
-                  <IconSparkles size={18} color="white" />
-                </Box>
+                  <IconSparkles size={16} />
+                </Avatar>
                 <Stack gap="xs" style={{ flex: 1 }}>
                   <Paper
-                    p="lg"
-                    radius="xl"
+                    p="md"
+                    radius="md"
+                    withBorder
                     style={{
                       backgroundColor: 'white',
-                      border: '1px solid #E5E7EB',
-                      maxWidth: '200px',
-                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+                      maxWidth: '120px',
                     }}
                   >
-                    <Group gap="sm" justify="center">
+                    <Group gap="xs" justify="center">
                       <Box className="dot-pulse" />
                       <Box className="dot-pulse" style={{ animationDelay: '0.2s' }} />
                       <Box className="dot-pulse" style={{ animationDelay: '0.4s' }} />
@@ -444,54 +430,55 @@ export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerC
         </ScrollArea>
 
         <Box
-          p="xl"
+          p="lg"
           style={{
-            borderTop: '1px solid #E5E7EB',
-            backgroundColor: 'white',
+            borderTop: '1px solid var(--mantine-color-default-border)',
+            backgroundColor: 'var(--mantine-color-body)',
+            flexShrink: 0,
           }}
         >
           <Stack gap="md">
             {uploadedFile && (
               <Paper
-                p="md"
-                radius="lg"
+                p="sm"
+                radius="md"
+                withBorder
                 style={{
-                  border: '1px solid #E5E7EB',
-                  backgroundColor: '#F3F4F6',
+                  backgroundColor: 'var(--mantine-color-gray-0)',
                 }}
               >
-                <Group gap="md" justify="space-between">
-                  <Group gap="md">
+                <Group gap="sm" justify="space-between">
+                  <Group gap="sm">
                     <Box
                       style={{
                         background: 'white',
-                        borderRadius: '12px',
-                        padding: '10px',
+                        borderRadius: 'var(--mantine-radius-md)',
+                        padding: '8px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        border: '1px solid #E5E7EB',
+                        flexShrink: 0,
                       }}
                     >
                       {isExtractingFile ? (
-                        <Loader size="sm" color="indigo" />
+                        <Loader size="sm" color="blue" />
                       ) : (
-                        <IconFile size={20} color="#4F46E5" />
+                        <IconFile size={18} />
                       )}
                     </Box>
                     <div>
-                      <Text size="sm" fw={600} c="gray.9">{uploadedFile.name}</Text>
+                      <Text size="sm" fw={500}>{uploadedFile.name}</Text>
                       <Group gap="xs" mt={4}>
-                        <Text size="xs" c="gray.6">
+                        <Text size="xs" c="dimmed">
                           {formatFileSize(uploadedFile.size)}
                         </Text>
                         {extractedFileContent && (
-                          <Badge size="xs" color="green" variant="light" radius="sm">
+                          <Badge size="xs" color="green" variant="light">
                             {extractedFileContent.length} chars
                           </Badge>
                         )}
                         {hasFileSent && (
-                          <Badge size="xs" color="indigo" variant="light" radius="sm">
+                          <Badge size="xs" color="blue" variant="light">
                             Sent
                           </Badge>
                         )}
@@ -500,20 +487,19 @@ export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerC
                   </Group>
                   <Tooltip label={hasFileSent ? "Cannot remove - file already sent" : "Remove file"}>
                     <ActionIcon
-                      size="lg"
+                      size="sm"
                       variant="light"
                       color="red"
-                      radius="xl"
                       onClick={handleRemoveFile}
                       disabled={hasFileSent}
                     >
-                      <IconX size={18} />
+                      <IconX size={16} />
                     </ActionIcon>
                   </Tooltip>
                 </Group>
               </Paper>
             )}
-            
+
             <Group gap="sm" wrap="nowrap" align="flex-end">
               <FileButton
                 resetRef={resetRef}
@@ -525,53 +511,31 @@ export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerC
                   <Tooltip label={uploadedFile ? "Remove current file to attach another" : "Attach file"}>
                     <ActionIcon
                       {...props}
-                      size={44}
-                      variant="light"
-                      color="gray"
-                      radius="xl"
+                      size="lg"
+                      variant="default"
                       disabled={uploadedFile !== null || isExtractingFile}
-                      style={{
-                        border: '1px solid #E5E7EB',
-                        backgroundColor: '#F3F4F6',
-                      }}
                     >
-                      <IconPaperclip size={20} color="#4B5563" />
+                      <IconPaperclip size={20} />
                     </ActionIcon>
                   </Tooltip>
                 )}
               </FileButton>
 
               <TextInput
-                placeholder="Describe the timers you want to create or upload a file"
+                placeholder="Describe the timers you want to create"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.currentTarget.value)}
                 onKeyDown={handleKeyPress}
                 style={{ flex: 1 }}
-                size="lg"
-                radius="xl"
-                styles={{
-                  input: {
-                    border: '1px solid #E5E7EB',
-                    paddingRight: '60px',
-                    fontSize: '15px',
-                    color: '#111827',
-                    backgroundColor: 'white',
-                  }
-                }}
+                size="md"
               />
 
               <Tooltip label="Send message">
                 <ActionIcon
-                  size={44}
-                  radius="xl"
-                  variant="gradient"
-                  gradient={{ from: '#4F46E5', to: '#7C3AED', deg: 135 }}
+                  size="lg"
+                  color="blue"
                   onClick={handleSendMessage}
                   disabled={(!inputValue.trim() && !extractedFileContent) || isThinking}
-                  style={{
-                    boxShadow: (inputValue.trim() || extractedFileContent) && !isThinking ? '0 4px 12px rgba(79, 70, 229, 0.3)' : 'none',
-                    transition: 'all 0.2s ease',
-                  }}
                 >
                   <IconSend size={20} />
                 </ActionIcon>
@@ -579,17 +543,11 @@ export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerC
 
               <Tooltip label="Clear chat">
                 <ActionIcon
-                  size={44}
-                  variant="light"
-                  color="gray"
-                  radius="xl"
+                  size="lg"
+                  variant="default"
                   onClick={handleClearChat}
-                  style={{
-                    border: '1px solid #E5E7EB',
-                    backgroundColor: '#F3F4F6',
-                  }}
                 >
-                  <IconRotateClockwise size={20} color="#4B5563" />
+                  <IconRotateClockwise size={20} />
                 </ActionIcon>
               </Tooltip>
             </Group>
@@ -614,14 +572,14 @@ export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerC
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+            background: var(--mantine-color-blue-6);
             animation: dotPulse 1.4s ease-in-out infinite;
           }
 
           .markdown-content {
-            font-size: 15px;
-            line-height: 1.7;
-            color: #374151;
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--mantine-color-gray-7);
           }
 
           .markdown-content h1,
@@ -630,116 +588,116 @@ export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerC
           .markdown-content h4,
           .markdown-content h5,
           .markdown-content h6 {
-            margin-top: 20px;
-            margin-bottom: 10px;
-            font-weight: 700;
+            margin-top: 16px;
+            margin-bottom: 8px;
+            font-weight: 600;
             line-height: 1.3;
-            color: #111827;
+            color: var(--mantine-color-gray-9);
           }
 
           .markdown-content h3 {
-            font-size: 18px;
+            font-size: 16px;
           }
 
           .markdown-content p {
             margin-top: 0;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
           }
 
           .markdown-content ul,
           .markdown-content ol {
             margin-top: 0;
-            margin-bottom: 16px;
-            padding-left: 28px;
+            margin-bottom: 12px;
+            padding-left: 24px;
           }
 
           .markdown-content li {
-            margin-bottom: 6px;
+            margin-bottom: 4px;
           }
 
           .markdown-content strong {
-            font-weight: 700;
-            color: #111827;
+            font-weight: 600;
+            color: var(--mantine-color-gray-9);
           }
 
           .markdown-content code {
-            background-color: #F3F4F6;
-            padding: 3px 8px;
-            border-radius: 6px;
+            background-color: var(--mantine-color-gray-1);
+            padding: 2px 6px;
+            border-radius: 4px;
             font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
-            font-size: 14px;
-            border: 1px solid #E5E7EB;
-            color: #DC2626;
+            font-size: 13px;
+            border: 1px solid var(--mantine-color-gray-2);
+            color: var(--mantine-color-red-7);
           }
 
           .markdown-content pre {
-            background-color: #1F2937;
-            padding: 16px;
-            border-radius: 12px;
+            background-color: var(--mantine-color-gray-9);
+            padding: 12px;
+            border-radius: var(--mantine-radius-md);
             overflow-x: auto;
-            margin-bottom: 16px;
-            border: 1px solid #374151;
+            margin-bottom: 12px;
+            border: 1px solid var(--mantine-color-gray-3);
           }
 
           .markdown-content pre code {
             background: transparent;
             padding: 0;
-            color: #F3F4F6;
+            color: var(--mantine-color-gray-0);
             border: none;
           }
 
           .markdown-content blockquote {
-            border-left: 4px solid #4F46E5;
-            padding-left: 16px;
+            border-left: 4px solid var(--mantine-color-blue-6);
+            padding-left: 12px;
             margin-left: 0;
-            color: #6B7280;
+            color: var(--mantine-color-gray-6);
             font-style: italic;
-            background-color: #F9FAFB;
-            padding: 12px 16px;
-            border-radius: 0 8px 8px 0;
+            background-color: var(--mantine-color-gray-0);
+            padding: 8px 12px;
+            border-radius: 0 4px 4px 0;
           }
 
           .markdown-content table {
             border-collapse: collapse;
             width: 100%;
-            margin-bottom: 16px;
-            font-size: 14px;
-            border-radius: 8px;
+            margin-bottom: 12px;
+            font-size: 13px;
+            border-radius: var(--mantine-radius-md);
             overflow: hidden;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
           }
 
           .markdown-content th,
           .markdown-content td {
-            border: 1px solid #E5E7EB;
-            padding: 12px 16px;
+            border: 1px solid var(--mantine-color-gray-2);
+            padding: 8px 12px;
             text-align: left;
           }
 
           .markdown-content th {
-            background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
-            font-weight: 700;
+            background-color: var(--mantine-color-blue-6);
+            font-weight: 600;
             color: white;
           }
 
           .markdown-content tr:nth-child(even) {
-            background-color: #F9FAFB;
+            background-color: var(--mantine-color-gray-0);
           }
 
           .markdown-content tr:hover {
-            background-color: #F3F4F6;
+            background-color: var(--mantine-color-gray-1);
             transition: background-color 0.2s ease;
           }
 
           .markdown-content a {
-            color: #4F46E5;
+            color: var(--mantine-color-blue-6);
             text-decoration: none;
-            font-weight: 600;
+            font-weight: 500;
             transition: color 0.2s ease;
           }
 
           .markdown-content a:hover {
-            color: #7C3AED;
+            color: var(--mantine-color-blue-7);
             text-decoration: underline;
           }
         `}
