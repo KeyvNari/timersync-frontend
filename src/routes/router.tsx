@@ -1,5 +1,5 @@
 // src/routes/router.tsx
-import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, Navigate, RouterProvider, useLocation } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { AuthGuard } from '@/guards/auth-guard';
 import { GuestGuard } from '@/guards/guest-guard';
@@ -8,6 +8,19 @@ import { DashboardLayout } from '@/layouts/dashboard';
 import docsRoutes from '@/pages/docs/routes';
 import { LazyPage } from './lazy-page';
 import { paths } from './paths';
+
+// Component that redirects /dashboard/home to /dashboard/rooms if no query parameters
+function HomeRedirectHandler() {
+  const location = useLocation();
+
+  // If there are no search parameters, redirect to rooms
+  if (!location.search) {
+    return <Navigate to={paths.dashboard.rooms} replace />;
+  }
+
+  // Otherwise, render the home page
+  return LazyPage(() => import('@/pages/dashboard/home'));
+}
 
 // Landing page without loading screen
 const LandingPage = lazy(() => import('@/pages/landing'));
@@ -109,7 +122,7 @@ const router = createBrowserRouter([
       },
       {
         path: paths.dashboard.home,
-        element: LazyPage(() => import('@/pages/dashboard/home')),
+        element: <HomeRedirectHandler />,
       },
       /* ---------------------------------- APPS ---------------------------------- */
       /* DISABLED: Demo apps removed to reduce bundle size
