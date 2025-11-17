@@ -11,12 +11,13 @@ import {
   Text,
   TextInput,
   Alert,
+  Divider,
 } from '@mantine/core';
-import { IconAlertCircle } from '@tabler/icons-react';
+import { IconAlertCircle, IconBrandGoogle } from '@tabler/icons-react';
 import { useForm, zodResolver } from '@mantine/form';
 import { FormProvider } from '@/components/forms/form-provider';
 import { RegisterRequestSchema } from '@/api/dtos';
-import { useRegister, useFirebaseLogin } from '@/hooks';
+import { useRegister, useFirebaseLogin, useFirebaseGoogleRegister } from '@/hooks';
 import { useAuth } from '@/hooks/use-auth';
 import { paths } from '@/routes';
 
@@ -46,6 +47,7 @@ export function RegisterForm({ onSuccess, ...props }: RegisterFormProps) {
   const { setIsAuthenticated } = useAuth();
   const { mutate: register, isPending: isRegisterPending } = useRegister();
   const { mutate: firebaseLogin, isPending: isLoginPending } = useFirebaseLogin();
+  const { mutate: googleRegister, isPending: isGoogleRegisterPending } = useFirebaseGoogleRegister();
   const [errorSuggestion, setErrorSuggestion] = useState<{
     message: string;
     field?: string;
@@ -157,6 +159,27 @@ export function RegisterForm({ onSuccess, ...props }: RegisterFormProps) {
     );
   });
 
+  const handleGoogleRegister = () => {
+    googleRegister(
+      { name: form.values.name || 'User' },
+      {
+        onSuccess: (data: any) => {
+          onSuccess?.();
+          // User is already logged in via Firebase
+          setIsAuthenticated(true);
+          // Give the token time to be stored and the auth context to update
+          setTimeout(() => {
+            navigate(paths.dashboard.root, { replace: true });
+          }, 500);
+        },
+        onError: (error: any) => {
+          // Google registration errors are handled in the hook
+          console.error('Google registration error:', error);
+        },
+      }
+    );
+  };
+
   return (
     <FormProvider form={form} onSubmit={handleSubmit}>
       <Stack {...props}>
@@ -172,6 +195,19 @@ export function RegisterForm({ onSuccess, ...props }: RegisterFormProps) {
             {errorSuggestion.message}
           </Alert>
         )}
+
+        <Button
+          variant="default"
+          onClick={handleGoogleRegister}
+          loading={isGoogleRegisterPending}
+          leftSection={<IconBrandGoogle size={16} />}
+          fullWidth
+        >
+          Register with Google
+        </Button>
+
+        <Divider label="Or" labelPosition="center" />
+
         <TextInput
           label="Name"
           placeholder="Enter your full name"
@@ -192,7 +228,7 @@ export function RegisterForm({ onSuccess, ...props }: RegisterFormProps) {
           required
           {...form.getInputProps('password')}
         />
-        
+
       <Checkbox
       name="agreeToTerms"
       label={
@@ -205,7 +241,7 @@ export function RegisterForm({ onSuccess, ...props }: RegisterFormProps) {
       }
       {...form.getInputProps('agreeToTerms', { type: 'checkbox' })}
     />
-        
+
         <Button
           type="submit"
           loading={isRegisterPending || isLoginPending}
