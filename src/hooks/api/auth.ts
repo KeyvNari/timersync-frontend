@@ -1,9 +1,11 @@
 // src/hooks/api/auth.ts - Updated registration hook
 import { z } from 'zod';
+import { useMutation } from '@tanstack/react-query';
 import { notifications } from '@mantine/notifications';
 import { removeClientAccessToken, setClientAccessToken } from '@/api/axios';
 import { LoginRequestSchema, LoginResponseSchema } from '@/api/dtos';
 import { createPostMutationHook } from '@/api/helpers';
+import { auth } from '@/services/firebase';
 
 // Keep existing login schemas
 export const useLogin = createPostMutationHook({
@@ -80,26 +82,27 @@ export const useRegister = createPostMutationHook({
   },
 });
 
-export const useLogout = createPostMutationHook({
-  endpoint: '/api/v1/logout',
-  bodySchema: z.object({}),
-  responseSchema: z.object({}),
-  rMutationParams: {
+export const useLogout = () => {
+  return useMutation({
+    mutationFn: async () => {
+      await auth.signOut();
+      removeClientAccessToken();
+    },
     onSuccess: () => {
-      removeClientAccessToken();
-      notifications.show({ 
+      notifications.show({
         title: 'Logged Out',
-        message: 'You have been successfully logged out', 
-        color: 'green' 
+        message: 'You have been successfully logged out',
+        color: 'green'
       });
     },
-    onError: () => {
+    onError: (error: any) => {
       removeClientAccessToken();
-      notifications.show({ 
+      console.error('Logout error:', error);
+      notifications.show({
         title: 'Logged Out',
-        message: 'Session ended', 
-        color: 'blue' 
+        message: 'Session ended',
+        color: 'blue'
       });
     },
-  },
-});
+  });
+};

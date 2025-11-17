@@ -1,6 +1,8 @@
 import { createContext, ReactNode, useEffect, useMemo, useState } from 'react';
-import { loadAccessToken } from '@/api/axios';
+import { onAuthStateChanged } from 'firebase/auth';
+import { loadAccessToken, setClientAccessToken } from '@/api/axios';
 import { getAccountInfo } from '@/api/resources';
+import { auth } from '@/services/firebase';
 import { app } from '@/config';
 
 interface AuthContextValues {
@@ -27,31 +29,35 @@ useEffect(() => {
     return;
   }
 
-  loadAccessToken(); // This should load the token into axios and localStorage
-
-  // Check if user is authenticated
-  const checkAuth = async () => {
-    const token = localStorage.getItem(app.accessTokenStoreKey);
-
-    if (!token) {
-      setIsAuthenticated(false);
-      setIsInitialized(true);
-      return;
-    }
-
+  // Listen to Firebase authentication state changes
+  const unsubscribe = onAuthStateChanged(auth, async (user) => {
     try {
-      await getAccountInfo();
-      setIsAuthenticated(true);
+      if (user) {
+        // User is signed in, get fresh Firebase token
+        const firebaseToken = await user.getIdToken();
+        setClientAccessToken(firebaseToken);
+
+        // Verify token with backend
+        try {
+          await getAccountInfo();
+          setIsAuthenticated(true);
+        } catch (error) {
+          // Token verification failed
+          setIsAuthenticated(false);
+        }
+      } else {
+        // User is signed out
+        setIsAuthenticated(false);
+      }
     } catch (error) {
-      // Token is invalid, remove it
-      localStorage.removeItem(app.accessTokenStoreKey);
+      console.error('Auth state change error:', error);
       setIsAuthenticated(false);
     } finally {
       setIsInitialized(true);
     }
-  };
+  });
 
-  checkAuth();
+  return () => unsubscribe();
 }, []);
 
   // Listen for storage changes (logout from another tab)

@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { app } from '@/config';
+import { auth } from '@/services/firebase';
 
 export const client = axios.create({
   baseURL: app.apiBaseUrl,
@@ -48,17 +49,18 @@ client.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshResponse = await axios.post(
-          `${app.apiBaseUrl}/api/v1/refresh`,
-          {},
-          { withCredentials: true }
-        );
+        // Try to refresh Firebase token from current user
+        const currentUser = auth.currentUser;
+        if (currentUser) {
+          // Force refresh the Firebase token
+          const newFirebaseToken = await currentUser.getIdToken(true);
+          setClientAccessToken(newFirebaseToken);
 
-        const newToken = refreshResponse.data.access_token;
-        setClientAccessToken(newToken);
-
-        originalRequest.headers.authorization = `Bearer ${newToken}`;
-        return client(originalRequest);
+          originalRequest.headers.authorization = `Bearer ${newFirebaseToken}`;
+          return client(originalRequest);
+        } else {
+          throw new Error('No user logged in');
+        }
       } catch (refreshError) {
         removeClientAccessToken();
 
