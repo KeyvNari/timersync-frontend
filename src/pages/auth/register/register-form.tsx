@@ -16,7 +16,7 @@ import { IconAlertCircle } from '@tabler/icons-react';
 import { useForm, zodResolver } from '@mantine/form';
 import { FormProvider } from '@/components/forms/form-provider';
 import { RegisterRequestSchema } from '@/api/dtos';
-import { useRegister, useLogin } from '@/hooks';
+import { useRegister, useFirebaseLogin } from '@/hooks';
 import { useAuth } from '@/hooks/use-auth';
 import { paths } from '@/routes';
 
@@ -45,7 +45,7 @@ export function RegisterForm({ onSuccess, ...props }: RegisterFormProps) {
   const navigate = useNavigate();
   const { setIsAuthenticated } = useAuth();
   const { mutate: register, isPending: isRegisterPending } = useRegister();
-  const { mutate: login, isPending: isLoginPending } = useLogin();
+  const { mutate: firebaseLogin, isPending: isLoginPending } = useFirebaseLogin();
   const [errorSuggestion, setErrorSuggestion] = useState<{
     message: string;
     field?: string;
@@ -83,18 +83,9 @@ export function RegisterForm({ onSuccess, ...props }: RegisterFormProps) {
       {
         onSuccess: () => {
           onSuccess?.();
-          // Automatically log in the user with their credentials
-          login(
-            {
-              variables: {
-                username: registrationData.email,
-                password: registrationData.password,
-                grant_type: 'password',
-                scope: 'read write',
-                client_id: 'frontend',
-                client_secret: 'frontend-secret',
-              },
-            },
+          // Automatically log in the user with their credentials using Firebase
+          firebaseLogin(
+            { email: registrationData.email, password: registrationData.password },
             {
               onSuccess: () => {
                 // Update auth state and redirect to dashboard
