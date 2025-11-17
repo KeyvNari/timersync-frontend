@@ -38,7 +38,8 @@ import {
   IconDownload,
   IconAlertCircle,
   IconRefresh,
-  IconLetterXSmall
+  IconLetterXSmall,
+  IconLink
 } from '@tabler/icons-react';
 import { useWebSocketContext } from '@/providers/websocket-provider';
 import { useDisclosure } from '@mantine/hooks';
@@ -537,6 +538,15 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
                     size="xs"
                     variant="light"
                     color="blue"
+                    onClick={() => window.open(generateLink(token.token, token.access_level as AccessLevel, isProtected), '_blank')}
+                    leftSection={<IconLink size={14} />}
+                  >
+                    Open Link
+                  </Button>
+                  <Button
+                    size="xs"
+                    variant="light"
+                    color="blue"
                     onClick={() => showQrCode(token)}
                     leftSection={<IconQrcode size={14} />}
                   >
@@ -565,7 +575,7 @@ const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
       <Modal
         opened={opened}
         onClose={onClose}
-        size="xl"
+        size="90%"
         centered
         withCloseButton={true}
       >
