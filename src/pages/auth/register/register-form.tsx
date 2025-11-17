@@ -160,24 +160,21 @@ export function RegisterForm({ onSuccess, ...props }: RegisterFormProps) {
   });
 
   const handleGoogleRegister = () => {
-    googleRegister(
-      { name: form.values.name || 'User' },
-      {
-        onSuccess: (data: any) => {
-          onSuccess?.();
-          // User is already logged in via Firebase
-          setIsAuthenticated(true);
-          // Give the token time to be stored and the auth context to update
-          setTimeout(() => {
-            navigate(paths.dashboard.root, { replace: true });
-          }, 500);
-        },
-        onError: (error: any) => {
-          // Google registration errors are handled in the hook
-          console.error('Google registration error:', error);
-        },
-      }
-    );
+    googleRegister(undefined, {
+      onSuccess: (data: any) => {
+        onSuccess?.();
+        // User is already logged in via Firebase
+        setIsAuthenticated(true);
+        // Give the token time to be stored and the auth context to update
+        setTimeout(() => {
+          navigate(paths.dashboard.root, { replace: true });
+        }, 500);
+      },
+      onError: (error: any) => {
+        // Google registration errors are handled in the hook
+        console.error('Google registration error:', error);
+      },
+    });
   };
 
   return (

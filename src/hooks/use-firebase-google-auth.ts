@@ -2,14 +2,22 @@ import { useMutation } from '@tanstack/react-query';
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { notifications } from '@mantine/notifications';
 import { auth } from '@/services/firebase';
-import { setClientAccessToken } from '@/api/axios';
-import { useRegister } from '@/hooks/api/auth';
+import { setClientAccessToken, client } from '@/api/axios';
 
 // Initialize Google Auth Provider
 const googleProvider = new GoogleAuthProvider();
 // Request specific scopes to ensure we get user info
 googleProvider.addScope('profile');
 googleProvider.addScope('email');
+
+interface FirebaseLoginResponse {
+  id: number;
+  name: string;
+  username: string;
+  email: string;
+  profile_image_url: string;
+  plan: string;
+}
 
 export function useFirebaseGoogleLogin() {
   return useMutation({
@@ -20,14 +28,18 @@ export function useFirebaseGoogleLogin() {
         // Get the Firebase ID token
         const firebaseToken = await userCredential.user.getIdToken();
 
+        // Send token to backend for verification and user sync
+        const response = await client.post<FirebaseLoginResponse>(
+          '/api/v1/firebase-login',
+          { token: firebaseToken }
+        );
+
         // Store the Firebase token as the access token
         setClientAccessToken(firebaseToken);
 
         return {
-          user: userCredential.user,
+          user: response.data,
           token: firebaseToken,
-          email: userCredential.user.email,
-          displayName: userCredential.user.displayName,
         };
       } catch (error: any) {
         if (error.code === 'auth/popup-closed-by-user') {
@@ -44,6 +56,8 @@ export function useFirebaseGoogleLogin() {
 
       if (error.message) {
         errorMessage = error.message;
+      } else if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
       }
 
       notifications.show({
@@ -55,15 +69,9 @@ export function useFirebaseGoogleLogin() {
   });
 }
 
-interface UseFirebaseGoogleRegisterParams {
-  name: string;
-}
-
 export function useFirebaseGoogleRegister() {
-  const { mutate: register } = useRegister();
-
   return useMutation({
-    mutationFn: async (params: UseFirebaseGoogleRegisterParams) => {
+    mutationFn: async () => {
       try {
         const userCredential = await signInWithPopup(auth, googleProvider);
         const user = userCredential.user;
@@ -71,24 +79,18 @@ export function useFirebaseGoogleRegister() {
         // Get the Firebase ID token
         const firebaseToken = await userCredential.user.getIdToken();
 
+        // Send token to backend for verification and user creation
+        const response = await client.post<FirebaseLoginResponse>(
+          '/api/v1/firebase-login',
+          { token: firebaseToken }
+        );
+
         // Store the Firebase token as the access token
         setClientAccessToken(firebaseToken);
 
-        // Generate username from email
-        const baseUsername = user.email
-          ?.split('@')[0]
-          .toLowerCase()
-          .replace(/[^a-z0-9]/g, '') || 'user';
-
-        const username =
-          baseUsername.length < 2 ? (baseUsername + '1').substring(0, 20) : baseUsername.substring(0, 20);
-
         return {
-          user,
+          user: response.data,
           token: firebaseToken,
-          email: user.email || '',
-          displayName: user.displayName || params.name,
-          username,
         };
       } catch (error: any) {
         if (error.code === 'auth/popup-closed-by-user') {
@@ -105,6 +107,8 @@ export function useFirebaseGoogleRegister() {
 
       if (error.message) {
         errorMessage = error.message;
+      } else if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
       }
 
       notifications.show({
