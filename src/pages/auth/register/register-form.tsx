@@ -58,6 +58,7 @@ export function RegisterForm({ onSuccess, ...props }: RegisterFormProps) {
       name: '',
       email: '',
       password: '',
+      username: '',
       agreeToTerms: false,
     },
     validateInputOnChange: true,
