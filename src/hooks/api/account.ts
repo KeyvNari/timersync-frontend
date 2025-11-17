@@ -6,7 +6,7 @@ const UserSchema = z.object({
   name: z.string(),
   username: z.string(),
   email: z.string().email(),
-  profile_image_url: z.string().url(),
+  profile_image_url: z.string().url().optional(),
   plan: z.string(),
 });
 

@@ -118,17 +118,13 @@ export function RoomsComponent({
   };
 
   const handleLogout = () => {
-    // Navigate immediately before any state changes
-    navigate(`${paths.auth.login}?r=${paths.dashboard.rooms}`, { replace: true });
-
-    logout(
-      { variables: {} },
-      {
-        onSettled: () => {
-          setIsAuthenticated(false);
-        },
-      }
-    );
+    logout(undefined, {
+      onSettled: () => {
+        setIsAuthenticated(false);
+        // Navigate after logout completes
+        navigate(`${paths.auth.login}?r=${paths.dashboard.rooms}`, { replace: true });
+      },
+    });
   };
 
   const formatDate = (dateString: string) => {

@@ -226,7 +226,7 @@ export class SimpleWebSocketService {
         let connectionAcknowledged = false;
 
         this.ws.onopen = () => {
-          // Don't set isConnected or resolve yet - wait for server to accept
+          // Connection is open, wait for server acknowledgment
         };
 
         this.ws.onmessage = (event) => {

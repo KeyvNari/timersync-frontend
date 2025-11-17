@@ -20,8 +20,22 @@ import { useRegister, useLogin } from '@/hooks';
 import { useAuth } from '@/hooks/use-auth';
 import { paths } from '@/routes';
 
-// Local schema for form validation (matches API requirements)
-const FormValidationSchema = RegisterRequestSchema;
+// Local schema for form validation (username is auto-generated, so optional for form)
+const FormValidationSchema = RegisterRequestSchema.pick({
+  name: true,
+  email: true,
+  password: true,
+});
+
+// Helper to generate username from email (remove @ and domain, keep only lowercase letters and numbers)
+const generateUsernameFromEmail = (email: string): string => {
+  const baseUsername = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
+  // Ensure minimum 2 characters, pad with numbers if needed
+  if (baseUsername.length < 2) {
+    return (baseUsername + '1').substring(0, 20);
+  }
+  return baseUsername.substring(0, 20);
+};
 
 interface RegisterFormProps extends Omit<StackProps, 'children'> {
   onSuccess?: () => void;
@@ -42,7 +56,6 @@ export function RegisterForm({ onSuccess, ...props }: RegisterFormProps) {
     validate: zodResolver(FormValidationSchema),
     initialValues: {
       name: '',
-      username: '',
       email: '',
       password: '',
       agreeToTerms: false,
@@ -57,6 +70,11 @@ export function RegisterForm({ onSuccess, ...props }: RegisterFormProps) {
     if (!agreeToTerms) {
       form.setFieldError('agreeToTerms', 'You must agree to the terms and privacy policy');
       return;
+    }
+
+    // Auto-generate username from email if empty
+    if (!registrationData.username) {
+      registrationData.username = generateUsernameFromEmail(registrationData.email);
     }
 
     register(
@@ -80,7 +98,10 @@ export function RegisterForm({ onSuccess, ...props }: RegisterFormProps) {
               onSuccess: () => {
                 // Update auth state and redirect to dashboard
                 setIsAuthenticated(true);
-                navigate(paths.dashboard.root, { replace: true });
+                // Give the token time to be stored and the auth context to update
+                setTimeout(() => {
+                  navigate(paths.dashboard.root, { replace: true });
+                }, 500);
               },
               onError: (error: any) => {
                 // Fall back to login page if auto-login fails
@@ -164,12 +185,6 @@ export function RegisterForm({ onSuccess, ...props }: RegisterFormProps) {
           placeholder="Enter your full name"
           required
           {...form.getInputProps('name')}
-        />
-        <TextInput
-          label="Username"
-          placeholder="Choose a username (lowercase letters and numbers only)"
-          required
-          {...form.getInputProps('username')}
         />
         <TextInput
           label="Email"

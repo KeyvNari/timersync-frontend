@@ -23,23 +23,19 @@ export function CurrentUser(props: CurrentUserProps) {
 
   const isRoomsPage = location.pathname === '/dashboard/rooms';
 
-const handleLogout = () => {
-  // Navigate immediately before any state changes
-  navigate(`${paths.auth.login}?r=${paths.dashboard.rooms}`, { replace: true });
-
-  logout(
-    { variables: {} },
-    {
+  const handleLogout = () => {
+    logout(undefined, {
       onSettled: () => {
         setIsAuthenticated(false);
+        // Navigate after logout completes
+        navigate(`${paths.auth.login}?r=${paths.dashboard.rooms}`, { replace: true });
       }
-    }
-  );
-};
+    });
+  };
 
-const handleGoBackToRooms = () => {
-  navigate(paths.dashboard.rooms);
-};
+  const handleGoBackToRooms = () => {
+    navigate(paths.dashboard.rooms);
+  };
 
   return (
     <Menu>
