@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActionIcon,
+  Accordion,
   Badge,
   Box,
   Button,
@@ -12,32 +13,40 @@ import {
   Group,
   Modal,
   NumberInput,
+  Paper,
+  ScrollArea,
+  SegmentedControl,
   Select,
+  Slider,
   Stack,
   Switch,
   Text,
   TextInput,
-  Tabs,
+  ThemeIcon,
   Tooltip,
+  rem,
   useMantineTheme,
   useMantineColorScheme,
 } from '@mantine/core';
 import {
-  IconTrash,
-  IconDeviceFloppy,
-  IconUpload,
-  IconPhoto,
-  IconPalette,
+  IconCheck,
+  IconChevronLeft,
   IconClock,
+  IconDeviceFloppy,
   IconLayout,
-  IconTextSize,
   IconMaximize,
+  IconPalette,
+  IconPhoto,
+  IconTemplate,
+  IconTextSize,
+  IconTrash,
+  IconX,
 } from '@tabler/icons-react';
+import { AnimatePresence, motion } from 'framer-motion';
 import TimerDisplay from '@/components/timer-display';
 import { useWebSocketContext } from '@/providers/websocket-provider';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { UpgradeCta } from '@/components/timer-panel/upgrade-cta';
-
 
 interface TimerDisplayEditorProps {
   initialDisplay?: any;
@@ -105,7 +114,7 @@ export default function TimerDisplayEditorV2({
     initialDisplay?.id ?? 'new'
   );
   const [isCreatingNew, setIsCreatingNew] = useState(!initialDisplay?.id);
-  const [activeTab, setActiveTab] = useState<string | null>('layout');
+  const [activeTab, setActiveTab] = useState<string>('layout');
   const [deleteConfirmOpened, setDeleteConfirmOpened] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [fullscreenPreview, setFullscreenPreview] = useState(false);
@@ -300,621 +309,431 @@ export default function TimerDisplayEditorV2({
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, [fullscreenPreview]);
 
-  const SectionCard = ({
-    title,
-    icon,
-    children,
-  }: {
-    title: string;
-    icon: React.ReactNode;
-    children: React.ReactNode;
-  }) => (
-    <Card withBorder radius="md" p="sm" bg="var(--mantine-color-body)">
-      <Group mb="xs" gap="xs">
-        {icon}
-        <Text fw={600} size="sm">
-          {title}
-        </Text>
-      </Group>
-      <Divider mb="sm" />
-      {children}
-    </Card>
-  );
+  // Animation variants
+  const panelVariants = {
+    hidden: { opacity: 0, x: -20 },
+    visible: { opacity: 1, x: 0, transition: { duration: 0.3 } },
+  };
 
   return (
-    <Box style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Group justify="space-between" align="center" p="sm" style={{ borderBottom: `1px solid ${theme.colors.gray[3]}` }}>
-        <Group gap="sm">
-          <Select
-            data={displayOptions}
-            value={selectedDisplayId?.toString()}
-            onChange={handleSelect}
-            size="sm"
-            style={{ minWidth: 220 }}
-          />
-          <TextInput
-            value={display.name}
-            onChange={(e) => updateDisplay('name', e.currentTarget.value)}
-            placeholder="Display name"
-            size="sm"
-            style={{ minWidth: 200 }}
-            error={nameError || undefined}
-          />
-          <Checkbox
-            label="Default"
-            checked={display.is_default}
-            onChange={(e) =>
-              updateDisplay('is_default', e.currentTarget.checked)
-            }
-            size="xs"
-          />
-          {hasUnsavedChanges && (
-            <Badge color="orange" variant="light" size="sm">
-              Unsaved
-            </Badge>
-          )}
-        </Group>
-        <Group gap="xs">
-          {!isCreatingNew && onDelete && displays.length > 1 && (
-            <Tooltip label={!features.canSaveDisplay().isAvailable ? features.canSaveDisplay().reason : "Delete this display"} position="top" withArrow disabled={features.canSaveDisplay().isAvailable}>
-              <div>
-                <ActionIcon
-                  color="red"
-                  variant="subtle"
-                  disabled={!features.canSaveDisplay().isAvailable}
-                  onClick={() => {
-                    setDeleteConfirmOpened(true);
-                    setDeleteError(null);
-                  }}
-                >
-                  <IconTrash size={16} />
-                </ActionIcon>
-              </div>
-            </Tooltip>
-          )}
-          <Tooltip label={!features.canSaveDisplay().isAvailable ? features.canSaveDisplay().reason : undefined} position="top" withArrow disabled={features.canSaveDisplay().isAvailable}>
-            <div>
+    <Box style={{ height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--mantine-color-body)' }}>
+      {/* Top Bar */}
+      <Paper
+        p="sm"
+        radius={0}
+        style={{
+          borderBottom: `1px solid ${theme.colors.gray[3]}`,
+          zIndex: 10,
+        }}
+      >
+        <Group justify="space-between" align="center">
+          <Group gap="sm">
+            {onCancel && (
+              <ActionIcon variant="subtle" color="gray" onClick={onCancel}>
+                <IconChevronLeft size={20} />
+              </ActionIcon>
+            )}
+            <Stack gap={0}>
+              <Text size="xs" c="dimmed" fw={500} tt="uppercase">
+                Editing Display
+              </Text>
+              <Group gap="xs">
+                <TextInput
+                  variant="unstyled"
+                  size="sm"
+                  value={display.name}
+                  onChange={(e) => updateDisplay('name', e.currentTarget.value)}
+                  placeholder="Display Name"
+                  styles={{ input: { fontWeight: 600, fontSize: rem(16), height: 'auto', padding: 0 } }}
+                  error={nameError}
+                />
+                {hasUnsavedChanges && (
+                  <Badge color="orange" variant="dot" size="xs">
+                    Unsaved
+                  </Badge>
+                )}
+              </Group>
+            </Stack>
+          </Group>
+
+          <Group gap="sm">
+            <Select
+              data={displayOptions}
+              value={selectedDisplayId?.toString()}
+              onChange={handleSelect}
+              size="xs"
+              placeholder="Switch Display"
+              style={{ width: 200 }}
+              leftSection={<IconTemplate size={14} />}
+            />
+            <Divider orientation="vertical" />
+            <Group gap="xs">
+              <Switch
+                label="Default"
+                checked={display.is_default}
+                onChange={(e) => updateDisplay('is_default', e.currentTarget.checked)}
+                size="xs"
+              />
+            </Group>
+            <Divider orientation="vertical" />
+            <Group gap="xs">
+              {!isCreatingNew && onDelete && displays.length > 1 && (
+                <Tooltip label="Delete Display" withArrow>
+                  <ActionIcon
+                    color="red"
+                    variant="light"
+                    onClick={() => {
+                      setDeleteConfirmOpened(true);
+                      setDeleteError(null);
+                    }}
+                    disabled={!features.canSaveDisplay().isAvailable}
+                  >
+                    <IconTrash size={18} />
+                  </ActionIcon>
+                </Tooltip>
+              )}
               <Button
                 leftSection={<IconDeviceFloppy size={16} />}
-                size="sm"
+                size="xs"
                 onClick={handleSave}
                 disabled={!hasUnsavedChanges || (isCreatingNew && !display.name?.trim()) || !features.canSaveDisplay().isAvailable}
               >
-                {isCreatingNew ? 'Create' : 'Save'}
+                {isCreatingNew ? 'Create' : 'Save Changes'}
               </Button>
-            </div>
-          </Tooltip>
-          {onCancel && (
-            <Button variant="default" size="sm" onClick={onCancel}>
-              Close
-            </Button>
-          )}
+            </Group>
+          </Group>
         </Group>
-      </Group>
+      </Paper>
 
-      <Box style={{ flex: 1, display: 'flex', overflow: 'hidden', gap: 'xs' }}>
-        {/* Left controls - independently scrollable */}
-        <Box
+      <Box style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+        {/* Left Editor Panel */}
+        <Paper
+          radius={0}
           style={{
-            width: '100%',
-            maxWidth: 'calc(42% - 6px)',
+            width: 360,
             borderRight: `1px solid ${theme.colors.gray[3]}`,
             display: 'flex',
             flexDirection: 'column',
-            overflow: 'hidden',
+            zIndex: 5,
           }}
         >
-          <Tabs
-            value={activeTab}
-            onChange={setActiveTab}
-            variant="outline"
-            radius="md"
-            style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}
-          >
-            <Tabs.List style={{ flexShrink: 0 }}>
-              <Tabs.Tab value="layout" leftSection={<IconLayout size={14} />}>
-                Layout
-              </Tabs.Tab>
-              <Tabs.Tab value="branding" leftSection={<IconPhoto size={14} />}>
-                Branding
-              </Tabs.Tab>
-              <Tabs.Tab value="timer" leftSection={<IconClock size={14} />}>
-                Timer
-              </Tabs.Tab>
-              <Tabs.Tab
-                value="content"
-                leftSection={<IconTextSize size={14} />}
-              >
-                Content
-              </Tabs.Tab>
-              <Tabs.Tab
-                value="colors"
-                leftSection={<IconPalette size={14} />}
-              >
-                Colors
-              </Tabs.Tab>
-            </Tabs.List>
+          <Box p="md" pb="xs">
+            <SegmentedControl
+              fullWidth
+              value={activeTab}
+              onChange={setActiveTab}
+              data={[
+                {
+                  value: 'layout',
+                  label: (
+                    <Group gap={6} justify="center">
+                      <IconLayout size={16} />
+                      <Text inherit>Layout</Text>
+                    </Group>
+                  ),
+                },
+                {
+                  value: 'style',
+                  label: (
+                    <Group gap={6} justify="center">
+                      <IconPalette size={16} />
+                      <Text inherit>Style</Text>
+                    </Group>
+                  ),
+                },
+                {
+                  value: 'content',
+                  label: (
+                    <Group gap={6} justify="center">
+                      <IconTextSize size={16} />
+                      <Text inherit>Content</Text>
+                    </Group>
+                  ),
+                },
+              ]}
+            />
+          </Box>
 
-            <Box style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
-              <Box p="md">
-                {!features.canCustomizeDisplay().isAvailable && (
+          <ScrollArea style={{ flex: 1 }}>
+            <Box p="md">
+              {!features.canCustomizeDisplay().isAvailable && (
+                <Box mb="md">
                   <UpgradeCta
                     current={0}
                     limit={0}
                     message={features.canCustomizeDisplay().reason}
                   />
-                )}
+                </Box>
+              )}
 
-                <Tabs.Panel value="layout" pt="sm">
-                  <SectionCard title="Layout" icon={<IconLayout size={16} />}>
-                    <Stack gap="sm">
-                      <Select
-                        label="Aspect ratio"
-                        data={aspectRatioOptions}
-                        value={display.display_ratio}
-                        onChange={(v) => updateDisplay('display_ratio', v)}
-                      />
-                      <Select
-                        label="Background type"
-                        data={[
-                          { value: 'color', label: 'Color' },
-                          { value: 'image', label: 'Image' },
-                          { value: 'transparent', label: 'Transparent' },
-                        ]}
-                        value={display.background_type}
-                        onChange={(v) => updateDisplay('background_type', v)}
-                      />
-                      {display.background_type === 'color' && (
-                        <ColorInput
-                          label="Background color"
-                          value={display.background_color}
-                          onChange={(v) =>
-                            updateDisplay('background_color', v)
-                          }
-                        />
-                      )}
-                      {display.background_type === 'image' && (
-                        <FileInput
-                          label="Background image"
-                          placeholder="Upload"
-                          onChange={(f) =>
-                            f && handleFileUpload(f, 'background_image')
-                          }
-                        />
-                      )}
-                      <Select
-                        label="Progress style"
-                        data={progressStyleOptions}
-                        value={display.progress_style}
-                        onChange={(v) => updateDisplay('progress_style', v)}
-                      />
-                    </Stack>
-                  </SectionCard>
-                </Tabs.Panel>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeTab}
+                  initial="hidden"
+                  animate="visible"
+                  variants={panelVariants}
+                >
+                  {activeTab === 'layout' && (
+                    <Stack gap="md">
+                      <Accordion variant="separated" defaultValue="general">
+                        <Accordion.Item value="general">
+                          <Accordion.Control icon={<IconLayout size={18} />}>General Layout</Accordion.Control>
+                          <Accordion.Panel>
+                            <Stack gap="sm">
+                              <Select
+                                label="Aspect Ratio"
+                                description="Target screen ratio"
+                                data={aspectRatioOptions}
+                                value={display.display_ratio}
+                                onChange={(v) => updateDisplay('display_ratio', v)}
+                              />
+                              <Select
+                                label="Progress Bar Style"
+                                data={progressStyleOptions}
+                                value={display.progress_style}
+                                onChange={(v) => updateDisplay('progress_style', v)}
+                              />
+                            </Stack>
+                          </Accordion.Panel>
+                        </Accordion.Item>
 
-                <Tabs.Panel value="branding" pt="sm">
-                  <SectionCard
-                    title="Branding"
-                    icon={<IconPhoto size={16} />}
-                  >
-                    <Stack gap="sm">
-                      <FileInput
-                        label="Logo"
-                        placeholder="Upload logo"
-                        onChange={(f) =>
-                          f && handleFileUpload(f, 'logo_image')
-                        }
-                      />
-                      <NumberInput
-                        label="Logo size %"
-                        value={display.logo_size_percent}
-                        onChange={(v) =>
-                          updateDisplay('logo_size_percent', v)
-                        }
-                      />
-                      <Select
-                        label="Logo position"
-                        data={positionOptions}
-                        value={display.logo_position}
-                        onChange={(v) =>
-                          updateDisplay('logo_position', v)
-                        }
-                      />
+                        <Accordion.Item value="background">
+                          <Accordion.Control icon={<IconPhoto size={18} />}>Background</Accordion.Control>
+                          <Accordion.Panel>
+                            <Stack gap="sm">
+                              <Select
+                                label="Type"
+                                data={[
+                                  { value: 'color', label: 'Solid Color' },
+                                  { value: 'image', label: 'Image' },
+                                  { value: 'transparent', label: 'Transparent' },
+                                ]}
+                                value={display.background_type}
+                                onChange={(v) => updateDisplay('background_type', v)}
+                              />
+                              {display.background_type === 'color' && (
+                                <ColorInput
+                                  label="Color"
+                                  value={display.background_color}
+                                  onChange={(v) => updateDisplay('background_color', v)}
+                                  format="hex"
+                                  swatches={['#000000', '#ffffff', '#1a1b1e', '#25262b', '#2C2E33']}
+                                />
+                              )}
+                              {display.background_type === 'image' && (
+                                <FileInput
+                                  label="Upload Image"
+                                  placeholder="Choose file"
+                                  accept="image/*"
+                                  leftSection={<IconPhoto size={14} />}
+                                  onChange={(f) => f && handleFileUpload(f, 'background_image')}
+                                />
+                              )}
+                            </Stack>
+                          </Accordion.Panel>
+                        </Accordion.Item>
+                      </Accordion>
                     </Stack>
-                  </SectionCard>
-                </Tabs.Panel>
+                  )}
 
-                <Tabs.Panel value="timer" pt="sm">
-                  <SectionCard title="Timer" icon={<IconClock size={16} />}>
-                    <Stack gap="sm">
-                      <Select
-                        label="Format"
-                        data={[
-                          { value: 'mm:ss', label: 'MM:SS' },
-                          { value: 'hh:mm:ss', label: 'HH:MM:SS' },
-                        ]}
-                        value={display.timer_format}
-                        onChange={(v) => updateDisplay('timer_format', v)}
-                      />
-                      <Select
-                        label="Font"
-                        data={monoFontOptions}
-                        value={display.timer_font_family}
-                        onChange={(v) =>
-                          updateDisplay('timer_font_family', v)
-                        }
-                      />
-                      <NumberInput
-                        label="Size %"
-                        value={display.timer_size_percent}
-                        onChange={(v) =>
-                          updateDisplay('timer_size_percent', v)
-                        }
-                      />
-                      <Select
-                        label="Position"
-                        data={timerPositionOptions}
-                        value={display.timer_position}
-                        onChange={(v) =>
-                          updateDisplay('timer_position', v)
-                        }
-                      />
-                      <Divider />
-                      <Group justify="space-between">
-                        <Text size="sm" fw={600}>
-                          Show clock
-                        </Text>
-                        <Switch
-                          checked={display.clock_visible}
-                          onChange={(e) =>
-                            updateDisplay(
-                              'clock_visible',
-                              e.currentTarget.checked
-                            )
-                          }
-                        />
-                      </Group>
-                      {display.clock_visible && (
-                        <Select
-                          label="Clock font"
-                          data={monoFontOptions}
-                          value={display.clock_font_family}
-                          onChange={(v) =>
-                            updateDisplay('clock_font_family', v)
-                          }
-                        />
-                      )}
-                    </Stack>
-                  </SectionCard>
-                </Tabs.Panel>
+                  {activeTab === 'style' && (
+                    <Stack gap="md">
+                      <Accordion variant="separated" defaultValue="timer">
+                        <Accordion.Item value="timer">
+                          <Accordion.Control icon={<IconClock size={18} />}>Timer Appearance</Accordion.Control>
+                          <Accordion.Panel>
+                            <Stack gap="sm">
+                              <Select
+                                label="Font Family"
+                                data={monoFontOptions}
+                                value={display.timer_font_family}
+                                onChange={(v) => updateDisplay('timer_font_family', v)}
+                                renderOption={({ option }) => (
+                                  <Text style={{ fontFamily: option.value }}>{option.label}</Text>
+                                )}
+                              />
+                              <ColorInput
+                                label="Color"
+                                value={display.timer_color}
+                                onChange={(v) => updateDisplay('timer_color', v)}
+                              />
+                              <Box>
+                                <Text size="sm" fw={500} mb={4}>Size Scale</Text>
+                                <Slider
+                                  value={display.timer_size_percent}
+                                  onChange={(v) => updateDisplay('timer_size_percent', v)}
+                                  min={50}
+                                  max={200}
+                                  step={5}
+                                  marks={[
+                                    { value: 100, label: '100%' },
+                                  ]}
+                                />
+                              </Box>
+                              <Select
+                                label="Format"
+                                data={[
+                                  { value: 'mm:ss', label: 'MM:SS' },
+                                  { value: 'hh:mm:ss', label: 'HH:MM:SS' },
+                                ]}
+                                value={display.timer_format}
+                                onChange={(v) => updateDisplay('timer_format', v)}
+                              />
+                            </Stack>
+                          </Accordion.Panel>
+                        </Accordion.Item>
 
-                <Tabs.Panel value="content" pt="sm">
-                  <SectionCard
-                    title="Typography & Content"
-                    icon={<IconTextSize size={16} />}
-                  >
-                    <Stack gap="sm">
-                      <Select
-                        label="Title location"
-                        data={displayLocationOptions}
-                        value={display.title_display_location}
-                        onChange={(v) =>
-                          updateDisplay('title_display_location', v)
-                        }
-                      />
-                      <Select
-                        label="Speaker location"
-                        data={displayLocationOptions}
-                        value={display.speaker_display_location}
-                        onChange={(v) =>
-                          updateDisplay('speaker_display_location', v)
-                        }
-                      />
-                      <Divider />
-                      <Select
-                        label="Header font"
-                        data={fontOptions}
-                        value={display.header_font_family}
-                        onChange={(v) =>
-                          updateDisplay('header_font_family', v)
-                        }
-                      />
-                      <Select
-                        label="Footer font"
-                        data={fontOptions}
-                        value={display.footer_font_family}
-                        onChange={(v) =>
-                          updateDisplay('footer_font_family', v)
-                        }
-                      />
-                      <Select
-                        label="Message font"
-                        data={fontOptions}
-                        value={display.message_font_family}
-                        onChange={(v) =>
-                          updateDisplay('message_font_family', v)
-                        }
-                      />
-                    </Stack>
-                  </SectionCard>
-                </Tabs.Panel>
+                        <Accordion.Item value="colors">
+                          <Accordion.Control icon={<IconPalette size={18} />}>Theme Colors</Accordion.Control>
+                          <Accordion.Panel>
+                            <Stack gap="sm">
+                              <ColorInput label="Header Text" value={display.header_color} onChange={(v) => updateDisplay('header_color', v)} />
+                              <ColorInput label="Footer Text" value={display.footer_color} onChange={(v) => updateDisplay('footer_color', v)} />
+                              <ColorInput label="Message Text" value={display.message_color} onChange={(v) => updateDisplay('message_color', v)} />
+                              <Divider label="Progress Bar" labelPosition="center" />
+                              <ColorInput label="Main Color" value={display.progress_color_main} onChange={(v) => updateDisplay('progress_color_main', v)} />
+                              <ColorInput label="Warning Color" value={display.progress_color_secondary} onChange={(v) => updateDisplay('progress_color_secondary', v)} />
+                              <ColorInput label="Critical Color" value={display.progress_color_tertiary} onChange={(v) => updateDisplay('progress_color_tertiary', v)} />
+                            </Stack>
+                          </Accordion.Panel>
+                        </Accordion.Item>
 
-                <Tabs.Panel value="colors" pt="sm">
-                  <SectionCard title="Colors" icon={<IconPalette size={16} />}>
-                    <Stack gap="sm">
-                      <ColorInput
-                        label="Timer"
-                        value={display.timer_color}
-                        onChange={(v) => updateDisplay('timer_color', v)}
-                      />
-                      <ColorInput
-                        label="Clock"
-                        value={display.clock_color}
-                        onChange={(v) => updateDisplay('clock_color', v)}
-                      />
-                      <ColorInput
-                        label="Header"
-                        value={display.header_color}
-                        onChange={(v) => updateDisplay('header_color', v)}
-                      />
-                      <ColorInput
-                        label="Footer"
-                        value={display.footer_color}
-                        onChange={(v) => updateDisplay('footer_color', v)}
-                      />
-                      <ColorInput
-                        label="Message"
-                        value={display.message_color}
-                        onChange={(v) => updateDisplay('message_color', v)}
-                      />
-                      <Divider />
-                      <ColorInput
-                        label="Progress main"
-                        value={display.progress_color_main}
-                        onChange={(v) =>
-                          updateDisplay('progress_color_main', v)
-                        }
-                      />
-                      <ColorInput
-                        label="Progress secondary"
-                        value={display.progress_color_secondary}
-                        onChange={(v) =>
-                          updateDisplay('progress_color_secondary', v)
-                        }
-                      />
-                      <ColorInput
-                        label="Progress tertiary"
-                        value={display.progress_color_tertiary}
-                        onChange={(v) =>
-                          updateDisplay('progress_color_tertiary', v)
-                        }
-                      />
+                        <Accordion.Item value="branding">
+                          <Accordion.Control icon={<IconPhoto size={18} />}>Branding</Accordion.Control>
+                          <Accordion.Panel>
+                            <Stack gap="sm">
+                              <FileInput
+                                label="Logo Image"
+                                placeholder="Upload logo"
+                                accept="image/*"
+                                onChange={(f) => f && handleFileUpload(f, 'logo_image')}
+                                clearable
+                              />
+                              <Box>
+                                <Text size="sm" fw={500} mb={4}>Logo Size</Text>
+                                <Slider
+                                  value={display.logo_size_percent}
+                                  onChange={(v) => updateDisplay('logo_size_percent', v)}
+                                  min={10}
+                                  max={100}
+                                  step={5}
+                                />
+                              </Box>
+                              <Select
+                                label="Position"
+                                data={positionOptions}
+                                value={display.logo_position}
+                                onChange={(v) => updateDisplay('logo_position', v)}
+                              />
+                            </Stack>
+                          </Accordion.Panel>
+                        </Accordion.Item>
+                      </Accordion>
                     </Stack>
-                  </SectionCard>
-                </Tabs.Panel>
+                  )}
 
-                <Tabs.Panel value="branding" pt="sm">
-                  <SectionCard
-                    title="Branding"
-                    icon={<IconPhoto size={16} />}
-                  >
-                    <Stack gap="sm">
-                      <FileInput
-                        label="Logo"
-                        placeholder="Upload logo"
-                        onChange={(f) =>
-                          f && handleFileUpload(f, 'logo_image')
-                        }
-                      />
-                      <NumberInput
-                        label="Logo size %"
-                        value={display.logo_size_percent}
-                        onChange={(v) =>
-                          updateDisplay('logo_size_percent', v)
-                        }
-                      />
-                      <Select
-                        label="Logo position"
-                        data={positionOptions}
-                        value={display.logo_position}
-                        onChange={(v) =>
-                          updateDisplay('logo_position', v)
-                        }
-                      />
-                    </Stack>
-                  </SectionCard>
-                </Tabs.Panel>
+                  {activeTab === 'content' && (
+                    <Stack gap="md">
+                      <Accordion variant="separated" defaultValue="typography">
+                        <Accordion.Item value="typography">
+                          <Accordion.Control icon={<IconTextSize size={18} />}>Typography</Accordion.Control>
+                          <Accordion.Panel>
+                            <Stack gap="sm">
+                              <Select
+                                label="Header Font"
+                                data={fontOptions}
+                                value={display.header_font_family}
+                                onChange={(v) => updateDisplay('header_font_family', v)}
+                              />
+                              <Select
+                                label="Footer Font"
+                                data={fontOptions}
+                                value={display.footer_font_family}
+                                onChange={(v) => updateDisplay('footer_font_family', v)}
+                              />
+                              <Select
+                                label="Message Font"
+                                data={fontOptions}
+                                value={display.message_font_family}
+                                onChange={(v) => updateDisplay('message_font_family', v)}
+                              />
+                            </Stack>
+                          </Accordion.Panel>
+                        </Accordion.Item>
 
-                <Tabs.Panel value="timer" pt="sm">
-                  <SectionCard title="Timer" icon={<IconClock size={16} />}>
-                    <Stack gap="sm">
-                      <Select
-                        label="Format"
-                        data={[
-                          { value: 'mm:ss', label: 'MM:SS' },
-                          { value: 'hh:mm:ss', label: 'HH:MM:SS' },
-                        ]}
-                        value={display.timer_format}
-                        onChange={(v) => updateDisplay('timer_format', v)}
-                      />
-                      <Select
-                        label="Font"
-                        data={monoFontOptions}
-                        value={display.timer_font_family}
-                        onChange={(v) =>
-                          updateDisplay('timer_font_family', v)
-                        }
-                      />
-                      <NumberInput
-                        label="Size %"
-                        value={display.timer_size_percent}
-                        onChange={(v) =>
-                          updateDisplay('timer_size_percent', v)
-                        }
-                      />
-                      <Select
-                        label="Position"
-                        data={timerPositionOptions}
-                        value={display.timer_position}
-                        onChange={(v) =>
-                          updateDisplay('timer_position', v)
-                        }
-                      />
-                      <Divider />
-                      <Group justify="space-between">
-                        <Text size="sm" fw={600}>
-                          Show clock
-                        </Text>
-                        <Switch
-                          checked={display.clock_visible}
-                          onChange={(e) =>
-                            updateDisplay(
-                              'clock_visible',
-                              e.currentTarget.checked
-                            )
-                          }
-                        />
-                      </Group>
-                      {display.clock_visible && (
-                        <Select
-                          label="Clock font"
-                          data={monoFontOptions}
-                          value={display.clock_font_family}
-                          onChange={(v) =>
-                            updateDisplay('clock_font_family', v)
-                          }
-                        />
-                      )}
-                    </Stack>
-                  </SectionCard>
-                </Tabs.Panel>
+                        <Accordion.Item value="layout">
+                          <Accordion.Control icon={<IconLayout size={18} />}>Content Layout</Accordion.Control>
+                          <Accordion.Panel>
+                            <Stack gap="sm">
+                              <Select
+                                label="Title Position"
+                                data={displayLocationOptions}
+                                value={display.title_display_location}
+                                onChange={(v) => updateDisplay('title_display_location', v)}
+                              />
+                              <Select
+                                label="Speaker Position"
+                                data={displayLocationOptions}
+                                value={display.speaker_display_location}
+                                onChange={(v) => updateDisplay('speaker_display_location', v)}
+                              />
+                            </Stack>
+                          </Accordion.Panel>
+                        </Accordion.Item>
 
-                <Tabs.Panel value="content" pt="sm">
-                  <SectionCard
-                    title="Typography & Content"
-                    icon={<IconTextSize size={16} />}
-                  >
-                    <Stack gap="sm">
-                      <Select
-                        label="Title location"
-                        data={displayLocationOptions}
-                        value={display.title_display_location}
-                        onChange={(v) =>
-                          updateDisplay('title_display_location', v)
-                        }
-                      />
-                      <Select
-                        label="Speaker location"
-                        data={displayLocationOptions}
-                        value={display.speaker_display_location}
-                        onChange={(v) =>
-                          updateDisplay('speaker_display_location', v)
-                        }
-                      />
-                      <Divider />
-                      <Select
-                        label="Header font"
-                        data={fontOptions}
-                        value={display.header_font_family}
-                        onChange={(v) =>
-                          updateDisplay('header_font_family', v)
-                        }
-                      />
-                      <Select
-                        label="Footer font"
-                        data={fontOptions}
-                        value={display.footer_font_family}
-                        onChange={(v) =>
-                          updateDisplay('footer_font_family', v)
-                        }
-                      />
-                      <Select
-                        label="Message font"
-                        data={fontOptions}
-                        value={display.message_font_family}
-                        onChange={(v) =>
-                          updateDisplay('message_font_family', v)
-                        }
-                      />
+                        <Accordion.Item value="clock">
+                          <Accordion.Control icon={<IconClock size={18} />}>Clock Widget</Accordion.Control>
+                          <Accordion.Panel>
+                            <Stack gap="sm">
+                              <Switch
+                                label="Show Clock"
+                                checked={display.clock_visible}
+                                onChange={(e) => updateDisplay('clock_visible', e.currentTarget.checked)}
+                              />
+                              {display.clock_visible && (
+                                <>
+                                  <Select
+                                    label="Font"
+                                    data={monoFontOptions}
+                                    value={display.clock_font_family}
+                                    onChange={(v) => updateDisplay('clock_font_family', v)}
+                                  />
+                                  <ColorInput
+                                    label="Color"
+                                    value={display.clock_color}
+                                    onChange={(v) => updateDisplay('clock_color', v)}
+                                  />
+                                </>
+                              )}
+                            </Stack>
+                          </Accordion.Panel>
+                        </Accordion.Item>
+                      </Accordion>
                     </Stack>
-                  </SectionCard>
-                </Tabs.Panel>
-
-                <Tabs.Panel value="colors" pt="sm">
-                  <SectionCard title="Colors" icon={<IconPalette size={16} />}>
-                    <Stack gap="sm">
-                      <ColorInput
-                        label="Timer"
-                        value={display.timer_color}
-                        onChange={(v) => updateDisplay('timer_color', v)}
-                      />
-                      <ColorInput
-                        label="Clock"
-                        value={display.clock_color}
-                        onChange={(v) => updateDisplay('clock_color', v)}
-                      />
-                      <ColorInput
-                        label="Header"
-                        value={display.header_color}
-                        onChange={(v) => updateDisplay('header_color', v)}
-                      />
-                      <ColorInput
-                        label="Footer"
-                        value={display.footer_color}
-                        onChange={(v) => updateDisplay('footer_color', v)}
-                      />
-                      <ColorInput
-                        label="Message"
-                        value={display.message_color}
-                        onChange={(v) => updateDisplay('message_color', v)}
-                      />
-                      <Divider />
-                      <ColorInput
-                        label="Progress main"
-                        value={display.progress_color_main}
-                        onChange={(v) =>
-                          updateDisplay('progress_color_main', v)
-                        }
-                      />
-                      <ColorInput
-                        label="Progress secondary"
-                        value={display.progress_color_secondary}
-                        onChange={(v) =>
-                          updateDisplay('progress_color_secondary', v)
-                        }
-                      />
-                      <ColorInput
-                        label="Progress tertiary"
-                        value={display.progress_color_tertiary}
-                        onChange={(v) =>
-                          updateDisplay('progress_color_tertiary', v)
-                        }
-                      />
-                    </Stack>
-                  </SectionCard>
-                </Tabs.Panel>
-              </Box>
+                  )}
+                </motion.div>
+              </AnimatePresence>
             </Box>
-          </Tabs>
-        </Box>
+          </ScrollArea>
+        </Paper>
 
-        {/* Preview - independent of left panel */}
+        {/* Right Preview Panel */}
         <Box
           style={{
             flex: 1,
-            background: colorScheme === 'dark'
-              ? theme.colors.dark[7]
-              : theme.colors.gray[1],
+            backgroundColor: colorScheme === 'dark' ? theme.colors.dark[8] : theme.colors.gray[0],
+            backgroundImage: `radial-gradient(${colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[2]} 1px, transparent 1px)`,
+            backgroundSize: '20px 20px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: theme.spacing.md,
+            padding: theme.spacing.xl,
             position: 'relative',
-            overflow: 'auto',
+            overflow: 'hidden',
           }}
         >
-          <Card
-            withBorder
+          <Paper
+            shadow="xl"
             radius="md"
             style={{
               width: '100%',
@@ -922,29 +741,31 @@ export default function TimerDisplayEditorV2({
               aspectRatio: display.display_ratio.replace(':', '/'),
               backgroundColor: '#000',
               position: 'relative',
-              padding: 0,
+              overflow: 'hidden',
+              border: `1px solid ${theme.colors.gray[7]}`,
             }}
           >
-            <Box style={{ width: '100%', height: '100%' }}>
-              <TimerDisplay
-                display={display}
-                timer={mockTimer}
-              />
-            </Box>
-            <ActionIcon
-              variant="light"
-              radius="xl"
-              color="gray"
-              style={{
-                position: 'absolute',
-                top: theme.spacing.xs,
-                right: theme.spacing.xs,
-              }}
-              onClick={() => setFullscreenPreview(true)}
-            >
-              <IconMaximize size={16} />
-            </ActionIcon>
-          </Card>
+            <TimerDisplay
+              display={display}
+              timer={mockTimer}
+            />
+          </Paper>
+
+          <ActionIcon
+            variant="filled"
+            color="dark"
+            size="lg"
+            radius="xl"
+            style={{
+              position: 'absolute',
+              bottom: theme.spacing.xl,
+              right: theme.spacing.xl,
+              zIndex: 20,
+            }}
+            onClick={() => setFullscreenPreview(true)}
+          >
+            <IconMaximize size={20} />
+          </ActionIcon>
         </Box>
       </Box>
 
@@ -1016,7 +837,7 @@ export default function TimerDisplayEditorV2({
             }}
             onClick={() => setFullscreenPreview(false)}
           >
-            ✕
+            <IconX size={20} />
           </ActionIcon>
         </Box>
       </Modal>
