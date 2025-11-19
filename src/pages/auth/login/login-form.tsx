@@ -72,11 +72,15 @@ const handleGoogleLogin = () => {
     <FormProvider form={form} onSubmit={handleSubmit}>
       <Stack {...props}>
         <Button
-          variant="default"
           onClick={handleGoogleLogin}
           loading={isGooglePending}
-          leftSection={<IconBrandGoogle size={16} />}
+          leftSection={<IconBrandGoogle size={16} style={{ color: '#DB4437' }} />}
           fullWidth
+          style={{
+            backgroundColor: '#fff',
+            color: '#3c4043',
+            border: '1px solid #dadce0',
+          }}
         >
           Sign in with Google
         </Button>
