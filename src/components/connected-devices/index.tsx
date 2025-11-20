@@ -14,27 +14,30 @@ import {
   Divider,
   Box,
   Indicator,
-  Collapse,
   Alert,
   Modal,
-  Button
+  Button,
+  Card,
+  ThemeIcon,
+  SimpleGrid,
+  rem
 } from '@mantine/core';
 import {
-  PiDevices as DeviceIcon,
-  PiUser as UserIcon,
-  PiEye as ViewerIcon,
-  PiCrown as AdminIcon,
-  PiDotsThreeOutline as DetailsIcon,
-  PiCaretDown as CaretDownIcon,
-  PiCaretRight as CaretRightIcon,
-  PiKey as TokenIcon
-} from 'react-icons/pi';
-import { IconAlertCircle, IconShieldOff } from '@tabler/icons-react';
+  IconDeviceDesktop,
+  IconDeviceMobile,
+  IconDeviceTablet,
+  IconDeviceLaptop,
+  IconWorld,
+  IconTrash,
+  IconAlertCircle,
+  IconShieldOff,
+  IconInfoCircle
+} from '@tabler/icons-react';
 
 // Types based on the backend structure
 interface ConnectionInfo {
   connection_id: string;
-  room_id?: string; // Optional since it may not be provided in all contexts
+  room_id?: string;
   user_id: number;
   ip_address: string;
   connected_at: string;
@@ -120,27 +123,38 @@ function formatTimeAgo(timestamp: string): string {
   const time = new Date(timestamp);
   const diffMs = now.getTime() - time.getTime();
   const diffMins = Math.floor(diffMs / (1000 * 60));
-  
+
   if (diffMins < 1) return 'just now';
-  if (diffMins === 1) return '1 minute ago';
-  if (diffMins < 60) return `${diffMins} minutes ago`;
-  
+  if (diffMins === 1) return '1 min ago';
+  if (diffMins < 60) return `${diffMins} mins ago`;
+
   const diffHours = Math.floor(diffMins / 60);
-  if (diffHours === 1) return '1 hour ago';
-  if (diffHours < 24) return `${diffHours} hours ago`;
-  
+  if (diffHours === 1) return '1 hr ago';
+  if (diffHours < 24) return `${diffHours} hrs ago`;
+
   return time.toLocaleDateString();
 }
 
-function getDeviceType(userAgent?: string | null): string {
-  if (!userAgent) return 'Unknown';
-  
-  if (userAgent.includes('iPhone') || userAgent.includes('iPad')) return 'iOS';
+function getDeviceIcon(userAgent?: string | null) {
+  if (!userAgent) return <IconWorld size="1rem" />;
+
+  if (userAgent.includes('iPhone') || userAgent.includes('Android Mobile')) return <IconDeviceMobile size="1rem" />;
+  if (userAgent.includes('iPad') || userAgent.includes('Tablet')) return <IconDeviceTablet size="1rem" />;
+  if (userAgent.includes('Macintosh') || userAgent.includes('Windows')) return <IconDeviceDesktop size="1rem" />;
+
+  return <IconWorld size="1rem" />;
+}
+
+function getDeviceLabel(userAgent?: string | null): string {
+  if (!userAgent) return 'Unknown Device';
+
+  if (userAgent.includes('iPhone')) return 'iPhone';
+  if (userAgent.includes('iPad')) return 'iPad';
   if (userAgent.includes('Android')) return 'Android';
-  if (userAgent.includes('Windows')) return 'Windows';
+  if (userAgent.includes('Windows')) return 'Windows PC';
   if (userAgent.includes('Macintosh')) return 'Mac';
-  if (userAgent.includes('TimerApp') || userAgent.includes('Token:')) return 'Display';
-  
+  if (userAgent.includes('Linux')) return 'Linux';
+
   return 'Browser';
 }
 
@@ -151,7 +165,7 @@ interface ConnectionGroup {
   connections: ConnectionInfo[];
 }
 
-function ConnectionGroupItem({
+function ConnectionGroupCard({
   group,
   currentUserAccess,
   onRevokeToken
@@ -160,226 +174,146 @@ function ConnectionGroupItem({
   currentUserAccess: 'viewer' | 'full';
   onRevokeToken?: (tokenId: number) => void;
 }) {
-  const [expanded, setExpanded] = useState(true);
   const [revokeModalOpen, setRevokeModalOpen] = useState(false);
   const connectionCount = group.connections.length;
-  const onlineCount = group.connections.filter(c => {
-    if (!c.last_ping) return true;
-    return (new Date().getTime() - new Date(c.last_ping).getTime()) < 300000;
-  }).length;
 
   // Check if any connection in the group is self
   const hasSelfConnection = group.connections.some(
     c => c.is_self === true || (c as any).self === true
   );
 
-  // Get the access level for this group (all connections in a group have the same access level)
+  // Get the access level for this group
   const groupAccessLevel = group.connections[0]?.access_level || 'viewer';
 
-  // Check if any device in the group is online for the indicator
-  const hasOnlineDevice = onlineCount > 0;
-
   return (
-    <Box>
-      <Box p="md">
-        <Group justify="space-between" wrap="nowrap">
-          <Group wrap="nowrap" gap="sm" style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => setExpanded(!expanded)}>
-            <ActionIcon variant="subtle" size="sm">
-              {expanded ? <CaretDownIcon size="1rem" /> : <CaretRightIcon size="1rem" />}
-            </ActionIcon>
-
-            <Indicator
-              color="teal"
-              size={6}
-              offset={2}
-              processing
-              disabled={!hasOnlineDevice}
-            >
-              <Avatar size="sm" color="violet">
-                <TokenIcon size="1rem" />
-              </Avatar>
-            </Indicator>
-
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <Group gap="xs" wrap="nowrap" align="center">
-                <Text size="sm" fw={500} truncate>
-                  {group.tokenName}
-                </Text>
-                <Badge size="xs" color="gray" variant="light">
-                  {connectionCount} {connectionCount === 1 ? 'device' : 'devices'}
-                </Badge>
-                <Tooltip label={groupAccessLevel === 'full' ? 'Full access' : 'Viewer access'} withinPortal>
-                  <Badge size="xs" color={groupAccessLevel === 'full' ? 'blue' : 'gray'} variant="light">
-                    {groupAccessLevel}
-                  </Badge>
-                </Tooltip>
-                {hasSelfConnection && (
-                  <Badge size="xs" color="green" variant="dot">
-                    You
-                  </Badge>
-                )}
-              </Group>
-            </div>
-          </Group>
-
-          {currentUserAccess === 'full' && group.tokenId && !hasSelfConnection && onRevokeToken && (
-            <>
-              <Tooltip label="Revoke access token (disconnects all devices)" withinPortal>
-                <ActionIcon
-                  variant="subtle"
-                  color="red"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setRevokeModalOpen(true);
-                  }}
-                >
-                  <IconShieldOff size="0.9rem" />
-                </ActionIcon>
-              </Tooltip>
-              <Modal
-                opened={revokeModalOpen}
-                onClose={() => setRevokeModalOpen(false)}
-                title="Revoke Access?"
-                centered
-              >
-                <Stack gap="md">
-                  <div>
-                    <Text fw={500} mb="xs">
-                      Revoke access for "{group.tokenName}"?
-                    </Text>
-                    <Text size="sm" c="dimmed">
-                      This will immediately disconnect {connectionCount} {connectionCount === 1 ? 'device' : 'devices'} currently using this access token.
-                    </Text>
-                  </div>
-                  <Alert icon={<IconShieldOff size={16} />} color="orange" title="This action cannot be undone">
-                    <Text size="sm">
-                      Once revoked, any devices using this token will be disconnected and will need a new access token to reconnect.
-                    </Text>
-                  </Alert>
-                  <Group justify="flex-end" gap="sm">
-                    <Button variant="default" onClick={() => setRevokeModalOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button
-                      color="red"
-                      onClick={() => {
-                        const tokenId = typeof group.tokenId === 'number' ? group.tokenId : Number(group.tokenId);
-                        onRevokeToken(tokenId);
-                        setRevokeModalOpen(false);
-                      }}
-                    >
-                      Revoke Access
-                    </Button>
-                  </Group>
-                </Stack>
-              </Modal>
-            </>
+    <Card withBorder padding="sm" radius="md" bg="var(--mantine-color-body)">
+      <Group justify="space-between" mb="xs">
+        <Group gap="xs">
+          <Text fw={600} size="sm" c="bright">
+            {group.tokenName}
+          </Text>
+          {hasSelfConnection && (
+            <Badge size="xs" variant="dot" color="green">You</Badge>
           )}
+          <Badge
+            size="xs"
+            variant="light"
+            color={groupAccessLevel === 'full' ? 'blue' : 'gray'}
+          >
+            {groupAccessLevel}
+          </Badge>
         </Group>
 
-        <Collapse in={expanded}>
-          <Stack gap={0} mt="sm" ml="xl">
-            {group.connections.map((connection, index) => (
-              <Box key={connection.connection_id}>
-                <ConnectionItem
-                  connection={connection}
-                  currentUserAccess={currentUserAccess}
-                  isGrouped={true}
-                />
-                {index < group.connections.length - 1 && <Divider ml="xl" />}
-              </Box>
-            ))}
-          </Stack>
-        </Collapse>
-      </Box>
-    </Box>
+        {currentUserAccess === 'full' && group.tokenId && !hasSelfConnection && onRevokeToken && (
+          <>
+            <Tooltip label="Revoke access" withinPortal>
+              <ActionIcon
+                variant="subtle"
+                color="red"
+                size="sm"
+                onClick={() => setRevokeModalOpen(true)}
+              >
+                <IconTrash size="0.8rem" />
+              </ActionIcon>
+            </Tooltip>
+
+            <Modal
+              opened={revokeModalOpen}
+              onClose={() => setRevokeModalOpen(false)}
+              title="Revoke Access"
+              centered
+              size="sm"
+            >
+              <Stack>
+                <Text size="sm">
+                  Are you sure you want to revoke access for <b>{group.tokenName}</b>?
+                  This will disconnect {connectionCount} device{connectionCount !== 1 ? 's' : ''}.
+                </Text>
+                <Group justify="flex-end">
+                  <Button variant="default" onClick={() => setRevokeModalOpen(false)}>Cancel</Button>
+                  <Button color="red" onClick={() => {
+                    const tokenId = typeof group.tokenId === 'number' ? group.tokenId : Number(group.tokenId);
+                    onRevokeToken(tokenId);
+                    setRevokeModalOpen(false);
+                  }}>Revoke</Button>
+                </Group>
+              </Stack>
+            </Modal>
+          </>
+        )}
+      </Group>
+
+      <Stack gap="xs">
+        {group.connections.map(conn => (
+          <ConnectionItem
+            key={conn.connection_id}
+            connection={conn}
+            currentUserAccess={currentUserAccess}
+          />
+        ))}
+      </Stack>
+    </Card>
   );
 }
 
 function ConnectionItem({
   connection,
-  currentUserAccess,
-  isGrouped = false
+  currentUserAccess
 }: {
   connection: ConnectionInfo;
   currentUserAccess: 'viewer' | 'full';
-  isGrouped?: boolean;
 }) {
-  const [expanded, setExpanded] = useState(true);
-  const deviceType = getDeviceType(connection.user_agent);
   const isOnline = connection.last_ping ?
-    (new Date().getTime() - new Date(connection.last_ping).getTime()) < 300000  : true;
+    (new Date().getTime() - new Date(connection.last_ping).getTime()) < 300000 : true;
 
-  // Check if this is the current user's connection
-  // Backend might send 'self' instead of 'is_self'
   const isSelf = connection.is_self === true || (connection as any).self === true;
 
   return (
-    <Box p="md">
-      <Group justify="space-between" wrap="nowrap">
-        <Group wrap="nowrap" gap="sm" style={{ flex: 1, minWidth: 0 }}>
-          <Indicator
-            color={isOnline ? 'teal' : 'gray'}
-            size={6}
-            offset={2}
-            processing={isOnline}
-          >
-            <Avatar size="sm" color="blue">
-              <UserIcon size="1rem" />
-            </Avatar>
-          </Indicator>
+    <Group wrap="nowrap" align="flex-start" gap="sm">
+      <Indicator
+        position="bottom-end"
+        color={isOnline ? 'teal' : 'gray'}
+        offset={2}
+        size={6}
+        processing={isOnline}
+        withBorder
+      >
+        <ThemeIcon variant="light" color="gray" size="md" radius="xl">
+          {getDeviceIcon(connection.user_agent)}
+        </ThemeIcon>
+      </Indicator>
 
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <Group gap="xs" wrap="nowrap" align="center">
-              <Text size="sm" fw={500} truncate>
-                {connection.connection_name}
-              </Text>
-
-              <Tooltip label={connection.access_level === 'full' ? 'Full access' : 'Viewer access'} withinPortal>
-                {connection.access_level === 'full' ? (
-                  <AdminIcon size="0.7rem" color="var(--mantine-color-blue-6)" />
-                ) : (
-                  <ViewerIcon size="0.7rem" color="var(--mantine-color-gray-6)" />
-                )}
-              </Tooltip>
-
-              {isSelf && (
-                <Badge size="xs" color="green" variant="dot">
-                  You
-                </Badge>
-              )}
-            </Group>
-          </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <Group gap="xs" wrap="nowrap">
+          <Text size="sm" fw={500} truncate style={{ lineHeight: 1.2 }}>
+            {connection.connection_name}
+          </Text>
+          {isSelf && <Badge size="xs" variant="outline" color="green" radius="sm">This Device</Badge>}
         </Group>
 
-        <Group gap="xs">
+        <Group gap={6} align="center" mt={2}>
+          <Text size="xs" c="dimmed">
+            {getDeviceLabel(connection.user_agent)}
+          </Text>
           {currentUserAccess === 'full' && (
-            <Tooltip label={expanded ? "Hide details" : "Show details"} withinPortal>
-              <ActionIcon
-                variant="subtle"
-                size="xs"
-                onClick={() => setExpanded(!expanded)}
-              >
-                <DetailsIcon size="0.8rem" />
-              </ActionIcon>
-            </Tooltip>
+            <>
+              <Text size="xs" c="dimmed">•</Text>
+              <Text size="xs" c="dimmed" truncate>
+                {connection.ip_address}
+              </Text>
+            </>
           )}
         </Group>
-      </Group>
+      </div>
 
-      {expanded && currentUserAccess === 'full' && (
-        <Box mt="xs" pl="calc(var(--mantine-spacing-sm) * 2.5)">
-          <Text size="xs" c="dimmed">
-            {deviceType} • Connected {formatTimeAgo(connection.connected_at)}
-          </Text>
-          <Text size="xs" c="dimmed">
-            {connection.ip_address}
-            {connection.last_ping && ` • Last seen ${formatTimeAgo(connection.last_ping)}`}
-          </Text>
-        </Box>
+      {currentUserAccess === 'full' && (
+        <Tooltip label={`Last seen: ${connection.last_ping ? formatTimeAgo(connection.last_ping) : 'Unknown'}`} position="left">
+          <ThemeIcon variant="transparent" color="gray" size="xs">
+            <IconInfoCircle size="0.8rem" />
+          </ThemeIcon>
+        </Tooltip>
       )}
-    </Box>
+    </Group>
   );
 }
 
@@ -400,28 +334,19 @@ export function ConnectedDevices({
   const handleRevokeToken = (tokenId: number) => {
     if (onRevokeAccessToken) {
       onRevokeAccessToken(tokenId);
-      // Optimistically remove all connections with this token from local state
       setConnectionList(prev => prev.filter(conn => conn.access_token_id !== tokenId));
     }
   };
 
-  // Group connections by access_token_id
+  // Group connections
   const connectionGroups = connectionList.reduce<Map<string, ConnectionGroup>>((groups, connection) => {
-    // Create a unique key for grouping - handle null/undefined/empty string consistently
     const hasToken = connection.access_token_id != null && connection.access_token_id !== '';
     const tokenKey = hasToken ? `token_${connection.access_token_id}` : 'direct';
 
     if (!groups.has(tokenKey)) {
-      // Determine the token name with priority: access_token_name > fallback
       let tokenName: string;
       if (hasToken) {
-        if (connection.access_token_name) {
-          // Use the access token name if available
-          tokenName = connection.access_token_name;
-        } else {
-          // Fallback to a generic identifier
-          tokenName = `Shared Link ${connection.access_token_id}`;
-        }
+        tokenName = connection.access_token_name || `Shared Link ${connection.access_token_id}`;
       } else {
         tokenName = 'Direct Access';
       }
@@ -438,89 +363,71 @@ export function ConnectedDevices({
   }, new Map());
 
   const groupsArray = Array.from(connectionGroups.values());
-
   const totalConnections = connectionList.length;
-  
+
   if (compactMode) {
     return (
-      <Paper withBorder p="md" className={className}>
+      <Paper withBorder p="xs" className={className}>
         <Group justify="space-between">
           <Group gap="xs">
-            <DeviceIcon size="0.5rem" />
-            <Text size="sm" fw={300}>Connected Devices</Text>
+            <IconWorld size="1rem" />
+            <Text size="sm">Devices</Text>
           </Group>
-          <Badge color="teal" variant="light">
-            {totalConnections} online
-          </Badge>
+          <Badge size="sm" variant="light">{totalConnections}</Badge>
         </Group>
       </Paper>
     );
   }
-  
-  // Only show detailed view for full access users
-  if (currentUserAccess !== 'full') {
-    return (
-      <Paper withBorder p="md" className={className}>
-        <Group gap="sm" mb="md">
-          <DeviceIcon size="1.5rem" />
-          <div>
-            <Title order={4}>Connected Devices</Title>
-            <Text size="sm" c="dimmed">
-              {totalConnections} device{totalConnections !== 1 ? 's' : ''} connected
-            </Text>
-          </div>
-        </Group>
-        
-        <Text size="sm" c="dimmed" ta="center" py="xl">
-          Device details are only available with full access
-        </Text>
-      </Paper>
-    );
-  }
-  
+
   return (
-    <Paper withBorder className={className}>
-      <Box p="md">
-        <Group gap="sm" mb="md">
-          <DeviceIcon size="1.5rem" />
-          <div style={{ flex: 1 }}>
-            <Title order={4}>Connected Devices</Title>
-          </div>
+    <Paper withBorder h="100%" display="flex" style={{ flexDirection: 'column' }} className={className}>
+      <Box p="md" pb="sm">
+        <Group justify="space-between" align="center">
+          <Group gap="xs">
+            <ThemeIcon variant="light" size="lg" color="blue">
+              <IconWorld size="1.2rem" />
+            </ThemeIcon>
+            <div>
+              <Title order={5}>Connected Devices</Title>
+              <Text size="xs" c="dimmed">
+                {totalConnections} active {totalConnections === 1 ? 'session' : 'sessions'}
+              </Text>
+            </div>
+          </Group>
         </Group>
       </Box>
 
       <Divider />
 
       {!features.canConnectDevice().isAvailable && (
+        <Alert icon={<IconAlertCircle size={16} />} color="orange" variant="light" radius={0}>
+          {features.canConnectDevice().reason}
+        </Alert>
+      )}
+
+      <ScrollArea style={{ flex: 1 }}>
         <Box p="md">
-          <Alert icon={<IconAlertCircle size={16} />} title="Device Limit Reached" color="orange">
-            <Text size="sm">{features.canConnectDevice().reason}</Text>
-          </Alert>
+          {currentUserAccess !== 'full' ? (
+            <Stack align="center" py="xl" gap="xs">
+              <IconShieldOff size="2rem" color="var(--mantine-color-gray-4)" />
+              <Text size="sm" c="dimmed">Full details hidden</Text>
+            </Stack>
+          ) : groupsArray.length > 0 ? (
+            <Stack gap="md">
+              {groupsArray.map(group => (
+                <ConnectionGroupCard
+                  key={group.tokenId != null ? `token_${group.tokenId}` : 'direct'}
+                  group={group}
+                  currentUserAccess={currentUserAccess}
+                  onRevokeToken={handleRevokeToken}
+                />
+              ))}
+            </Stack>
+          ) : (
+            <Text c="dimmed" ta="center" py="xl" size="sm">No devices connected</Text>
+          )}
         </Box>
-      )}
-
-      <ScrollArea mah={400}>
-        <Stack gap={0}>
-          {groupsArray.map((group, index) => (
-            <Box key={group.tokenId != null ? `token_${group.tokenId}` : 'direct'}>
-              <ConnectionGroupItem
-                group={group}
-                currentUserAccess={currentUserAccess}
-                onRevokeToken={handleRevokeToken}
-              />
-              {index < groupsArray.length - 1 && <Divider />}
-            </Box>
-          ))}
-        </Stack>
       </ScrollArea>
-
-      {totalConnections === 0 && (
-        <Box p="xl" ta="center">
-          <Text size="sm" c="dimmed">
-            No devices currently connected
-          </Text>
-        </Box>
-      )}
     </Paper>
   );
 }
