@@ -1,11 +1,11 @@
-import { Box, Container, Stack, Text, Badge, Title, SimpleGrid, Card } from '@mantine/core';
+import { Box, Container, Stack, Text, Badge, Title, SimpleGrid, Card, ThemeIcon } from '@mantine/core';
 import {
   IconClock,
   IconUsers,
   IconBell,
-  IconTarget,
-  IconFlare,
-  IconLock,
+  IconDeviceMobile,
+  IconPalette,
+  IconLink,
 } from '@tabler/icons-react';
 import { ComponentType } from 'react';
 
@@ -27,11 +27,12 @@ const getGradientColor = (
   type: 'from' | 'to'
 ): string => {
   const colorMap: Record<string, Record<string, string>> = {
-    violet: { from: '#667eea', to: '#764ba2' },
-    blue: { from: '#4dabf7', to: '#22b8cf' },
-    pink: { from: '#ff6b6b', to: '#fa5252' },
-    orange: { from: '#ff922b', to: '#ffd43b' },
-    teal: { from: '#20c997', to: '#51cf66' },
+    violet: { from: '#7950f2', to: '#be4bdb' },
+    blue: { from: '#228be6', to: '#15aabf' },
+    pink: { from: '#e64980', to: '#ff8787' },
+    orange: { from: '#fd7e14', to: '#ffa94d' },
+    teal: { from: '#12b886', to: '#38d9a9' },
+    green: { from: '#40c057', to: '#8ce99a' },
   };
 
   const colors = colorMap[colorName] || colorMap.violet;
@@ -41,40 +42,40 @@ const getGradientColor = (
 export function Features({ sectionRef, animationStyle, onAnimationStyleChange }: FeaturesProps) {
   const features: Feature[] = [
     {
-      icon: IconClock,
-      title: 'Real-Time Sync',
-      description: 'Synchronize timers across all devices instantly with live updates and zero latency.',
-      gradient: { from: 'violet', to: 'purple' },
+      icon: IconLink,
+      title: 'Linked Timers',
+      description: 'Create sequences of timers that automatically start one after another. Perfect for structured workshops and agendas.',
+      gradient: { from: 'violet', to: 'blue' },
+    },
+    {
+      icon: IconPalette,
+      title: 'Custom Displays',
+      description: 'Customize every aspect of your timer display. Fullscreen mode, colors, fonts, and layouts to match your brand.',
+      gradient: { from: 'blue', to: 'cyan' },
+    },
+    {
+      icon: IconDeviceMobile,
+      title: 'Device Connection',
+      description: 'Connect any device by scanning a QR code. Turn phones and tablets into synchronized timer displays instantly.',
+      gradient: { from: 'pink', to: 'orange' },
     },
     {
       icon: IconUsers,
       title: 'Team Collaboration',
-      description: 'Share timer sessions with unlimited team members and stay perfectly coordinated.',
-      gradient: { from: 'blue', to: 'cyan' },
+      description: 'Share control with your team. Multiple admins can manage timers while unlimited viewers watch in real-time.',
+      gradient: { from: 'orange', to: 'yellow' },
     },
     {
       icon: IconBell,
       title: 'Smart Notifications',
-      description: 'AI-powered alerts that learn your patterns and notify you at the perfect moment.',
-      gradient: { from: 'pink', to: 'red' },
-    },
-    {
-      icon: IconTarget,
-      title: 'Precision Control',
-      description: 'Millisecond-accurate timing with intuitive controls and keyboard shortcuts.',
-      gradient: { from: 'orange', to: 'yellow' },
-    },
-    {
-      icon: IconFlare,
-      title: 'Lightning Performance',
-      description: 'Built with cutting-edge technology for unparalleled speed and responsiveness.',
+      description: 'Audio and visual alerts ensure no one misses a beat. Configurable warning and critical time thresholds.',
       gradient: { from: 'teal', to: 'green' },
     },
     {
-      icon: IconLock,
-      title: 'Enterprise Security',
-      description: 'Bank-grade encryption, SOC 2 compliant, and GDPR ready for peace of mind.',
-      gradient: { from: 'indigo', to: 'blue' },
+      icon: IconClock,
+      title: 'Precision Control',
+      description: 'Adjust time on the fly without disrupting the flow. Add or remove minutes seamlessly during live sessions.',
+      gradient: { from: 'green', to: 'teal' },
     },
   ];
 
@@ -98,7 +99,8 @@ export function Features({ sectionRef, animationStyle, onAnimationStyleChange }:
           <Badge
             size="lg"
             variant="light"
-            style={{ fontSize: '13px', fontWeight: 600 }}
+            color="gray"
+            style={{ fontSize: '13px', fontWeight: 600, letterSpacing: '1px' }}
           >
             POWERFUL FEATURES
           </Badge>
@@ -108,29 +110,29 @@ export function Features({ sectionRef, animationStyle, onAnimationStyleChange }:
               fontSize: 'clamp(2rem, 4vw, 3.5rem)',
               fontWeight: 900,
               textAlign: 'center',
-              background: 'linear-gradient(135deg, #1a1a1a 0%, var(--mantine-color-blue-6) 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              color: '#1a1a1a',
               letterSpacing: '-1px',
+              lineHeight: 1.2,
             }}
           >
-            Everything You Need to Succeed
+            Everything You Need to <br />
+            <span style={{ color: '#228be6' }}>Run Perfect Events</span>
           </Title>
           <Text
             size="xl"
+            c="dimmed"
             style={{
-              color: '#666',
               textAlign: 'center',
               maxWidth: 700,
               lineHeight: 1.7,
             }}
           >
-            Built for modern teams who demand the best. Experience the perfect blend of
-            simplicity and power.
+            Built for professionals who demand reliability and flexibility.
+            Experience the perfect blend of simplicity and power.
           </Text>
         </Stack>
 
-        <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="xl">
+        <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing={30}>
           {features.map((feature, index) => {
             const Icon = feature.icon;
             const animStyle = onAnimationStyleChange ? onAnimationStyleChange(index * 0.1) : {};
@@ -141,45 +143,43 @@ export function Features({ sectionRef, animationStyle, onAnimationStyleChange }:
               <Card
                 key={index}
                 p="xl"
-                radius="xl"
+                radius="lg"
                 style={{
                   backgroundColor: 'white',
-                  border: '1px solid #f1f3f5',
-                  cursor: 'pointer',
+                  border: '1px solid #e9ecef',
+                  cursor: 'default',
                   ...animStyle,
-                  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                  transition: 'all 0.3s ease',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-8px)';
-                  e.currentTarget.style.boxShadow = '0 20px 60px rgba(37, 99, 235, 0.15)';
-                  e.currentTarget.style.borderColor = 'rgba(37, 99, 235, 0.3)';
+                  e.currentTarget.style.transform = 'translateY(-5px)';
+                  e.currentTarget.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.08)';
+                  e.currentTarget.style.borderColor = fromColor;
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = 'translateY(0)';
                   e.currentTarget.style.boxShadow = 'none';
-                  e.currentTarget.style.borderColor = '#f1f3f5';
+                  e.currentTarget.style.borderColor = '#e9ecef';
                 }}
               >
                 <Stack gap="lg">
-                  <Box
+                  <ThemeIcon
+                    size={60}
+                    radius="md"
+                    variant="gradient"
+                    gradient={{ from: fromColor, to: toColor, deg: 135 }}
                     style={{
-                      width: 60,
-                      height: 60,
-                      borderRadius: '16px',
-                      background: `linear-gradient(135deg, ${fromColor} 0%, ${toColor} 100%)`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      boxShadow: `0 10px 30px rgba(102, 126, 234, 0.3)`,
+                      boxShadow: `0 10px 20px ${fromColor}40`,
                     }}
                   >
                     <Icon size={30} color="white" />
-                  </Box>
+                  </ThemeIcon>
+
                   <div>
-                    <Title order={3} mb="xs" style={{ fontSize: '1.5rem', fontWeight: 700 }}>
+                    <Title order={3} mb="xs" style={{ fontSize: '1.25rem', fontWeight: 700 }}>
                       {feature.title}
                     </Title>
-                    <Text size="md" color="dimmed" style={{ lineHeight: 1.6 }}>
+                    <Text size="md" c="dimmed" style={{ lineHeight: 1.6 }}>
                       {feature.description}
                     </Text>
                   </div>

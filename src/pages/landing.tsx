@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Header } from '@/components/landing/Header';
 import { Hero } from '@/components/landing/Hero';
+import { AIFeatureSection } from '@/components/landing/AIFeatureSection';
 import { Stats } from '@/components/landing/Stats';
 import { Features } from '@/components/landing/Features';
 import { Testimonials } from '@/components/landing/Testimonials';
@@ -128,6 +129,15 @@ export default function LandingPage() {
             onScrollToSection={scrollToSection}
             animationStyle={getAnimationStyle('hero')}
           />
+        </div>
+
+        {/* AI Feature Section */}
+        <div
+          ref={(el) => {
+            if (el) sectionRefs.current['ai-feature'] = el;
+          }}
+        >
+          <AIFeatureSection />
         </div>
 
         {/* Stats Section */}
