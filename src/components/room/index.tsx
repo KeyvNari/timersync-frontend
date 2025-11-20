@@ -503,6 +503,7 @@ export default function RoomComponent({
           maxLeftWidth={70}
           onLeftWidthChange={handleLeftWidthChange}
           topRightAspectRatio="16:9"
+          mobileBreakpoint="md"
         />
       </Box>
 

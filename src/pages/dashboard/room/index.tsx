@@ -102,23 +102,23 @@ export default function RoomPage() {
   // Convert timer data for TimerDisplay component
   const convertedTimer = displayTimer
     ? {
-        title: displayTimer.title,
-        speaker: displayTimer.speaker,
-        notes: displayTimer.notes,
-        display_id: displayTimer.display_id,
-        show_title: displayTimer.show_title,
-        show_speaker: displayTimer.show_speaker,
-        show_notes: displayTimer.show_notes,
-        timer_type: displayTimer.timer_type || 'countdown',
-        duration_seconds: displayTimer.duration_seconds,
-        is_active: displayTimer.is_active || false,
-        is_paused: displayTimer.is_paused || false,
-        is_finished: displayTimer.is_finished || false,
-        is_stopped: displayTimer.is_stopped || false,
-        current_time_seconds: displayTimer.current_time_seconds,
-        warning_time: displayTimer.warning_time,
-        critical_time: displayTimer.critical_time,
-      }
+      title: displayTimer.title,
+      speaker: displayTimer.speaker,
+      notes: displayTimer.notes,
+      display_id: displayTimer.display_id,
+      show_title: displayTimer.show_title,
+      show_speaker: displayTimer.show_speaker,
+      show_notes: displayTimer.show_notes,
+      timer_type: displayTimer.timer_type || 'countdown',
+      duration_seconds: displayTimer.duration_seconds,
+      is_active: displayTimer.is_active || false,
+      is_paused: displayTimer.is_paused || false,
+      is_finished: displayTimer.is_finished || false,
+      is_stopped: displayTimer.is_stopped || false,
+      current_time_seconds: displayTimer.current_time_seconds,
+      warning_time: displayTimer.warning_time,
+      critical_time: displayTimer.critical_time,
+    }
     : undefined;
 
   // Loading state
@@ -299,6 +299,7 @@ export default function RoomPage() {
         maxLeftWidth={70}
         onLeftWidthChange={handleLeftWidthChange}
         topRightAspectRatio="16:9"
+        mobileBreakpoint="md"
       />
     </Page>
   );

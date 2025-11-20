@@ -1,6 +1,7 @@
 // src/components/resizable-dashboard/index.tsx
 import { useState, useRef, useCallback, useEffect, ReactNode } from 'react';
-import { Box, useMantineTheme } from '@mantine/core';
+import { Box, useMantineTheme, Stack } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 
 export interface ResizableDashboardProps {
   /** Content for the left panel */
@@ -19,6 +20,8 @@ export interface ResizableDashboardProps {
   onLeftWidthChange?: (width: number) => void;
   /** Top right panel aspect ratio (default: '16:9') */
   topRightAspectRatio?: string;
+  /** Breakpoint for mobile layout (default: 'sm') */
+  mobileBreakpoint?: string;
 }
 
 export function ResizableDashboard({
@@ -30,21 +33,26 @@ export function ResizableDashboard({
   maxLeftWidth = 70,
   onLeftWidthChange,
   topRightAspectRatio = '16:9',
+  mobileBreakpoint = 'sm',
 }: ResizableDashboardProps) {
   const [leftWidth, setLeftWidth] = useState(initialLeftWidth);
   const theme = useMantineTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
 
+  // Check for mobile view
+  const isMobile = useMediaQuery(`(max-width: ${theme.breakpoints[mobileBreakpoint as keyof typeof theme.breakpoints] || mobileBreakpoint})`);
+
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (isMobile) return;
     e.preventDefault();
     isDraggingRef.current = true;
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
-  }, []);
+  }, [isMobile]);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isDraggingRef.current || !containerRef.current) return;
+    if (!isDraggingRef.current || !containerRef.current || isMobile) return;
 
     const containerRect = containerRef.current.getBoundingClientRect();
     const newLeftWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100;
@@ -52,7 +60,7 @@ export function ResizableDashboard({
     const constrainedWidth = Math.min(Math.max(newLeftWidth, minLeftWidth), maxLeftWidth);
     setLeftWidth(constrainedWidth);
     onLeftWidthChange?.(constrainedWidth);
-  }, [minLeftWidth, maxLeftWidth, onLeftWidthChange]);
+  }, [minLeftWidth, maxLeftWidth, onLeftWidthChange, isMobile]);
 
   const handleMouseUp = useCallback(() => {
     isDraggingRef.current = false;
@@ -69,6 +77,35 @@ export function ResizableDashboard({
       document.removeEventListener('mouseup', handleMouseUp);
     };
   }, [handleMouseMove, handleMouseUp]);
+
+  if (isMobile) {
+    return (
+      <Box
+        style={{
+          height: '100%',
+          overflow: 'auto',
+          padding: theme.spacing.md,
+        }}
+      >
+        <Stack gap="md" h="100%">
+          {/* Top Right Panel (Display) - First on mobile */}
+          <Box style={{ flexShrink: 0 }}>
+            {topRightPanel}
+          </Box>
+
+          {/* Left Panel (Timers) - Second on mobile */}
+          <Box style={{ flex: 1, minHeight: '400px' }}>
+            {leftPanel}
+          </Box>
+
+          {/* Bottom Right Panel (Devices) - Last on mobile */}
+          <Box style={{ flexShrink: 0, minHeight: '200px' }}>
+            {bottomRightPanel}
+          </Box>
+        </Stack>
+      </Box>
+    );
+  }
 
   return (
     <Box
