@@ -28,6 +28,7 @@ import {
   useMantineTheme,
   useMantineColorScheme,
 } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import {
   IconCheck,
   IconChevronLeft,
@@ -101,6 +102,7 @@ export default function TimerDisplayEditorV2({
 }: TimerDisplayEditorProps) {
   const theme = useMantineTheme();
   const { colorScheme } = useMantineColorScheme();
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const { setDefaultDisplay, lastError, lastSuccess } = useWebSocketContext();
   const features = useFeatureAccess();
 
@@ -334,9 +336,11 @@ export default function TimerDisplayEditorV2({
               </ActionIcon>
             )}
             <Stack gap={0}>
-              <Text size="xs" c="dimmed" fw={500} tt="uppercase">
-                Editing Display
-              </Text>
+              {!isMobile && (
+                <Text size="xs" c="dimmed" fw={500} tt="uppercase">
+                  Editing Display
+                </Text>
+              )}
               <Group gap="xs">
                 <TextInput
                   variant="unstyled"
@@ -363,13 +367,13 @@ export default function TimerDisplayEditorV2({
               onChange={handleSelect}
               size="xs"
               placeholder="Switch Display"
-              style={{ width: 200 }}
+              style={{ width: isMobile ? 130 : 200 }}
               leftSection={<IconTemplate size={14} />}
             />
             <Divider orientation="vertical" />
             <Group gap="xs">
               <Switch
-                label="Default"
+                label={isMobile ? undefined : "Default"}
                 checked={display.is_default}
                 onChange={(e) => updateDisplay('is_default', e.currentTarget.checked)}
                 size="xs"
@@ -398,20 +402,22 @@ export default function TimerDisplayEditorV2({
                 onClick={handleSave}
                 disabled={!hasUnsavedChanges || (isCreatingNew && !display.name?.trim()) || !features.canSaveDisplay().isAvailable}
               >
-                {isCreatingNew ? 'Create' : 'Save Changes'}
+                {isCreatingNew ? 'Create' : (isMobile ? 'Save' : 'Save Changes')}
               </Button>
             </Group>
           </Group>
         </Group>
       </Paper>
 
-      <Box style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+      <Box style={{ flex: 1, display: 'flex', flexDirection: isMobile ? 'column-reverse' : 'row', overflow: 'hidden' }}>
         {/* Left Editor Panel */}
         <Paper
           radius={0}
           style={{
-            width: 360,
-            borderRight: `1px solid ${theme.colors.gray[3]}`,
+            width: isMobile ? '100%' : 400,
+            height: isMobile ? '50%' : '100%',
+            borderRight: isMobile ? 'none' : `1px solid ${theme.colors.gray[3]}`,
+            borderTop: isMobile ? `1px solid ${theme.colors.gray[3]}` : 'none',
             display: 'flex',
             flexDirection: 'column',
             zIndex: 5,
@@ -727,9 +733,10 @@ export default function TimerDisplayEditorV2({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: theme.spacing.xl,
+            padding: isMobile ? theme.spacing.md : theme.spacing.xl,
             position: 'relative',
             overflow: 'hidden',
+            height: isMobile ? '50%' : '100%',
           }}
         >
           <Paper

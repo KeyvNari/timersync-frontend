@@ -154,24 +154,26 @@
 }
 
 /* Upgrade CTA */
+/* Upgrade CTA */
 .upgradeCta {
-  background: linear-gradient(135deg, var(--mantine-color-blue-0) 0%, var(--mantine-color-cyan-0) 100%);
-  border: 1px dashed var(--mantine-color-blue-3);
+  background: linear-gradient(135deg, var(--mantine-color-grape-0) 0%, var(--mantine-color-violet-0) 100%);
+  border: 1px solid var(--mantine-color-violet-2);
   transition: all 0.2s ease;
 }
 
 .upgradeCta:hover {
-  background: linear-gradient(135deg, var(--mantine-color-blue-1) 0%, var(--mantine-color-cyan-1) 100%);
-  border-color: var(--mantine-color-blue-4);
-  transform: translateY(-2px);
+  background: linear-gradient(135deg, var(--mantine-color-grape-1) 0%, var(--mantine-color-violet-1) 100%);
+  border-color: var(--mantine-color-violet-3);
+  transform: translateY(-1px);
+  box-shadow: var(--mantine-shadow-sm);
 }
 
 [data-mantine-color-scheme="dark"] .upgradeCta {
-  background: linear-gradient(135deg, var(--mantine-color-blue-9) 0%, var(--mantine-color-cyan-9) 100%);
-  border-color: var(--mantine-color-blue-7);
+  background: linear-gradient(135deg, rgba(84, 27, 133, 0.3) 0%, rgba(103, 65, 217, 0.3) 100%);
+  border-color: var(--mantine-color-violet-8);
 }
 
 [data-mantine-color-scheme="dark"] .upgradeCta:hover {
-  background: linear-gradient(135deg, var(--mantine-color-blue-8) 0%, var(--mantine-color-cyan-8) 100%);
-  border-color: var(--mantine-color-blue-6);
+  background: linear-gradient(135deg, rgba(84, 27, 133, 0.4) 0%, rgba(103, 65, 217, 0.4) 100%);
+  border-color: var(--mantine-color-violet-6);
 }
