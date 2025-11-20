@@ -2,8 +2,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   PiGearSixDuotone,
   PiSignOut,
-  PiFileCsv, 
-  PiArrowCircleRightThin 
+  PiFileCsv,
+  PiArrowCircleRightThin
 } from 'react-icons/pi';
 import {
   IconBolt,
@@ -12,6 +12,9 @@ import { Avatar, AvatarProps, ElementProps, Menu } from '@mantine/core';
 import { useAuth, useGetAccountInfo, useLogout } from '@/hooks';
 import { paths } from '@/routes';
 import { IconUser } from '@tabler/icons-react';
+import { useWebSocketContext, useTimerContext } from '@/providers/websocket-provider';
+import { exportTimersAsCSV, exportTimersAsExcel } from '@/utils/csv-export';
+
 type CurrentUserProps = Omit<AvatarProps, 'src' | 'alt'> & ElementProps<'div', keyof AvatarProps>;
 
 export function CurrentUser(props: CurrentUserProps) {
@@ -20,6 +23,8 @@ export function CurrentUser(props: CurrentUserProps) {
   const { mutate: logout } = useLogout();
   const { setIsAuthenticated } = useAuth();
   const { data: user } = useGetAccountInfo();
+  const { roomInfo } = useWebSocketContext();
+  const { timers } = useTimerContext();
 
   const isRoomsPage = location.pathname === '/dashboard/rooms';
 
@@ -37,10 +42,22 @@ export function CurrentUser(props: CurrentUserProps) {
     navigate(paths.dashboard.rooms);
   };
 
+  const handleDownloadTimersCSV = () => {
+    if (timers && timers.length > 0) {
+      exportTimersAsCSV(timers, roomInfo?.name);
+    }
+  };
+
+  const handleDownloadTimersExcel = () => {
+    if (timers && timers.length > 0) {
+      exportTimersAsExcel(timers, roomInfo?.name);
+    }
+  };
+
   return (
     <Menu>
       <Menu.Target>
-        
+
         <Avatar
           src={user?.profile_image_url}
           alt={user?.name ?? 'Current user'}
@@ -52,10 +69,10 @@ export function CurrentUser(props: CurrentUserProps) {
       </Menu.Target>
       <Menu.Dropdown>
         <Menu.Item>
-         {user?.email}
+          {user?.email}
         </Menu.Item>
-   
-    
+
+
         <Menu.Label>Settings</Menu.Label>
         <Menu.Item leftSection={<PiGearSixDuotone size="1rem" />}>Account settings</Menu.Item>
         <Menu.Item leftSection={<IconBolt size="1rem" />}>Upgrade plan</Menu.Item>
@@ -71,15 +88,16 @@ export function CurrentUser(props: CurrentUserProps) {
         {/* <Menu.Label>Manager</Menu.Label> */}
         {!isRoomsPage && (
           <>
-            <Menu.Item leftSection={<PiFileCsv size="1rem" />}>Download timers as csv</Menu.Item>
+            <Menu.Item leftSection={<PiFileCsv size="1rem" />} onClick={handleDownloadTimersCSV}>Download timers as csv</Menu.Item>
+            <Menu.Item leftSection={<PiFileCsv size="1rem" />} onClick={handleDownloadTimersExcel}>Download timers as excel</Menu.Item>
             <Menu.Divider />
             <Menu.Item leftSection={<PiArrowCircleRightThin size="1rem" />} onClick={handleGoBackToRooms}>
-              Go back to rooms
+              Go back to dashboard
             </Menu.Item>
           </>
         )}
         <Menu.Item leftSection={<PiSignOut size="1rem" />} onClick={handleLogout}>
-          Logout
+          Sign out
         </Menu.Item>
       </Menu.Dropdown>
     </Menu>
