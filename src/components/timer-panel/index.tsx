@@ -14,9 +14,9 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { IconPlayerPlay, IconPlayerPause, IconRestore, IconGripVertical, IconSettings, IconNotes, IconTrash, IconClock, IconUser, IconCalendar, IconArrowDown, IconLink } from '@tabler/icons-react';
+import { IconPlayerPlay, IconPlayerPause, IconRestore, IconGripVertical, IconSettings, IconNotes, IconTrash, IconClock, IconUser, IconCalendar, IconArrowDown, IconLink, IconPlayerStop } from '@tabler/icons-react';
 import cx from 'clsx';
-import { Text, Button, Group, Alert, useMantineColorScheme, useMantineTheme, HoverCard, TextInput, Modal, Popover, Switch } from '@mantine/core';
+import { Text, Button, Group, Alert, useMantineColorScheme, useMantineTheme, HoverCard, TextInput, Modal, Popover, Switch, Paper, Stack, ActionIcon, RingProgress, Badge, ThemeIcon, Collapse, Box } from '@mantine/core';
 import { Menu } from '@mantine/core';
 import { DateTimePicker } from '@mantine/dates';
 import { useListState } from '@mantine/hooks';
@@ -26,9 +26,10 @@ import dayjs from 'dayjs';
 import { Tooltip } from '@mantine/core';
 import { IconAlertTriangle } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
-import { Drawer, Textarea, NumberInput, Checkbox, Stack, Paper, Title, Divider } from '@mantine/core';
+import { Drawer, Textarea, NumberInput, Checkbox, Title, Divider } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { Select } from '@mantine/core';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { UpgradeCta } from './upgrade-cta';
 import classes from './timers.module.css';
@@ -81,7 +82,7 @@ interface TimerEvents {
   onTimerReorder?: (timers: Timer[]) => void;
   onTimerEdit?: (timer: Timer, field: string, value: any) => void;
   onTimerDelete?: (timer: Timer) => void;
-  onScheduleConflict?: (conflicts: Array<{timer1: string, timer2: string, overlapMinutes: number}>) => void;
+  onScheduleConflict?: (conflicts: Array<{ timer1: string, timer2: string, overlapMinutes: number }>) => void;
   onRequestLinkToggle?: (shouldLink: boolean, timersToReset: Timer[]) => void;
 }
 
@@ -400,11 +401,15 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
   // Check if this item should show the connector (not the last item when all linked)
   const shouldShowConnector = isAllTimersLinked && itemIndex < allTimers.length - 1;
 
+  // Check if we should show a regular separator (not linked, and not the last item)
+  const shouldShowSeparator = !shouldShowConnector && itemIndex < allTimers.length - 1;
+
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
-    transition,
+    transition: isDragging ? undefined : transition,
     position: 'relative',
-    marginBottom: shouldShowConnector ? '20px' : undefined,
+    marginBottom: shouldShowConnector ? '20px' : '16px', // Add margin for spacing
+    zIndex: isDragging ? 100 : 1,
   };
 
   const handlePlay = () => {
@@ -432,12 +437,12 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
     setDeleteModalOpened(false);
   };
 
-const handleDoubleClick = (e: React.MouseEvent) => {
-  e.preventDefault();
-  e.stopPropagation();
-  // Don't navigate - just select the timer
-  onSelectTimer(item.id);
-};
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Don't navigate - just select the timer
+    onSelectTimer(item.id);
+  };
 
   const { updateTimer: wsUpdateTimer } = useWebSocketContext();
 
@@ -570,393 +575,331 @@ const handleDoubleClick = (e: React.MouseEvent) => {
     setSchedulePopoverOpened(true);
   };
 
+  // Calculate progress for ring
+  const progress = useMemo(() => {
+    if (item.duration_seconds <= 0) return 0;
+    const remaining = Math.max(0, item.current_time_seconds);
+    return ((item.duration_seconds - remaining) / item.duration_seconds) * 100;
+  }, [item.duration_seconds, item.current_time_seconds]);
+
+  const isCritical = timerState === 'critical';
+  const isWarning = timerState === 'warning';
+  const isActive = item.is_active && !item.is_paused;
+
   return (
-    <div
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{
+        layout: { duration: 0.2, ease: [0.2, 0, 0, 1] },
+        opacity: { duration: 0.15 },
+        y: { duration: 0.15 }
+      }}
       className={cx(classes.item, {
         [classes.itemDragging]: isDragging,
-        [classes.itemSelected]: item.is_selected,
       })}
       ref={setNodeRef}
       style={style}
       onDoubleClick={handleDoubleClick}
       data-status={getItemStatus()}
-      title="Double-click to select timer"
       {...attributes}
     >
-      <div className={classes.dragHandle} {...listeners}>
-        <IconGripVertical size={18} />
-      </div>
-      <div className={classes.timerContent}>
-        <div className={classes.timerHeader}>
-          {editingField === 'title' ? (
-            <TextInput
-              value={editValue}
-              onChange={(e) => setEditValue(e.currentTarget.value)}
-              onBlur={saveEdit}
-              onKeyDown={handleKeyPress}
-              size="xs"
-              style={{ minWidth: '150px' }}
-              autoFocus
-            />
-          ) : (
-            <div
-              className={classes.timerTitle}
-              onClick={() => startEditing('title', item.title)}
-              style={{
-                cursor: (item.is_active && !item.is_paused) ? 'not-allowed' : 'pointer',
-                opacity: (item.is_active && !item.is_paused) ? 0.7 : 1
-              }}
-              title={(item.is_active && !item.is_paused) ? 'Cannot edit while timer is running' : 'Click to edit'}
-            >
-              {item.title}
+      {/* Connector Line */}
+      {shouldShowConnector && (
+        <>
+          <div className={classes.connectorLine} />
+          <div className={classes.connectorDot} />
+        </>
+      )}
+
+      <Tooltip label="Double-click to select" openDelay={1000} position="top">
+        <Paper
+          className={cx(classes.card, {
+            [classes.cardSelected]: item.is_selected,
+            [classes.cardActive]: isActive,
+            [classes.cardWarning]: isWarning,
+            [classes.cardCritical]: isCritical,
+          })}
+          p="sm"
+          radius="md"
+          withBorder
+        >
+          <Group gap="xs" align="center" wrap="nowrap" style={{ width: '100%' }}>
+            {/* Drag Handle */}
+            <div className={classes.dragHandle} {...listeners}>
+              <IconGripVertical size={16} />
             </div>
-          )}
 
-
-          {/* Notes indicator */}
-          {item.notes && (
-            <HoverCard width={320} shadow="md" withArrow>
-              <HoverCard.Target>
-                <div className={classes.notesIndicator}>
-                  <IconNotes size="10" />
-                </div>
-              </HoverCard.Target>
-              <HoverCard.Dropdown>
-                <Text size="sm">{item.notes}</Text>
-              </HoverCard.Dropdown>
-            </HoverCard>
-          )}
-
-          {/* Link indicator - shown on hover only (hidden when all timers are linked since visual connector is shown) */}
-          {linkedTimer && !isAllTimersLinked && (
-            <Tooltip
-              label={`Linked to: ${linkedTimer.title}`}
-              position="top"
-              withArrow
-            >
-              <div
-                className={cx(classes.hoverOnly, isBulkUpdatePending && classes.noTransition)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '2px 6px',
-                  borderRadius: '4px',
-                  backgroundColor: 'var(--mantine-color-green-1)',
-                  border: '1px solid var(--mantine-color-green-4)',
-                  cursor: 'help'
-                }}
-              >
-                <IconArrowDown size={10} color="var(--mantine-color-green-7)" />
-                <Text size="xs" c="green.7" fw={500}>
-                  {linkedTimer.title}
-                </Text>
-              </div>
-            </Tooltip>
-          )}
-
-          {/* Auto Start Toggle - shown on hover only */}
-          <Tooltip
-            label={
-              item.is_manual_start
-                ? "Click to enable auto start (schedule required)"
-                : "Click to disable auto start"
-            }
-            position="top"
-            withArrow
-          >
-            <div
-              className={cx(classes.autoStartBadge, classes.hoverOnly, isBulkUpdatePending && classes.noTransition)}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleAutoStartToggle();
-              }}
-              data-enabled={!item.is_manual_start}
-            >
-              <Text size="xs" fw={500}>
-                Auto Start {item.is_manual_start ? 'OFF' : 'ON'}
-              </Text>
+            {/* Progress Ring & Status */}
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <RingProgress
+                size={42}
+                thickness={3}
+                roundCaps
+                sections={[{ value: progress, color: isCritical ? 'red' : isWarning ? 'orange' : 'blue' }]}
+                label={
+                  isActive && (
+                    <div className={classes.pulse} style={{ width: 6, height: 6, background: 'var(--mantine-color-blue-5)', margin: '0 auto' }} />
+                  )
+                }
+              />
             </div>
-          </Tooltip>
-        </div>
 
-        <div className={classes.timerMeta}>
-          <span className={classes.editableField}>
-            <IconClock size={14} style={{ flexShrink: 0 }} />
-            {editingField === 'duration_seconds' ? (
-              <div
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}
-                onBlur={(e) => {
-                  // Only save if focus is leaving the entire duration editing area
-                  if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                    saveEdit();
-                  }
-                }}
-              >
-                <span style={{ fontSize: '10px', marginRight: '2px' }}>Min:</span>
-                <NumberInput
-                  value={editMinutes}
-                  onChange={(value) => setEditMinutes(typeof value === 'number' ? value : Number(value) || 0)}
-                  onKeyDown={handleKeyPress}
-                  size="xs"
-                  min={0}
-                  max={59}
-                  style={{ width: '50px' }}
-                  autoFocus
-                />
-                <span style={{ fontSize: '10px', margin: '0 2px' }}>Sec:</span>
-                <NumberInput
-                  value={editSeconds}
-                  onChange={(value) => setEditSeconds(typeof value === 'number' ? value : Number(value) || 0)}
-                  onKeyDown={handleKeyPress}
-                  size="xs"
-                  min={0}
-                  max={59}
-                  style={{ width: '50px' }}
-                />
-              </div>
-            ) : (
-              <>
-                <span className={classes.metaLabel}>Duration</span>
-                <span
-                  className={classes.metaValue}
-                  onClick={() => startEditing('duration_seconds', formatDuration(item.duration_seconds))}
-                  style={{
-                    cursor: (item.is_active && !item.is_paused) ? 'not-allowed' : 'pointer',
-                    opacity: (item.is_active && !item.is_paused) ? 0.7 : 1
-                  }}
-                  title={(item.is_active && !item.is_paused) ? 'Cannot edit while timer is running' : 'Click to edit'}
-                >
-                  {formatDuration(item.duration_seconds)}
-                </span>
-              </>
-            )}
-          </span>
+            {/* Main Content */}
+            <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
+              <Group gap="xs" wrap="nowrap">
+                {editingField === 'title' ? (
+                  <TextInput
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.currentTarget.value)}
+                    onBlur={saveEdit}
+                    onKeyDown={handleKeyPress}
+                    size="xs"
+                    classNames={{ input: classes.titleInput }}
+                    autoFocus
+                  />
+                ) : (
+                  <Tooltip label="Click to edit title" openDelay={500}>
+                    <Text
+                      className={classes.timerTitle}
+                      onClick={() => startEditing('title', item.title)}
+                      truncate
+                    >
+                      {item.title}
+                    </Text>
+                  </Tooltip>
+                )}
 
-          {item.is_active && (
-            <span className={cx(classes.remainingTime, {
-              [classes.warning]: timerState === 'warning',
-              [classes.critical]: timerState === 'critical',
-            })}>
-              {item.current_time_seconds < 0 ? 'Overtime:' : 'Remaining:'} {item.current_time_seconds < 0 ? '+' : ''}{formatDuration(item.current_time_seconds)}
-            </span>
-          )}
+                {item.notes && (
+                  <HoverCard width={320} shadow="md" withArrow>
+                    <HoverCard.Target>
+                      <div className={classes.notesIndicator}>
+                        <IconNotes size={10} />
+                      </div>
+                    </HoverCard.Target>
+                    <HoverCard.Dropdown>
+                      <Text size="sm">{item.notes}</Text>
+                    </HoverCard.Dropdown>
+                  </HoverCard>
+                )}
+              </Group>
 
-          {item.speaker && (
-            <span className={cx(classes.editableField, classes.hoverOnly, isBulkUpdatePending && classes.noTransition)}>
-              <IconUser size={14} style={{ flexShrink: 0 }} />
-              {editingField === 'speaker' ? (
-                <TextInput
-                  value={editValue}
-                  onChange={(e) => setEditValue(e.currentTarget.value)}
-                  onBlur={saveEdit}
-                  onKeyDown={handleKeyPress}
-                  size="xs"
-                  style={{ minWidth: '100px', display: 'inline-block' }}
-                  autoFocus
-                />
-              ) : (
-                <>
-                  <span className={classes.metaLabel}>Speaker</span>
-                  <span
-                    className={classes.metaSpeaker}
-                    onClick={() => startEditing('speaker', item.speaker || '')}
-                    style={{
-                      cursor: (item.is_active && !item.is_paused) ? 'not-allowed' : 'pointer',
-                      opacity: (item.is_active && !item.is_paused) ? 0.7 : 1
-                    }}
-                    title={(item.is_active && !item.is_paused) ? 'Cannot edit while timer is running' : 'Click to edit'}
-                  >
-                    {item.speaker}
-                  </span>
-                </>
-              )}
-            </span>
-          )}
+              <Group gap="xs" className={classes.timerMeta}>
+                {/* Duration/Time Display */}
+                <Group gap={4} className={classes.editableField}>
+                  <IconClock size={12} />
+                  {editingField === 'duration_seconds' ? (
+                    <div
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}
+                      onBlur={(e) => {
+                        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                          saveEdit();
+                        }
+                      }}
+                    >
+                      <NumberInput
+                        value={editMinutes}
+                        onChange={(value) => setEditMinutes(typeof value === 'number' ? value : Number(value) || 0)}
+                        onKeyDown={handleKeyPress}
+                        size="xs"
+                        min={0}
+                        max={59}
+                        w={40}
+                        styles={{ input: { padding: '0 4px', height: '20px', minHeight: '20px', fontSize: '11px' } }}
+                        autoFocus
+                      />
+                      <Text size="xs" span>:</Text>
+                      <NumberInput
+                        value={editSeconds}
+                        onChange={(value) => setEditSeconds(typeof value === 'number' ? value : Number(value) || 0)}
+                        onKeyDown={handleKeyPress}
+                        size="xs"
+                        min={0}
+                        max={59}
+                        w={40}
+                        styles={{ input: { padding: '0 4px', height: '20px', minHeight: '20px', fontSize: '11px' } }}
+                      />
+                    </div>
+                  ) : (
+                    <Tooltip label="Click to edit duration" openDelay={500}>
+                      <Text
+                        size="xs"
+                        fw={500}
+                        onClick={() => startEditing('duration_seconds', formatDuration(item.duration_seconds))}
+                      >
+                        {formatDuration(item.duration_seconds)}
+                      </Text>
+                    </Tooltip>
+                  )}
+                </Group>
 
-          {/* Schedule Editing - Inline with Popover - shown on hover only */}
-          <Popover
-            width={300}
-            position="bottom"
-            withArrow
-            shadow="md"
-            opened={schedulePopoverOpened}
-            onChange={setSchedulePopoverOpened}
-            closeOnClickOutside={false}
-            closeOnEscape={true}
-            trapFocus
-          >
-            <Popover.Target>
-              <span
-                className={cx(classes.editableField, classes.hoverOnly, isBulkUpdatePending && classes.noTransition)}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleScheduleClick();
-                }}
-                style={{
-                  cursor: (item.is_active && !item.is_paused) ? 'not-allowed' : 'pointer',
-                  opacity: (item.is_active && !item.is_paused) ? 0.7 : 1
-                }}
-                title={(item.is_active && !item.is_paused) ? 'Cannot edit while timer is running' : undefined}
-              >
-                <IconCalendar size={14} style={{ flexShrink: 0 }} />
-                {item.scheduled_start_time && item.scheduled_start_date ? (
-                  <>
-                    <span className={classes.metaLabel}>Scheduled</span>
-                    <span className={classes.metaValue}>
-                      {dayjs(`${item.scheduled_start_date}T${item.scheduled_start_time}`).format('MMM D, YYYY HH:mm')}
-                    </span>
-                    {showScheduleWarning && (
-                      <Tooltip label="Scheduled time is in the past" position="top" withArrow>
-                        <IconAlertTriangle
-                          size={12}
-                          color="orange"
-                          style={{ marginLeft: '4px', verticalAlign: 'middle' }}
-                        />
+                {/* Speaker */}
+                {(item.speaker || editingField === 'speaker') && (
+                  <Group gap={4} className={classes.editableField}>
+                    <IconUser size={12} />
+                    {editingField === 'speaker' ? (
+                      <TextInput
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.currentTarget.value)}
+                        onBlur={saveEdit}
+                        onKeyDown={handleKeyPress}
+                        size="xs"
+                        styles={{ input: { height: '20px', minHeight: '20px', padding: '0 4px', fontSize: '11px' } }}
+                        autoFocus
+                      />
+                    ) : (
+                      <Tooltip label="Click to edit speaker" openDelay={500}>
+                        <Text
+                          size="xs"
+                          fs="italic"
+                          c="dimmed"
+                          onClick={() => startEditing('speaker', item.speaker || '')}
+                        >
+                          {item.speaker || 'No Speaker'}
+                        </Text>
                       </Tooltip>
                     )}
-                  </>
-                ) : (
-                  <span className={classes.metaPlaceholder}>
-                    Click to set schedule
-                  </span>
+                  </Group>
                 )}
-              </span>
-            </Popover.Target>
-            <Popover.Dropdown onClick={(e) => e.stopPropagation()}>
-              <Stack gap="sm">
-                <Text size="sm" fw={500}>Set Schedule</Text>
-                {pendingAutoStart && (
-                  <Alert color="blue" variant="light" p="xs">
-                    <Text size="xs">Schedule is required to enable Auto Start</Text>
-                  </Alert>
-                )}
-                <DateTimePicker
-                  value={scheduleDateTime}
-                  onChange={setScheduleDateTime}
-                  placeholder="Pick date and time"
-                  clearable
-                  withSeconds={false}
-                  popoverProps={{ withinPortal: true }}
-                />
-                <Group justify="flex-end" gap="xs">
-                  <Button
-                    size="xs"
-                    variant="light"
-                    onClick={() => {
-                      setSchedulePopoverOpened(false);
-                      setPendingAutoStart(false);
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    size="xs"
-                    onClick={() => handleScheduleSave(scheduleDateTime)}
-                    disabled={pendingAutoStart && !scheduleDateTime}
-                  >
-                    Save
-                  </Button>
-                </Group>
-              </Stack>
-            </Popover.Dropdown>
-          </Popover>
-        </div>
-      </div>
+              </Group>
+            </Stack>
 
-        <div className={classes.controls}>
-          <Tooltip label={item.is_paused || !item.is_active ? "Start timer" : "Pause timer"} position="top" withArrow>
-            <button
-              className={cx(classes.controlButton, item.is_paused || !item.is_active ? classes.play : classes.pause)}
-              onClick={item.is_paused || !item.is_active ? handlePlay : handlePause}
-              disabled={item.is_stopped}
-            >
-              {item.is_paused || !item.is_active ? <IconPlayerPlay size={14} /> : <IconPlayerPause size={14} />}
-            </button>
-          </Tooltip>
+            {/* Large Time Display */}
+            <div style={{ textAlign: 'right', maxWidth: '70px', overflow: 'hidden', flexShrink: 0 }}>
+              <Text
+                className={cx(classes.timeDisplay, {
+                  [classes.timeDisplayActive]: isActive,
+                  [classes.timeDisplayWarning]: isWarning,
+                  [classes.timeDisplayCritical]: isCritical,
+                })}
+                size="lg"
+                style={{ whiteSpace: 'nowrap' }}
+              >
+                {item.current_time_seconds < 0 ? '+' : ''}{formatDuration(item.current_time_seconds)}
+              </Text>
+              {item.current_time_seconds < 0 && (
+                <Text size="xs" c="red" fw={700} ta="right">OVERTIME</Text>
+              )}
+            </div>
 
-          <Tooltip label="Stop/Reset timer" position="top" withArrow>
-            <button
-              className={cx(classes.controlButton, classes.stop)}
-              onClick={handleStop}
-              disabled={item.is_stopped}
-            >
-              <IconRestore size={14} />
-            </button>
-          </Tooltip>
-
-          <Menu position="bottom-end" shadow="md" closeOnClickOutside>
-            <Menu.Target>
-              <Tooltip label="More options" position="top" withArrow>
-                <button
-                  className={classes.controlButton}
-                  style={{ fontSize: '16px' }}
+            {/* Controls */}
+            <Group gap={4} className={classes.controls}>
+              {!item.is_active || item.is_paused ? (
+                <ActionIcon
+                  variant="light"
+                  color="teal"
+                  size="sm"
+                  onClick={(e) => { e.stopPropagation(); handlePlay(); }}
+                  disabled={item.is_finished}
                 >
-                  ⋯
-                </button>
-              </Tooltip>
-            </Menu.Target>
-            <Menu.Dropdown>
-              <Menu.Item
-                leftSection={<IconSettings size={14} />}
-                onClick={() => onOpenSettings(item)}
-                disabled={item.is_active && !item.is_paused}
-              >
-                Timer Settings
-              </Menu.Item>
-              <Menu.Divider />
-              <Menu.Item
-                leftSection={<IconTrash size={14} />}
-                onClick={handleDelete}
+                  <IconPlayerPlay size={14} />
+                </ActionIcon>
+              ) : (
+                <ActionIcon
+                  variant="light"
+                  color="orange"
+                  size="sm"
+                  onClick={(e) => { e.stopPropagation(); handlePause(); }}
+                >
+                  <IconPlayerPause size={14} />
+                </ActionIcon>
+              )}
+
+              <ActionIcon
+                variant="light"
                 color="red"
+                size="sm"
+                onClick={(e) => { e.stopPropagation(); handleStop(); }}
+                disabled={item.is_stopped}
               >
-                Delete timer
-              </Menu.Item>
-            </Menu.Dropdown>
-          </Menu>
-      </div>
+                <IconPlayerStop size={14} />
+              </ActionIcon>
+
+              <Menu position="bottom-end" withArrow>
+                <Menu.Target>
+                  <ActionIcon variant="subtle" color="gray" size="sm">
+                    <IconSettings size={14} />
+                  </ActionIcon>
+                </Menu.Target>
+                <Menu.Dropdown>
+                  <Menu.Label>Timer Settings</Menu.Label>
+                  <Menu.Item leftSection={<IconSettings size={14} />} onClick={() => onOpenSettings(item)}>
+                    Configure
+                  </Menu.Item>
+                  <Menu.Item leftSection={<IconCalendar size={14} />} onClick={handleScheduleClick}>
+                    Schedule Auto-Start
+                  </Menu.Item>
+                  <Menu.Divider />
+                  <Menu.Item
+                    leftSection={<IconTrash size={14} />}
+                    color="red"
+                    onClick={handleDelete}
+                  >
+                    Delete Timer
+                  </Menu.Item>
+                </Menu.Dropdown>
+              </Menu>
+            </Group>
+          </Group>
+        </Paper>
+      </Tooltip>
+
+      {/* Separator for non-linked items */}
+      {shouldShowSeparator && (
+        <Divider
+          my="xs"
+          variant="dashed"
+          color="gray.3"
+          style={{ opacity: 0.5 }}
+        />
+      )}
+
+      {/* Schedule Popover */}
+      <Popover
+        width={300}
+        position="bottom"
+        withArrow
+        shadow="md"
+        opened={schedulePopoverOpened}
+        onChange={setSchedulePopoverOpened}
+        closeOnClickOutside={false}
+        closeOnEscape={true}
+        trapFocus
+      >
+        <Popover.Target>
+          <div style={{ position: 'absolute', bottom: 0, left: '50%' }} />
+        </Popover.Target>
+        <Popover.Dropdown>
+          <Stack gap="sm">
+            <Text size="sm" fw={500}>Schedule Auto-Start</Text>
+            <DateTimePicker
+              value={scheduleDateTime}
+              onChange={setScheduleDateTime}
+              placeholder="Pick date and time"
+              clearable
+              minDate={new Date()}
+            />
+            <Group justify="flex-end">
+              <Button variant="default" size="xs" onClick={() => setSchedulePopoverOpened(false)}>Cancel</Button>
+              <Button size="xs" onClick={() => handleScheduleSave(scheduleDateTime)}>Save Schedule</Button>
+            </Group>
+          </Stack>
+        </Popover.Dropdown>
+      </Popover>
 
       {/* Delete Confirmation Modal */}
-      <Modal
-        opened={deleteModalOpened}
-        onClose={handleCancelDelete}
-        title={`Delete Timer "${item.title}"`}
-        centered
-      >
-        <Text mb="lg">
-          Are you sure you want to delete the timer "{item.title}"? This action cannot be undone.
-        </Text>
-        <Group justify="flex-end" gap="md">
-          <Button variant="light" onClick={handleCancelDelete}>
-            Cancel
-          </Button>
-          <Button color="red" onClick={handleConfirmDelete}>
-            Delete Timer
-          </Button>
+      <Modal opened={deleteModalOpened} onClose={handleCancelDelete} title="Delete Timer" size="sm">
+        <Text size="sm" mb="lg">Are you sure you want to delete "{item.title}"? This action cannot be undone.</Text>
+        <Group justify="flex-end">
+          <Button variant="default" onClick={handleCancelDelete}>Cancel</Button>
+          <Button color="red" onClick={handleConfirmDelete}>Delete</Button>
         </Group>
       </Modal>
-
-      {/* Connection indicator when all timers are linked */}
-
-      {shouldShowConnector && (
-          <Tooltip
-              label={`Linked to the next timer`}
-              position="top"
-              withArrow
-            >
-        <div className={classes.linkedConnector}>
-          {/* <div className={classes.connectorDot}></div> */}
-          <div className={classes.connectorLine}></div>
-          {/* <div className={classes.connectorDot}></div> */}
-        </div>
-        </Tooltip>
-      )}
-    </div>
+    </motion.div>
   );
 }
-
-// Memoize the component with custom comparison to prevent unnecessary re-renders
-// This is critical for preventing the link indicator from flickering during bulk updates
 const MemoizedSortableItem = memo(SortableItem, areItemsEqual);
 
 export function Timers({
@@ -1065,7 +1008,15 @@ export function Timers({
   }, [timers, selectedTimerId]);
 
   const overlaps = checkForOverlaps(state);
-  const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor));
+  // Configure sensors with activation constraint for smoother drag experience
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // 8px movement required to start drag - prevents accidental drags
+      },
+    }),
+    useSensor(KeyboardSensor)
+  );
 
   // Memoize the linked state check to prevent unnecessary re-renders
   const allTimersLinked = useMemo(() => areAllTimersLinked(), [state]);
@@ -1228,7 +1179,7 @@ export function Timers({
     open();
   };
 
-const form = useForm({
+  const form = useForm({
     initialValues: {
       title: '',
       speaker: '',
@@ -1251,7 +1202,7 @@ const form = useForm({
       warning_time: (value) => (value <= 0 ? 'Warning time must be positive' : null),
       critical_time: (value, values) =>
         value <= 0 ? 'Critical time must be positive' :
-        value >= values.warning_time ? 'Critical time must be less than warning time' : null,
+          value >= values.warning_time ? 'Critical time must be less than warning time' : null,
     },
   });
 
@@ -1315,19 +1266,21 @@ const form = useForm({
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={state.map((i) => i.id)} strategy={verticalListSortingStrategy}>
-          {state.map((item, index) => (
-            <MemoizedSortableItem
-              key={item.id}
-              item={item}
-              allTimers={state}
-              onUpdateTimer={handleUpdateTimer}
-              onSelectTimer={handleSelectTimer}
-              onOpenSettings={handleOpenSettings}
-              events={events}
-              isAllTimersLinked={allTimersLinked}
-              itemIndex={index}
-            />
-          ))}
+          <AnimatePresence initial={false}>
+            {state.map((item, index) => (
+              <MemoizedSortableItem
+                key={item.id}
+                item={item}
+                allTimers={state}
+                onUpdateTimer={handleUpdateTimer}
+                onSelectTimer={handleSelectTimer}
+                onOpenSettings={handleOpenSettings}
+                events={events}
+                isAllTimersLinked={allTimersLinked}
+                itemIndex={index}
+              />
+            ))}
+          </AnimatePresence>
         </SortableContext>
       </DndContext>
 

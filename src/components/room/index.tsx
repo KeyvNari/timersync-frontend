@@ -251,24 +251,24 @@ export default function RoomComponent({
   const convertedTimer = useMemo(() => {
     return displayTimer
       ? {
-          title: displayTimer.title,
-          speaker: displayTimer.speaker,
-          notes: displayTimer.notes,
-          display_id: displayTimer.display_id,
-          show_title: displayTimer.show_title,
-          show_speaker: displayTimer.show_speaker,
-          show_notes: displayTimer.show_notes,
-          timer_type: displayTimer.timer_type || 'countdown',
-          duration_seconds: displayTimer.duration_seconds,
-          is_active: displayTimer.is_active || false,
-          is_paused: displayTimer.is_paused || false,
-          is_finished: displayTimer.is_finished || false,
-          is_stopped: displayTimer.is_stopped || false,
-          current_time_seconds: displayTimer.current_time_seconds,
-          warning_time: displayTimer.warning_time,
-          critical_time: displayTimer.critical_time,
-          timer_format: displayTimer.timer_format,
-        }
+        title: displayTimer.title,
+        speaker: displayTimer.speaker,
+        notes: displayTimer.notes,
+        display_id: displayTimer.display_id,
+        show_title: displayTimer.show_title,
+        show_speaker: displayTimer.show_speaker,
+        show_notes: displayTimer.show_notes,
+        timer_type: displayTimer.timer_type || 'countdown',
+        duration_seconds: displayTimer.duration_seconds,
+        is_active: displayTimer.is_active || false,
+        is_paused: displayTimer.is_paused || false,
+        is_finished: displayTimer.is_finished || false,
+        is_stopped: displayTimer.is_stopped || false,
+        current_time_seconds: displayTimer.current_time_seconds,
+        warning_time: displayTimer.warning_time,
+        critical_time: displayTimer.critical_time,
+        timer_format: displayTimer.timer_format,
+      }
       : undefined;
   }, [displayTimer]);
 
@@ -388,7 +388,7 @@ export default function RoomComponent({
             </Group>
           )}
 
-          <Box style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+          <Box style={{ flex: 1, overflow: 'auto', minHeight: 0, padding: '3px' }}>
             <Timers
               timers={timers}
               events={{
