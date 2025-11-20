@@ -197,8 +197,8 @@ function TimerDisplay({
 
       // Only update if base has actually changed (start/resume/adjust)
       const baseChanged = !calculationBase ||
-          calculationBase.actual_start_time?.toISOString() !== newBase.actual_start_time?.toISOString() ||
-          calculationBase.accumulated_seconds !== newBase.accumulated_seconds;
+        calculationBase.actual_start_time?.toISOString() !== newBase.actual_start_time?.toISOString() ||
+        calculationBase.accumulated_seconds !== newBase.accumulated_seconds;
 
       if (baseChanged) {
         setCalculationBase(newBase);
@@ -313,25 +313,25 @@ function TimerDisplay({
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
- const handleMouseMove = (e: React.MouseEvent) => {
+  const handleMouseMove = (e: React.MouseEvent) => {
     if (!in_view_mode) return;
-    
+
     // Check if mouse is over the controls area
     const controlsElement = e.currentTarget.querySelector('[data-controls]');
     if (controlsElement && controlsElement.contains(e.target as Node)) {
       return; // Don't set hide timeout if hovering over controls
     }
-    
+
     setShowControls(true);
-    
+
     if (hideTimeout) {
       clearTimeout(hideTimeout);
     }
-    
+
     const timeout = setTimeout(() => {
       setShowControls(false);
     }, 4000);
-    
+
     setHideTimeout(timeout);
   };
 
@@ -346,7 +346,7 @@ function TimerDisplay({
     const timeout = setTimeout(() => {
       setShowControls(false);
     }, 1000);
-    
+
     setHideTimeout(timeout);
   };
 
@@ -432,25 +432,25 @@ function TimerDisplay({
   const showTimer = !(safeDisplay.auto_hide_completed && safeTimer.is_finished);
   const showOnlyClock = !showTimer && safeDisplay.clock_visible;
 
-const backgroundStyle: React.CSSProperties = {};
-switch (safeDisplay.background_type || 'color') {
-  case 'color':
-    backgroundStyle.backgroundColor = safeDisplay.background_color || '#000000';
-    break;
-  case 'image':
-    if (safeDisplay.background_image) {
-      backgroundStyle.backgroundImage = `url(${safeDisplay.background_image})`;
-      backgroundStyle.backgroundSize = 'cover';
-      backgroundStyle.backgroundPosition = 'center';
-    }
-    break;
-  case 'transparent':
-    backgroundStyle.backgroundColor = 'transparent';
-    break;
-  case 'preset':
-    backgroundStyle.backgroundColor = '#1a1b1e';
-    break;
-}
+  const backgroundStyle: React.CSSProperties = {};
+  switch (safeDisplay.background_type || 'color') {
+    case 'color':
+      backgroundStyle.backgroundColor = safeDisplay.background_color || '#000000';
+      break;
+    case 'image':
+      if (safeDisplay.background_image) {
+        backgroundStyle.backgroundImage = `url(${safeDisplay.background_image})`;
+        backgroundStyle.backgroundSize = 'cover';
+        backgroundStyle.backgroundPosition = 'center';
+      }
+      break;
+    case 'transparent':
+      backgroundStyle.backgroundColor = 'transparent';
+      break;
+    case 'preset':
+      backgroundStyle.backgroundColor = '#1a1b1e';
+      break;
+  }
 
 
   let mainSection = 0;
@@ -543,21 +543,21 @@ switch (safeDisplay.background_type || 'color') {
   if (progressStyle !== 'hidden') {
     if (progressStyle === 'bottom_bar' || progressStyle === 'top_bar') {
       let sections = [];
-      
+
       if (safeTimer.duration_seconds && safeTimer.duration_seconds > 0) {
         const warningTime = safeTimer.warning_time || safeTimer.duration_seconds * 0.3;
         const criticalTime = safeTimer.critical_time || safeTimer.duration_seconds * 0.1;
-        
+
         if (safeTimer.timer_type === 'countdown') {
           const redPercent = (criticalTime / safeTimer.duration_seconds) * 100;
           const yellowPercent = ((warningTime - criticalTime) / safeTimer.duration_seconds) * 100;
           const greenPercent = ((safeTimer.duration_seconds - warningTime) / safeTimer.duration_seconds) * 100;
-          
+
           const currentPercent = mainSection;
           let redFilled = 0;
           let yellowFilled = 0;
           let greenFilled = 0;
-          
+
           if (currentPercent > (redPercent + yellowPercent)) {
             greenFilled = currentPercent - (redPercent + yellowPercent);
             yellowFilled = yellowPercent;
@@ -571,7 +571,7 @@ switch (safeDisplay.background_type || 'color') {
             yellowFilled = 0;
             greenFilled = 0;
           }
-          
+
           sections = [
             { value: redFilled, color: safeDisplay.progress_color_tertiary || 'red' },
             { value: redPercent - redFilled, color: 'gray' },
@@ -584,12 +584,12 @@ switch (safeDisplay.background_type || 'color') {
           const greenPercent = (warningTime / safeTimer.duration_seconds) * 100;
           const yellowPercent = ((criticalTime - warningTime) / safeTimer.duration_seconds) * 100;
           const redPercent = ((safeTimer.duration_seconds - criticalTime) / safeTimer.duration_seconds) * 100;
-          
+
           const currentPercent = mainSection;
           let greenFilled = 0;
           let yellowFilled = 0;
           let redFilled = 0;
-          
+
           if (currentPercent > (greenPercent + yellowPercent)) {
             greenFilled = greenPercent;
             yellowFilled = yellowPercent;
@@ -603,7 +603,7 @@ switch (safeDisplay.background_type || 'color') {
             yellowFilled = 0;
             redFilled = 0;
           }
-          
+
           sections = [
             { value: greenFilled, color: safeDisplay.progress_color_main || 'green' },
             { value: greenPercent - greenFilled, color: 'gray' },
@@ -616,7 +616,7 @@ switch (safeDisplay.background_type || 'color') {
       } else {
         sections = [{ value: 100, color: safeDisplay.progress_color_main || 'green' }];
       }
-      
+
       progressComponent = (
         <Box style={{ position: 'relative' }}>
           <Progress.Root size="xl" radius="xs">
@@ -806,18 +806,18 @@ switch (safeDisplay.background_type || 'color') {
     if (isLargeView) {
       if (isFocused) {
         // Focused mode: much larger font that adjusts as text gets longer
-        if (length < 30) return 'clamp(3rem, 8vw, 8rem)';
-        if (length < 60) return 'clamp(2.5rem, 6vw, 6rem)';
-        if (length < 100) return 'clamp(2rem, 5vw, 5rem)';
-        if (length < 150) return 'clamp(1.5rem, 4vw, 4rem)';
-        return 'clamp(1.2rem, 3vw, 3rem)';
+        if (length < 30) return 'clamp(1rem, 8cqw, 8rem)';
+        if (length < 60) return 'clamp(0.8rem, 6cqw, 6rem)';
+        if (length < 100) return 'clamp(0.6rem, 5cqw, 5rem)';
+        if (length < 150) return 'clamp(0.5rem, 4cqw, 4rem)';
+        return 'clamp(0.4rem, 3cqw, 3rem)';
       } else {
         // Normal mode: much larger than before, with auto-adjustment
-        if (length < 30) return 'clamp(2rem, 5vw, 5rem)';
-        if (length < 60) return 'clamp(1.5rem, 4vw, 4rem)';
-        if (length < 100) return 'clamp(1.2rem, 3vw, 3rem)';
-        if (length < 150) return 'clamp(1rem, 2.5vw, 2.5rem)';
-        return 'clamp(0.9rem, 2vw, 2rem)';
+        if (length < 30) return 'clamp(1rem, 5cqw, 5rem)';
+        if (length < 60) return 'clamp(0.8rem, 4cqw, 4rem)';
+        if (length < 100) return 'clamp(0.6rem, 3cqw, 3rem)';
+        if (length < 150) return 'clamp(0.5rem, 2.5cqw, 2.5rem)';
+        return 'clamp(0.4rem, 2cqw, 2rem)';
       }
     } else {
       // Small preview mode (room controller, etc): use smaller fixed sizes
@@ -875,7 +875,7 @@ switch (safeDisplay.background_type || 'color') {
   // Determine the justify property based on timer_position
   const timerPosition = safeDisplay.timer_position || 'center';
   let stackJustify: 'center' | 'flex-start' | 'flex-end' = 'center';
-  
+
   switch (timerPosition) {
     case 'top':
       stackJustify = 'flex-start';
@@ -901,158 +901,159 @@ switch (safeDisplay.background_type || 'color') {
         ref={containerRef}
         onMouseMove={handleMouseMove}
         style={{
-        // Always maintain aspect ratio (except for 16:9 in viewer normal mode)
-        aspectRatio: shouldFillViewport ? undefined : aspectRatio.toString(),
-        // Determine sizing based on mode
-        width: shouldFillViewport ? '100vw' :
-               isFullscreen ? '100vw' :
-               in_view_mode ? `min(100vw, calc(100vh * ${aspectRatio}))` :
-               '100%',
-        height: shouldFillViewport ? '100vh' :
-                isFullscreen ? '100vh' :
-                in_view_mode ? `min(100vh, calc(100vw / ${aspectRatio}))` :
+          // Always maintain aspect ratio (except for 16:9 in viewer normal mode)
+          aspectRatio: shouldFillViewport ? undefined : aspectRatio.toString(),
+          // Determine sizing based on mode
+          width: shouldFillViewport ? '100vw' :
+            isFullscreen ? '100vw' :
+              in_view_mode ? `min(100vw, calc(100vh * ${aspectRatio}))` :
                 '100%',
-        maxWidth: '100%',
-        maxHeight: '100%',
-        position: 'relative',
-        overflow: 'hidden',
-        ...backgroundStyle,
-        borderRadius: '0px',
-        border: `1px solid ${borderColor}`,
-        transition: "border-color 0.1s ease",
-        boxSizing: 'border-box',
-      }}
-    >
-      {progressStyle === 'top_bar' && (
-        <Box style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1 }}>
-          {progressComponent}
-        </Box>
-      )}
-
-      {in_view_mode && (
-        <Box
-          onMouseEnter={handleControlsMouseEnter}
-          onMouseLeave={handleControlsMouseLeave}
-          style={{
-            position: 'absolute',
-            top: 0,
-            right: 0,
-            padding: '0.5rem',
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            backdropFilter: 'blur(4px)',
-            borderBottomLeftRadius: '8px',
-            zIndex: 20,
-            opacity: showControls ? 1 : 0,
-            transition: 'opacity 0.3s ease',
-            pointerEvents: showControls ? 'auto' : 'none',
-          }}
-        >
-          <ActionIcon
-            variant="subtle"
-            color="gray"
-            size="lg"
-            onClick={toggleFullscreen}
-            title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
-          >
-            {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
-          </ActionIcon>
-        </Box>
-      )}
-
-      <Flex
-        direction="column"
-        justify="space-between"
-        style={{
-          height: '100%',
-          width: '100%',
-          padding: '1rem',
+          height: shouldFillViewport ? '100vh' :
+            isFullscreen ? '100vh' :
+              in_view_mode ? `min(100vh, calc(100vw / ${aspectRatio}))` :
+                '100%',
+          maxWidth: '100%',
+          maxHeight: '100%',
           position: 'relative',
           overflow: 'hidden',
+          ...backgroundStyle,
+          borderRadius: '0px',
+          border: `1px solid ${borderColor}`,
+          transition: "border-color 0.1s ease",
+          boxSizing: 'border-box',
+          containerType: 'size',
         }}
       >
-        {header && <Box style={{ flexShrink: 0 }}>{header}</Box>}
+        {progressStyle === 'top_bar' && (
+          <Box style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1 }}>
+            {progressComponent}
+          </Box>
+        )}
 
-        <Stack align="center" justify={stackJustify} gap="md" style={{ flex: 1, minHeight: 0 }}>
-          {/* In focus mode, only show the message */}
-          {message?.is_focused ? (
-            messageComponent && (
-              <Box style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
-                {messageComponent}
-              </Box>
-            )
-          ) : (
-            <>
-              {showTimer && (
-                <Box style={{
-                  maxWidth: '100%',
-                  maxHeight: '100%',
-                  overflow: 'visible',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                  <Text style={{
-                    ...timerStyle,
-                    fontSize: isFullscreen
-                      ? `min(${baseFontSize * 42}rem, ${baseFontSize * 18}vw, ${baseFontSize * 12}vh)`
-                      : `min(${baseFontSize * 42}rem, ${baseFontSize * 12}vw, ${baseFontSize * 8}vh)`,
-                    whiteSpace: 'nowrap',
-                  }}>
-                    {timerText}
-                  </Text>
-                </Box>
-              )}
+        {in_view_mode && (
+          <Box
+            onMouseEnter={handleControlsMouseEnter}
+            onMouseLeave={handleControlsMouseLeave}
+            style={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              padding: '0.5rem',
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              backdropFilter: 'blur(4px)',
+              borderBottomLeftRadius: '8px',
+              zIndex: 20,
+              opacity: showControls ? 1 : 0,
+              transition: 'opacity 0.3s ease',
+              pointerEvents: showControls ? 'auto' : 'none',
+            }}
+          >
+            <ActionIcon
+              variant="subtle"
+              color="gray"
+              size="lg"
+              onClick={toggleFullscreen}
+              title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+            >
+              {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
+            </ActionIcon>
+          </Box>
+        )}
 
-              {safeDisplay.clock_visible && !showOnlyClock && (
-                <Box style={{ maxWidth: '100%', overflow: 'hidden' }}>
-                  <Text style={{
-                    ...clockStyle,
-                    fontSize: `min(${clockStyle.fontSize}, 8vw, 8vh)`,
-                  }}>{clockText}</Text>
-                </Box>
-              )}
+        <Flex
+          direction="column"
+          justify="space-between"
+          style={{
+            height: '100%',
+            width: '100%',
+            padding: '1rem',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          {header && <Box style={{ flexShrink: 0 }}>{header}</Box>}
 
-              {showOnlyClock && (
-                <Box style={{ maxWidth: '100%', overflow: 'hidden' }}>
-                  <Text style={{
-                    ...clockStyle,
-                    fontSize: `min(${clockStyle.fontSize}, 12vw, 12vh)`,
-                  }}>{clockText}</Text>
-                </Box>
-              )}
-
-              {messageComponent && (
-                <Box style={{ maxWidth: '100%', overflow: 'hidden' }}>
+          <Stack align="center" justify={stackJustify} gap="md" style={{ flex: 1, minHeight: 0 }}>
+            {/* In focus mode, only show the message */}
+            {message?.is_focused ? (
+              messageComponent && (
+                <Box style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
                   {messageComponent}
                 </Box>
-              )}
-            </>
-          )}
-        </Stack>
+              )
+            ) : (
+              <>
+                {showTimer && (
+                  <Box style={{
+                    maxWidth: '100%',
+                    maxHeight: '100%',
+                    overflow: 'visible',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <Text style={{
+                      ...timerStyle,
+                      fontSize: isFullscreen
+                        ? `min(${baseFontSize * 42}rem, ${baseFontSize * 18}cqw, ${baseFontSize * 12}cqh)`
+                        : `min(${baseFontSize * 42}rem, ${baseFontSize * 12}cqw, ${baseFontSize * 8}cqh)`,
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {timerText}
+                    </Text>
+                  </Box>
+                )}
 
-        {footer && <Box style={{ flexShrink: 0 }}>{footer}</Box>}
-      </Flex>
+                {safeDisplay.clock_visible && !showOnlyClock && (
+                  <Box style={{ maxWidth: '100%', overflow: 'hidden' }}>
+                    <Text style={{
+                      ...clockStyle,
+                      fontSize: `min(${clockStyle.fontSize}, 8cqw, 8cqh)`,
+                    }}>{clockText}</Text>
+                  </Box>
+                )}
 
-      {progressStyle === 'bottom_bar' && (
-        <Box style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 1 }}>
-          {progressComponent}
-        </Box>
-      )}
+                {showOnlyClock && (
+                  <Box style={{ maxWidth: '100%', overflow: 'hidden' }}>
+                    <Text style={{
+                      ...clockStyle,
+                      fontSize: `min(${clockStyle.fontSize}, 12cqw, 12cqh)`,
+                    }}>{clockText}</Text>
+                  </Box>
+                )}
 
-      {safeDisplay.logo_image && (
-        <Image 
-          src={safeDisplay.logo_image}
-          style={logoStyle} 
-          alt="Logo"
-        />
-      )}
+                {messageComponent && (
+                  <Box style={{ maxWidth: '100%', overflow: 'hidden' }}>
+                    {messageComponent}
+                  </Box>
+                )}
+              </>
+            )}
+          </Stack>
 
-      {progressStyle === 'ring' && progressComponent && (
-        <Box style={{ position: 'absolute', bottom: 20, right: 20, zIndex: 10 }}>
-          {progressComponent}
-        </Box>
-      )}
-    </Box>
+          {footer && <Box style={{ flexShrink: 0 }}>{footer}</Box>}
+        </Flex>
+
+        {progressStyle === 'bottom_bar' && (
+          <Box style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 1 }}>
+            {progressComponent}
+          </Box>
+        )}
+
+        {safeDisplay.logo_image && (
+          <Image
+            src={safeDisplay.logo_image}
+            style={logoStyle}
+            alt="Logo"
+          />
+        )}
+
+        {progressStyle === 'ring' && progressComponent && (
+          <Box style={{ position: 'absolute', bottom: 20, right: 20, zIndex: 10 }}>
+            {progressComponent}
+          </Box>
+        )}
+      </Box>
     </>
   );
 }
