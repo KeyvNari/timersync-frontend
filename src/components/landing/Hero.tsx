@@ -208,7 +208,7 @@ export function Hero({ onScrollToSection, animationStyle }: HeroProps) {
 function HeroAnimation() {
   const [step, setStep] = useState<'prompt' | 'timers' | 'display'>('prompt');
   const [typedText, setTypedText] = useState('');
-  const fullText = "Create a 10-minute brainstorming timer with 3 speakers...";
+  const fullText = "According to the uploaded file, create a timer for each event.";
   const [cursorVisible, setCursorVisible] = useState(false);
   const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
   const [activeTimerId, setActiveTimerId] = useState<number | null>(null);
@@ -303,8 +303,8 @@ function HeroAnimation() {
             transition={{ duration: 0.5 }}
             style={{
               position: 'absolute',
-              top: '50%',
-              left: '50%',
+              top: '30%',
+              left: '10%',
               transform: 'translate(-50%, -50%)',
               width: '100%',
               maxWidth: '500px',
