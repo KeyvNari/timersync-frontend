@@ -710,25 +710,28 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
                 openDelay={500}
               >
                 <Group gap={4} style={{
-                  padding: '2px 6px',
+                  padding: '2px 8px',
                   borderRadius: '4px',
                   backgroundColor: isActive && !item.is_paused
                     ? 'var(--mantine-color-gray-1)'
-                    : 'transparent',
+                    : (item.scheduled_start_date && item.scheduled_start_time
+                      ? 'transparent'
+                      : 'var(--mantine-color-gray-0)'),
                   border: item.scheduled_start_date && item.scheduled_start_time
                     ? `1px solid ${!item.is_manual_start ? 'var(--mantine-color-green-3)' : 'var(--mantine-color-blue-3)'}`
-                    : '1px solid transparent',
+                    : '1px solid var(--mantine-color-gray-3)',
                   cursor: isActive && !item.is_paused ? 'not-allowed' : 'pointer',
                   transition: 'all 0.2s ease'
                 }}
                   className={classes.scheduleBadge}
                   onClick={handleScheduleClick}>
-                  <IconCalendar size={14} color={isActive && !item.is_paused ? "var(--mantine-color-gray-5)" : (item.scheduled_start_date && item.scheduled_start_time ? (!item.is_manual_start ? "var(--mantine-color-green-6)" : "var(--mantine-color-blue-6)") : "var(--mantine-color-gray-4)")} />
-                  {item.scheduled_start_date && item.scheduled_start_time && (
-                    <Text size="xs" c={isActive && !item.is_paused ? "var(--mantine-color-gray-6)" : (!item.is_manual_start ? "var(--mantine-color-green-7)" : "var(--mantine-color-blue-7)")} fw={500} style={{ fontSize: '11px' }}>
-                      {dayjs(`${item.scheduled_start_date}T${item.scheduled_start_time}`).format('HH:mm')}
-                    </Text>
-                  )}
+                  <IconCalendar size={14} color={isActive && !item.is_paused ? "var(--mantine-color-gray-5)" : (item.scheduled_start_date && item.scheduled_start_time ? (!item.is_manual_start ? "var(--mantine-color-green-6)" : "var(--mantine-color-blue-6)") : "var(--mantine-color-gray-6)")} />
+                  <Text size="xs" c={isActive && !item.is_paused ? "var(--mantine-color-gray-6)" : (item.scheduled_start_date && item.scheduled_start_time ? (!item.is_manual_start ? "var(--mantine-color-green-7)" : "var(--mantine-color-blue-7)") : "var(--mantine-color-gray-7)")} fw={500} style={{ fontSize: '11px' }}>
+                    {item.scheduled_start_date && item.scheduled_start_time
+                      ? dayjs(`${item.scheduled_start_date}T${item.scheduled_start_time}`).format('HH:mm')
+                      : "Schedule"
+                    }
+                  </Text>
                 </Group>
               </Tooltip>
 
@@ -877,14 +880,16 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
       </Tooltip>
 
       {/* Separator for non-linked items */}
-      {shouldShowSeparator && (
-        <Divider
-          my="xs"
-          variant="dashed"
-          color="gray.3"
-          style={{ opacity: 0.5 }}
-        />
-      )}
+      {
+        shouldShowSeparator && (
+          <Divider
+            my="xs"
+            variant="dashed"
+            color="gray.3"
+            style={{ opacity: 0.5 }}
+          />
+        )
+      }
 
       {/* Schedule Popover */}
       <Popover
@@ -1012,7 +1017,7 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
           <Button color="red" onClick={handleConfirmDelete}>Delete</Button>
         </Group>
       </Modal>
-    </motion.div>
+    </motion.div >
   );
 }
 const MemoizedSortableItem = memo(SortableItem, areItemsEqual);
