@@ -14,7 +14,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { IconPlayerPlay, IconPlayerPause, IconRestore, IconGripVertical, IconSettings, IconNotes, IconTrash, IconClock, IconUser, IconCalendar, IconArrowDown, IconLink, IconPlayerStop, IconClockCheck } from '@tabler/icons-react';
+import { IconPlayerPlay, IconPlayerPause, IconRestore, IconGripVertical, IconSettings, IconNotes, IconTrash, IconClock, IconUser, IconCalendar, IconArrowDown, IconLink, IconPlayerStop, IconClockCheck, IconHandClick } from '@tabler/icons-react';
 import cx from 'clsx';
 import { Text, Button, Group, Alert, useMantineColorScheme, useMantineTheme, HoverCard, TextInput, Modal, Popover, Switch, Paper, Stack, ActionIcon, RingProgress, Badge, ThemeIcon, Collapse, Box } from '@mantine/core';
 import { Menu } from '@mantine/core';
@@ -629,97 +629,49 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
             </div>
 
             {/* Main Content */}
-            <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
-              <Group gap="xs" wrap="nowrap">
-                {editingField === 'title' ? (
-                  <TextInput
-                    value={editValue}
-                    onChange={(e) => setEditValue(e.currentTarget.value)}
-                    onBlur={saveEdit}
-                    onKeyDown={handleKeyPress}
-                    size="xs"
-                    classNames={{ input: classes.titleInput }}
-                    autoFocus
-                  />
-                ) : (
-                  <Tooltip label="Click to edit title" openDelay={500}>
-                    <Text
-                      className={classes.timerTitle}
-                      onClick={() => startEditing('title', item.title)}
-                      truncate
-                    >
-                      {item.title}
-                    </Text>
-                  </Tooltip>
-                )}
-
-                {item.notes && (
-                  <HoverCard width={320} shadow="md" withArrow>
-                    <HoverCard.Target>
-                      <div className={classes.notesIndicator}>
-                        <IconNotes size={10} />
-                      </div>
-                    </HoverCard.Target>
-                    <HoverCard.Dropdown>
-                      <Text size="sm">{item.notes}</Text>
-                    </HoverCard.Dropdown>
-                  </HoverCard>
-                )}
-              </Group>
-
-              <Group gap="xs" className={classes.timerMeta} wrap="wrap">
-                {/* Duration/Time Display */}
-                <Group gap={4} className={classes.editableField}>
-                  <IconClock size={12} />
-                  {editingField === 'duration_seconds' ? (
-                    <div
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}
-                      onBlur={(e) => {
-                        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                          saveEdit();
-                        }
-                      }}
-                    >
-                      <NumberInput
-                        value={editMinutes}
-                        onChange={(value) => setEditMinutes(typeof value === 'number' ? value : Number(value) || 0)}
-                        onKeyDown={handleKeyPress}
-                        size="xs"
-                        min={0}
-                        max={59}
-                        w={40}
-                        styles={{ input: { padding: '0 4px', height: '20px', minHeight: '20px', fontSize: '11px' } }}
-                        autoFocus
-                      />
-                      <Text size="xs" span>:</Text>
-                      <NumberInput
-                        value={editSeconds}
-                        onChange={(value) => setEditSeconds(typeof value === 'number' ? value : Number(value) || 0)}
-                        onKeyDown={handleKeyPress}
-                        size="xs"
-                        min={0}
-                        max={59}
-                        w={40}
-                        styles={{ input: { padding: '0 4px', height: '20px', minHeight: '20px', fontSize: '11px' } }}
-                      />
-                    </div>
+            <Group gap="md" style={{ flex: 1, minWidth: 0 }} align="center" wrap="nowrap">
+              <Stack gap={2} style={{ minWidth: 0 }}>
+                <Group gap="xs" wrap="nowrap">
+                  {editingField === 'title' ? (
+                    <TextInput
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.currentTarget.value)}
+                      onBlur={saveEdit}
+                      onKeyDown={handleKeyPress}
+                      size="xs"
+                      classNames={{ input: classes.titleInput }}
+                      autoFocus
+                    />
                   ) : (
-                    <Tooltip label="Click to edit duration" openDelay={500}>
+                    <Tooltip label="Click to edit title" openDelay={500}>
                       <Text
-                        size="xs"
-                        fw={500}
-                        onClick={() => startEditing('duration_seconds', formatDuration(item.duration_seconds))}
+                        className={classes.timerTitle}
+                        onClick={() => startEditing('title', item.title)}
+                        truncate
                       >
-                        {formatDuration(item.duration_seconds)}
+                        {item.title}
                       </Text>
                     </Tooltip>
                   )}
+
+                  {item.notes && (
+                    <HoverCard width={320} shadow="md" withArrow>
+                      <HoverCard.Target>
+                        <div className={classes.notesIndicator}>
+                          <IconNotes size={10} />
+                        </div>
+                      </HoverCard.Target>
+                      <HoverCard.Dropdown>
+                        <Text size="sm">{item.notes}</Text>
+                      </HoverCard.Dropdown>
+                    </HoverCard>
+                  )}
                 </Group>
 
-                {/* Speaker */}
+                {/* Speaker - Inline below title */}
                 {(item.speaker || editingField === 'speaker') && (
                   <Group gap={4} className={classes.editableField}>
-                    <IconUser size={12} />
+                    <IconUser size={10} style={{ opacity: 0.7 }} />
                     {editingField === 'speaker' ? (
                       <TextInput
                         value={editValue}
@@ -727,7 +679,7 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
                         onBlur={saveEdit}
                         onKeyDown={handleKeyPress}
                         size="xs"
-                        styles={{ input: { height: '20px', minHeight: '20px', padding: '0 4px', fontSize: '11px' } }}
+                        styles={{ input: { height: '18px', minHeight: '18px', padding: '0 4px', fontSize: '10px' } }}
                         autoFocus
                       />
                     ) : (
@@ -736,6 +688,7 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
                           size="xs"
                           fs="italic"
                           c="dimmed"
+                          style={{ fontSize: '11px' }}
                           onClick={() => startEditing('speaker', item.speaker || '')}
                         >
                           {item.speaker || 'No Speaker'}
@@ -744,126 +697,180 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
                     )}
                   </Group>
                 )}
+              </Stack>
 
-                {/* Schedule & AutoStart Status Indicator */}
-                <Tooltip
-                  label={isActive && !item.is_paused
-                    ? "Cannot edit schedule while timer is running - pause or stop the timer first"
-                    : (item.scheduled_start_date && item.scheduled_start_time
-                      ? `${!item.is_manual_start ? 'Auto-start at' : 'Scheduled for'} ${dayjs(`${item.scheduled_start_date}T${item.scheduled_start_time}`).format('MMM D, HH:mm')} - Click to edit`
-                      : "Click to add a schedule")
-                  }
-                  openDelay={500}
-                >
-                  <Group gap={3} style={{
-                    padding: '4px 8px',
-                    borderRadius: '4px',
-                    backgroundColor: isActive && !item.is_paused
-                      ? 'var(--mantine-color-gray-3)'
-                      : (item.scheduled_start_date && item.scheduled_start_time
-                        ? 'var(--mantine-color-gray-0)'
-                        : 'var(--mantine-color-gray-1)'),
-                    border: isActive && !item.is_paused
-                      ? 'none'
-                      : (item.scheduled_start_date && item.scheduled_start_time
-                        ? `1px solid ${!item.is_manual_start ? 'var(--mantine-color-green-6)' : 'var(--mantine-color-blue-6)'}`
-                        : '1px solid var(--mantine-color-gray-3)'),
-                    opacity: isActive && !item.is_paused ? 0.6 : 1,
-                    cursor: isActive && !item.is_paused ? 'not-allowed' : 'pointer'
-                  }} onClick={handleScheduleClick}>
-                    <IconCalendar size={12} color={isActive && !item.is_paused ? "var(--mantine-color-gray-7)" : (item.scheduled_start_date && item.scheduled_start_time ? (!item.is_manual_start ? "var(--mantine-color-green-6)" : "var(--mantine-color-blue-6)") : "var(--mantine-color-gray-6)")} />
-                    <Text size="xs" c={isActive && !item.is_paused ? "var(--mantine-color-gray-7)" : (item.scheduled_start_date && item.scheduled_start_time ? (!item.is_manual_start ? "var(--mantine-color-green-7)" : "var(--mantine-color-blue-7)") : "var(--mantine-color-gray-7)")} fw={item.scheduled_start_date && item.scheduled_start_time ? 600 : 500}>
-                      {item.scheduled_start_date && item.scheduled_start_time
-                        ? dayjs(`${item.scheduled_start_date}T${item.scheduled_start_time}`).format('MMM D, HH:mm')
-                        : "No Schedule"
-                      }
+              {/* Schedule & AutoStart Status Indicator - Compact */}
+              <Tooltip
+                label={isActive && !item.is_paused
+                  ? "Cannot edit schedule while timer is running - pause or stop the timer first"
+                  : (item.scheduled_start_date && item.scheduled_start_time
+                    ? `${!item.is_manual_start ? 'Auto-start at' : 'Scheduled for'} ${dayjs(`${item.scheduled_start_date}T${item.scheduled_start_time}`).format('MMM D, HH:mm')} - Click to edit`
+                    : "Click to add a schedule")
+                }
+                openDelay={500}
+              >
+                <Group gap={4} style={{
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  backgroundColor: isActive && !item.is_paused
+                    ? 'var(--mantine-color-gray-1)'
+                    : 'transparent',
+                  border: item.scheduled_start_date && item.scheduled_start_time
+                    ? `1px solid ${!item.is_manual_start ? 'var(--mantine-color-green-3)' : 'var(--mantine-color-blue-3)'}`
+                    : '1px solid transparent',
+                  cursor: isActive && !item.is_paused ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                  className={classes.scheduleBadge}
+                  onClick={handleScheduleClick}>
+                  <IconCalendar size={14} color={isActive && !item.is_paused ? "var(--mantine-color-gray-5)" : (item.scheduled_start_date && item.scheduled_start_time ? (!item.is_manual_start ? "var(--mantine-color-green-6)" : "var(--mantine-color-blue-6)") : "var(--mantine-color-gray-4)")} />
+                  {item.scheduled_start_date && item.scheduled_start_time && (
+                    <Text size="xs" c={isActive && !item.is_paused ? "var(--mantine-color-gray-6)" : (!item.is_manual_start ? "var(--mantine-color-green-7)" : "var(--mantine-color-blue-7)")} fw={500} style={{ fontSize: '11px' }}>
+                      {dayjs(`${item.scheduled_start_date}T${item.scheduled_start_time}`).format('HH:mm')}
                     </Text>
-                    {item.scheduled_start_date && item.scheduled_start_time && !item.is_manual_start && !(isActive && !item.is_paused) && (
-                      <Badge size="xs" variant="filled" color="white" style={{ fontSize: '9px', color: 'var(--mantine-color-green-6)' }}>AUTO</Badge>
-                    )}
-                    {item.scheduled_start_date && item.scheduled_start_time && item.is_manual_start && !(isActive && !item.is_paused) && (
-                      <Badge size="xs" variant="filled" color="white" style={{ fontSize: '9px', color: 'var(--mantine-color-blue-6)' }}>MANUAL</Badge>
-                    )}
-                  </Group>
-                </Tooltip>
-              </Group>
-            </Stack>
+                  )}
+                </Group>
+              </Tooltip>
 
-            {/* Large Time Display */}
-            <div style={{ textAlign: 'right', maxWidth: '70px', overflow: 'hidden', flexShrink: 0 }}>
-              <Text
-                className={cx(classes.timeDisplay, {
-                  [classes.timeDisplayActive]: isActive,
-                  [classes.timeDisplayWarning]: isWarning,
-                  [classes.timeDisplayCritical]: isCritical,
-                })}
-                size="lg"
-                style={{ whiteSpace: 'nowrap' }}
-              >
-                {item.current_time_seconds < 0 ? '+' : ''}{formatDuration(item.current_time_seconds)}
-              </Text>
-              {item.current_time_seconds < 0 && (
-                <Text size="xs" c="red" fw={700} ta="right">OVERTIME</Text>
-              )}
-            </div>
-
-            {/* Controls */}
-            <Group gap={4} className={classes.controls}>
-              {!item.is_active || item.is_paused ? (
-                <ActionIcon
-                  variant="light"
-                  color="teal"
-                  size="sm"
-                  onClick={(e) => { e.stopPropagation(); handlePlay(); }}
-                  disabled={item.is_finished}
-                >
-                  <IconPlayerPlay size={14} />
-                </ActionIcon>
-              ) : (
-                <ActionIcon
-                  variant="light"
-                  color="orange"
-                  size="sm"
-                  onClick={(e) => { e.stopPropagation(); handlePause(); }}
-                >
-                  <IconPlayerPause size={14} />
-                </ActionIcon>
-              )}
-
-              <ActionIcon
-                variant="light"
-                color="red"
-                size="sm"
-                onClick={(e) => { e.stopPropagation(); handleStop(); }}
-                disabled={item.is_stopped}
-              >
-                <IconPlayerStop size={14} />
-              </ActionIcon>
-
-              <Menu position="bottom-end" withArrow>
-                <Menu.Target>
-                  <ActionIcon variant="subtle" color="gray" size="sm">
-                    <IconSettings size={14} />
-                  </ActionIcon>
-                </Menu.Target>
-                <Menu.Dropdown>
-                  <Menu.Label>Timer Settings</Menu.Label>
-                  <Menu.Item leftSection={<IconSettings size={14} />} onClick={() => onOpenSettings(item)}>
-                    Configure
-                  </Menu.Item>
-                  <Menu.Item leftSection={<IconCalendar size={14} />} onClick={handleScheduleClick}>
-                    Schedule Auto-Start
-                  </Menu.Item>
-                  <Menu.Divider />
-                  <Menu.Item
-                    leftSection={<IconTrash size={14} />}
-                    color="red"
-                    onClick={handleDelete}
+              {/* Duration/Time Display - Compact */}
+              <Group gap={4} className={classes.editableField}>
+                <IconClock size={14} style={{ opacity: 0.5 }} />
+                {editingField === 'duration_seconds' ? (
+                  <div
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}
+                    onBlur={(e) => {
+                      if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                        saveEdit();
+                      }
+                    }}
                   >
-                    Delete Timer
-                  </Menu.Item>
-                </Menu.Dropdown>
-              </Menu>
+                    <NumberInput
+                      value={editMinutes}
+                      onChange={(value) => setEditMinutes(typeof value === 'number' ? value : Number(value) || 0)}
+                      onKeyDown={handleKeyPress}
+                      size="xs"
+                      min={0}
+                      max={59}
+                      w={36}
+                      styles={{ input: { padding: '0 2px', height: '20px', minHeight: '20px', fontSize: '11px', textAlign: 'center' } }}
+                      autoFocus
+                    />
+                    <Text size="xs" span>:</Text>
+                    <NumberInput
+                      value={editSeconds}
+                      onChange={(value) => setEditSeconds(typeof value === 'number' ? value : Number(value) || 0)}
+                      onKeyDown={handleKeyPress}
+                      size="xs"
+                      min={0}
+                      max={59}
+                      w={36}
+                      styles={{ input: { padding: '0 2px', height: '20px', minHeight: '20px', fontSize: '11px', textAlign: 'center' } }}
+                    />
+                  </div>
+                ) : (
+                  <Tooltip label="Click to edit duration" openDelay={500}>
+                    <Text
+                      size="sm"
+                      fw={500}
+                      onClick={() => startEditing('duration_seconds', formatDuration(item.duration_seconds))}
+                      style={{ fontVariantNumeric: 'tabular-nums' }}
+                    >
+                      {formatDuration(item.duration_seconds)}
+                    </Text>
+                  </Tooltip>
+                )}
+              </Group>
+
+              {/* Spacer to push controls to the right */}
+              <div style={{ flex: 1 }} />
+
+              {/* Large Time Display */}
+              <div style={{ textAlign: 'right', minWidth: '60px', flexShrink: 0 }}>
+                <Text
+                  className={cx(classes.timeDisplay, {
+                    [classes.timeDisplayActive]: isActive,
+                    [classes.timeDisplayWarning]: isWarning,
+                    [classes.timeDisplayCritical]: isCritical,
+                  })}
+                  size="lg"
+                  style={{ whiteSpace: 'nowrap' }}
+                >
+                  {item.current_time_seconds < 0 ? '+' : ''}{formatDuration(item.current_time_seconds)}
+                </Text>
+                {item.current_time_seconds < 0 && (
+                  <Text size="xs" c="red" fw={700} ta="right" style={{ fontSize: '9px', lineHeight: 1 }}>OVERTIME</Text>
+                )}
+              </div>
+
+              {/* Controls */}
+              <Group gap={2} className={classes.controls}>
+                <Tooltip label="Select Timer" openDelay={500}>
+                  <ActionIcon
+                    variant={item.is_selected ? "filled" : "subtle"}
+                    color={item.is_selected ? "blue" : "gray"}
+                    size="sm"
+                    onClick={(e) => { e.stopPropagation(); onSelectTimer(item.id); }}
+                  >
+                    <IconHandClick size={14} />
+                  </ActionIcon>
+                </Tooltip>
+
+                {!item.is_active || item.is_paused ? (
+                  <ActionIcon
+                    variant="light"
+                    color="teal"
+                    size="sm"
+                    onClick={(e) => { e.stopPropagation(); handlePlay(); }}
+                    disabled={item.is_finished}
+                  >
+                    <IconPlayerPlay size={14} />
+                  </ActionIcon>
+                ) : (
+                  <ActionIcon
+                    variant="light"
+                    color="orange"
+                    size="sm"
+                    onClick={(e) => { e.stopPropagation(); handlePause(); }}
+                  >
+                    <IconPlayerPause size={14} />
+                  </ActionIcon>
+                )}
+
+                <ActionIcon
+                  variant="light"
+                  color="red"
+                  size="sm"
+                  onClick={(e) => { e.stopPropagation(); handleStop(); }}
+                  disabled={item.is_stopped}
+                >
+                  <IconPlayerStop size={14} />
+                </ActionIcon>
+
+                <Menu position="bottom-end" withArrow>
+                  <Menu.Target>
+                    <ActionIcon variant="subtle" color="gray" size="sm">
+                      <IconSettings size={14} />
+                    </ActionIcon>
+                  </Menu.Target>
+                  <Menu.Dropdown>
+                    <Menu.Label>Timer Settings</Menu.Label>
+                    <Menu.Item leftSection={<IconSettings size={14} />} onClick={() => onOpenSettings(item)}>
+                      Configure
+                    </Menu.Item>
+                    <Menu.Item leftSection={<IconCalendar size={14} />} onClick={handleScheduleClick}>
+                      Schedule Auto-Start
+                    </Menu.Item>
+                    <Menu.Divider />
+                    <Menu.Item
+                      leftSection={<IconTrash size={14} />}
+                      color="red"
+                      onClick={handleDelete}
+                    >
+                      Delete Timer
+                    </Menu.Item>
+                  </Menu.Dropdown>
+                </Menu>
+              </Group>
             </Group>
           </Group>
         </Paper>
@@ -894,76 +901,106 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
         <Popover.Target>
           <div style={{ position: 'absolute', bottom: 0, left: '50%' }} />
         </Popover.Target>
-        <Popover.Dropdown>
-          <Stack gap="sm">
-            <div>
-              <Text size="sm" fw={600} c="gray.9" mb="xs">Schedule Auto-Start</Text>
+        <Popover.Dropdown p={0} style={{ overflow: 'hidden' }}>
+          <Paper p="sm" style={{ width: '100%' }}>
+            <Stack gap="sm">
+              <Group justify="space-between" align="center">
+                <Text size="sm" fw={600} c="gray.9">Schedule Auto-Start</Text>
+                {scheduleDateTime && (
+                  <Tooltip label="Clear Schedule">
+                    <ActionIcon
+                      variant="subtle"
+                      color="red"
+                      size="sm"
+                      onClick={() => {
+                        setScheduleDateTime(null);
+                        setIsAutoStartEnabled(false);
+                      }}
+                    >
+                      <IconTrash size={14} />
+                    </ActionIcon>
+                  </Tooltip>
+                )}
+              </Group>
+
               <DateTimePicker
                 value={scheduleDateTime}
                 onChange={setScheduleDateTime}
                 placeholder="Pick date and time"
                 clearable
                 minDate={new Date()}
+                size="sm"
+                leftSection={<IconCalendar size={16} />}
               />
-            </div>
 
-            {/* Auto-Start Toggle */}
-            <div style={{
-              padding: '8px',
-              borderRadius: '4px',
-              backgroundColor: scheduleDateTime ? 'var(--mantine-color-gray-0)' : 'var(--mantine-color-gray-1)',
-            }}>
-              <Group justify="space-between" gap="sm">
-                <div>
-                  <Text size="sm" fw={600} c="gray.9">Auto-Start</Text>
-                  <Text size="xs" c="gray.7">Automatically start at scheduled time</Text>
-                </div>
-                <Switch
-                  checked={isAutoStartEnabled}
-                  onChange={(e) => {
-                    const newCheckedState = e.currentTarget.checked;
-                    // When enabling auto-start, ensure there's a schedule
-                    if (newCheckedState && !scheduleDateTime) {
-                      // User tried to enable without a schedule - don't allow
-                      return;
-                    }
-                    // Allow toggling on/off when schedule exists
-                    setIsAutoStartEnabled(newCheckedState);
-                  }}
-                  disabled={!scheduleDateTime}
-                  size="sm"
-                />
-              </Group>
+              {/* Auto-Start Toggle */}
+              <Paper
+                p="xs"
+                radius="sm"
+                bg={scheduleDateTime ? "var(--mantine-color-gray-0)" : "var(--mantine-color-gray-1)"}
+                style={{ transition: 'background-color 0.2s ease' }}
+              >
+                <Group justify="space-between" gap="sm">
+                  <Group gap="xs">
+                    <ThemeIcon
+                      size="sm"
+                      variant="light"
+                      color={scheduleDateTime ? (isAutoStartEnabled ? "green" : "blue") : "gray"}
+                    >
+                      {isAutoStartEnabled ? <IconPlayerPlay size={12} /> : <IconCalendar size={12} />}
+                    </ThemeIcon>
+                    <div>
+                      <Text size="sm" fw={500} c="gray.9">Auto-Start</Text>
+                      <Text size="xs" c="dimmed" style={{ lineHeight: 1.2 }}>
+                        {isAutoStartEnabled
+                          ? "Timer will start automatically"
+                          : "Timer waits for manual start"}
+                      </Text>
+                    </div>
+                  </Group>
+                  <Switch
+                    checked={isAutoStartEnabled}
+                    onChange={(e) => {
+                      const newCheckedState = e.currentTarget.checked;
+                      if (newCheckedState && !scheduleDateTime) return;
+                      setIsAutoStartEnabled(newCheckedState);
+                    }}
+                    disabled={!scheduleDateTime}
+                    size="sm"
+                    color="green"
+                  />
+                </Group>
+              </Paper>
+
               {!scheduleDateTime && (
-                <Text size="xs" c="red" mt="xs" fs="italic">
-                  Select a schedule date and time to enable auto-start
+                <Text size="xs" c="dimmed" ta="center" fs="italic">
+                  Select a date and time to enable auto-start
                 </Text>
               )}
-            </div>
 
-            <Group justify="flex-end">
-              <Button variant="default" size="xs" onClick={() => setSchedulePopoverOpened(false)}>Cancel</Button>
-              <Button
-                size="xs"
-                onClick={() => {
-                  // Save with the auto-start toggle state
-                  const updates: any = {
-                    scheduled_start_date: scheduleDateTime ? dayjs(scheduleDateTime).format('YYYY-MM-DD') : null,
-                    scheduled_start_time: scheduleDateTime ? dayjs(scheduleDateTime).format('HH:mm:ss') : null,
-                    // If there's a schedule, use the toggle state; otherwise force manual start
-                    is_manual_start: scheduleDateTime ? !isAutoStartEnabled : true,
-                  };
+              <Group justify="flex-end" mt="xs">
+                <Button variant="subtle" size="xs" color="gray" onClick={() => setSchedulePopoverOpened(false)}>Cancel</Button>
+                <Button
+                  size="xs"
+                  onClick={() => {
+                    const updates: any = {
+                      scheduled_start_date: scheduleDateTime ? dayjs(scheduleDateTime).format('YYYY-MM-DD') : null,
+                      scheduled_start_time: scheduleDateTime ? dayjs(scheduleDateTime).format('HH:mm:ss') : null,
+                      is_manual_start: scheduleDateTime ? !isAutoStartEnabled : true,
+                    };
 
-                  onUpdateTimer(item.id, updates);
-                  events?.onTimerEdit?.(item, 'scheduled_start_time', updates);
-                  wsUpdateTimer(item.id, updates as any);
-                  setSchedulePopoverOpened(false);
-                }}
-              >
-                Save Schedule
-              </Button>
-            </Group>
-          </Stack>
+                    onUpdateTimer(item.id, updates);
+                    events?.onTimerEdit?.(item, 'scheduled_start_time', updates);
+                    wsUpdateTimer(item.id, updates as any);
+                    setSchedulePopoverOpened(false);
+                  }}
+                  disabled={!scheduleDateTime && (item.scheduled_start_date === null)}
+                >
+                  Save Schedule
+                </Button>
+              </Group>
+            </Stack>
+          </Paper>
         </Popover.Dropdown>
       </Popover>
 
