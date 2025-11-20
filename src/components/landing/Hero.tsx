@@ -9,9 +9,14 @@ import {
   Title,
   Grid,
   ThemeIcon,
+  Paper,
+  RingProgress,
+  ActionIcon,
 } from '@mantine/core';
-import { IconArrowRight, IconSparkles, IconBolt, IconPlayerPlay } from '@tabler/icons-react';
+import { IconArrowRight, IconSparkles, IconPlayerPlay, IconGripVertical, IconClock } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface HeroProps {
   onScrollToSection: (sectionId: string) => void;
@@ -57,7 +62,7 @@ export function Hero({ onScrollToSection, animationStyle }: HeroProps) {
       <Container size="xl" style={{ position: 'relative', zIndex: 1 }}>
         <Grid gutter={60} align="center">
           {/* Left Column - Text Content */}
-          <Grid.Col span={{ base: 12, md: 6 }}>
+          <Grid.Col span={{ base: 12, md: 5 }}>
             <Stack gap="xl" align="flex-start">
               {/* Animated Badge */}
               <Badge
@@ -74,7 +79,7 @@ export function Hero({ onScrollToSection, animationStyle }: HeroProps) {
                   boxShadow: '0 4px 20px rgba(34, 184, 207, 0.2)',
                 }}
               >
-                New: Create Timers with AI Magic ✨
+                Works on any device size
               </Badge>
 
               {/* Main Heading */}
@@ -82,31 +87,31 @@ export function Hero({ onScrollToSection, animationStyle }: HeroProps) {
                 <Title
                   order={1}
                   style={{
-                    fontSize: 'clamp(2.5rem, 5vw, 4.5rem)',
+                    fontSize: 'clamp(2.5rem, 4vw, 3.5rem)',
                     fontWeight: 900,
                     textAlign: 'start',
                     lineHeight: 1.1,
                     color: '#1a1a1a',
-                    letterSpacing: '-2px',
+                    letterSpacing: '-1px',
                     marginBottom: '0.5rem',
                   }}
                 >
-                  Perfect Timing,
+                  Create remote-controlled countdown timers
                 </Title>
                 <Title
                   order={1}
                   style={{
-                    fontSize: 'clamp(2.5rem, 5vw, 4.5rem)',
+                    fontSize: 'clamp(2.5rem, 4vw, 3.5rem)',
                     fontWeight: 900,
                     textAlign: 'start',
                     lineHeight: 1.1,
                     background: 'linear-gradient(135deg, #228be6 0%, #15aabf 100%)',
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
-                    letterSpacing: '-2px',
+                    letterSpacing: '-1px',
                   }}
                 >
-                  Powered by AI.
+                  share easily with others.
                 </Title>
               </Box>
 
@@ -117,19 +122,18 @@ export function Hero({ onScrollToSection, animationStyle }: HeroProps) {
                 style={{
                   textAlign: 'start',
                   lineHeight: 1.6,
-                  fontSize: 'clamp(1.1rem, 1.5vw, 1.25rem)',
+                  fontSize: 'clamp(1rem, 1.2vw, 1.1rem)',
                   maxWidth: '90%',
                   animation: 'fadeInUp 1s ease-out 0.4s both',
                 }}
               >
-                Create complex timers instantly by describing them or uploading a file.
-                Sync in real-time across all devices for meetings, events, and workshops.
+                Show a fullscreen timer to your presenter while you control it from another device.
               </Text>
 
               {/* CTA Buttons */}
               <Group gap="md" style={{ animation: 'fadeInUp 1s ease-out 0.6s both' }}>
                 <Button
-                  size="xl"
+                  size="lg"
                   radius="xl"
                   color="blue"
                   rightSection={<IconArrowRight size={20} />}
@@ -137,7 +141,6 @@ export function Hero({ onScrollToSection, animationStyle }: HeroProps) {
                   style={{
                     boxShadow: '0 10px 30px rgba(34, 139, 230, 0.3)',
                     transition: 'transform 0.2s',
-                    animation: 'pulse 3s infinite',
                   }}
                   onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
                   onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
@@ -145,7 +148,7 @@ export function Hero({ onScrollToSection, animationStyle }: HeroProps) {
                   Create Room for Free
                 </Button>
                 <Button
-                  size="xl"
+                  size="lg"
                   radius="xl"
                   variant="default"
                   leftSection={<IconPlayerPlay size={20} />}
@@ -159,121 +162,12 @@ export function Hero({ onScrollToSection, animationStyle }: HeroProps) {
                   See How It Works
                 </Button>
               </Group>
-
-              {/* Trust Indicators */}
-              <Group gap="xl" mt="md" style={{ animation: 'fadeInUp 1s ease-out 0.8s both', opacity: 0.7 }}>
-                <Group gap="xs">
-                  <ThemeIcon variant="light" color="gray" size="sm" radius="xl">
-                    <IconBolt size={12} />
-                  </ThemeIcon>
-                  <Text size="sm" fw={500}>Instant Setup</Text>
-                </Group>
-                <Group gap="xs">
-                  <ThemeIcon variant="light" color="gray" size="sm" radius="xl">
-                    <IconSparkles size={12} />
-                  </ThemeIcon>
-                  <Text size="sm" fw={500}>AI Powered</Text>
-                </Group>
-              </Group>
             </Stack>
           </Grid.Col>
 
-          {/* Right Column - 3D Art Placeholder */}
-          <Grid.Col span={{ base: 12, md: 6 }}>
-            <Box
-              style={{
-                position: 'relative',
-                height: '500px',
-                width: '100%',
-                animation: 'fadeInUp 1s ease-out 0.6s both',
-              }}
-            >
-              {/* Main Floating Element (Placeholder for 3D Clock) */}
-              <Box
-                style={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  width: '80%',
-                  height: '80%',
-                  background: 'linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.1) 100%)',
-                  backdropFilter: 'blur(20px)',
-                  borderRadius: '40px',
-                  border: '1px solid rgba(255,255,255,0.5)',
-                  boxShadow: '0 40px 100px rgba(0,0,0,0.1)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  animation: 'float 6s ease-in-out infinite',
-                  zIndex: 2,
-                }}
-              >
-                <Stack align="center" gap="md">
-                  <ThemeIcon
-                    size={120}
-                    radius="100%"
-                    variant="gradient"
-                    gradient={{ from: 'blue', to: 'cyan' }}
-                    style={{ boxShadow: '0 20px 60px rgba(34, 139, 230, 0.4)' }}
-                  >
-                    <IconSparkles size={60} color="white" />
-                  </ThemeIcon>
-                  <Text fw={700} size="xl" style={{ color: '#333' }}>
-                    AI Timer Generation
-                  </Text>
-                  <Text size="sm" c="dimmed" ta="center" style={{ maxWidth: '200px' }}>
-                    "Create a 15 minute standup timer with 3 speakers"
-                  </Text>
-                </Stack>
-              </Box>
-
-              {/* Floating Elements (Decorations) */}
-              <Box
-                style={{
-                  position: 'absolute',
-                  top: '10%',
-                  right: '10%',
-                  width: '100px',
-                  height: '100px',
-                  background: 'linear-gradient(135deg, #FF6B6B 0%, #FF8787 100%)',
-                  borderRadius: '30px',
-                  transform: 'rotate(15deg)',
-                  animation: 'float 8s ease-in-out infinite reverse',
-                  boxShadow: '0 20px 40px rgba(255, 107, 107, 0.3)',
-                  zIndex: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontWeight: 'bold',
-                }}
-              >
-                10:00
-              </Box>
-
-              <Box
-                style={{
-                  position: 'absolute',
-                  bottom: '15%',
-                  left: '5%',
-                  width: '140px',
-                  height: '80px',
-                  background: 'white',
-                  borderRadius: '20px',
-                  animation: 'float 7s ease-in-out infinite 1s',
-                  boxShadow: '0 20px 40px rgba(0,0,0,0.05)',
-                  zIndex: 3,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '10px',
-                }}
-              >
-                <Box w={10} h={10} bg="green" style={{ borderRadius: '50%' }} />
-                <Text size="sm" fw={600}>Synced</Text>
-              </Box>
-            </Box>
+          {/* Right Column - Interactive Flow Animation */}
+          <Grid.Col span={{ base: 12, md: 7 }}>
+            <HeroAnimation />
           </Grid.Col>
         </Grid>
       </Container>
@@ -302,22 +196,336 @@ export function Hero({ onScrollToSection, animationStyle }: HeroProps) {
           }
         }
 
-        @keyframes float {
-          0%, 100% { transform: translate(-50%, -50%) translateY(0px); }
-          50% { transform: translate(-50%, -50%) translateY(-20px); }
-        }
-        
-        @keyframes pulse {
-          0% { box-shadow: 0 0 0 0 rgba(34, 139, 230, 0.4); }
-          70% { box-shadow: 0 0 0 15px rgba(34, 139, 230, 0); }
-          100% { box-shadow: 0 0 0 0 rgba(34, 139, 230, 0); }
-        }
-
         @keyframes panGrid {
           0% { background-position: 0 0; }
           100% { background-position: 40px 40px; }
         }
       `}</style>
     </Box>
+  );
+}
+
+function HeroAnimation() {
+  const [step, setStep] = useState<'prompt' | 'timers' | 'display'>('prompt');
+  const [typedText, setTypedText] = useState('');
+  const fullText = "Create a 10-minute brainstorming timer with 3 speakers...";
+  const [cursorVisible, setCursorVisible] = useState(false);
+  const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
+  const [activeTimerId, setActiveTimerId] = useState<number | null>(null);
+  const [countdown, setCountdown] = useState(600);
+
+  // Animation Sequence
+  useEffect(() => {
+    let mounted = true;
+
+    const runSequence = async () => {
+      while (mounted) {
+        // Reset
+        setStep('prompt');
+        setTypedText('');
+        setCursorVisible(false);
+        setActiveTimerId(null);
+        setCountdown(600);
+
+        // Step 1: Typing
+        await new Promise(r => setTimeout(r, 1000));
+        for (let i = 0; i <= fullText.length; i++) {
+          if (!mounted) return;
+          setTypedText(fullText.slice(0, i));
+          await new Promise(r => setTimeout(r, 50));
+        }
+
+        // Step 2: Show Timers
+        await new Promise(r => setTimeout(r, 800));
+        if (!mounted) return;
+        setStep('timers');
+
+        // Step 3: Move Cursor and Click
+        await new Promise(r => setTimeout(r, 1000));
+        if (!mounted) return;
+        setCursorVisible(true);
+        // Start position (bottom rightish)
+        setCursorPosition({ x: 400, y: 400 });
+
+        // Animate to play button (approximate coordinates relative to container)
+        // We'll use CSS transition for smooth movement
+        await new Promise(r => setTimeout(r, 100));
+        if (!mounted) return;
+        setCursorPosition({ x: 280, y: 160 }); // Target the first timer's play button
+
+        await new Promise(r => setTimeout(r, 1000)); // Wait for cursor to arrive
+        if (!mounted) return;
+
+        // Click effect
+        setActiveTimerId(1);
+
+        // Step 4: Show Display
+        await new Promise(r => setTimeout(r, 600));
+        if (!mounted) return;
+        setStep('display');
+        setCursorVisible(false);
+
+        // Countdown
+        const startTime = Date.now();
+        while (Date.now() - startTime < 5000) { // Run for 5 seconds
+          if (!mounted) return;
+          setCountdown(600 - Math.floor((Date.now() - startTime) / 1000));
+          await new Promise(r => setTimeout(r, 100));
+        }
+
+        await new Promise(r => setTimeout(r, 2000));
+      }
+    };
+
+    runSequence();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  return (
+    <Box
+      style={{
+        position: 'relative',
+        height: '500px',
+        width: '100%',
+        perspective: '1000px',
+      }}
+    >
+      <AnimatePresence mode="wait">
+        {step === 'prompt' && (
+          <motion.div
+            key="prompt"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.5 }}
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '100%',
+              maxWidth: '500px',
+            }}
+          >
+            <Paper
+              radius="xl"
+              p="xl"
+              style={{
+                background: 'rgba(255, 255, 255, 0.9)',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(0, 0, 0, 0.1)',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+              }}
+            >
+              <Stack gap="md">
+                <Text size="sm" fw={700} c="dimmed" tt="uppercase">
+                  Ask AI to create your timer
+                </Text>
+                <Box
+                  p="md"
+                  style={{
+                    background: '#f8f9fa',
+                    borderRadius: '12px',
+                    border: '1px solid #e9ecef',
+                    minHeight: '60px',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{ fontFamily: 'monospace', color: '#333' }}>
+                    {typedText}
+                    <span style={{ animation: 'blink 1s infinite' }}>|</span>
+                  </Text>
+                </Box>
+              </Stack>
+            </Paper>
+          </motion.div>
+        )}
+
+        {step === 'timers' && (
+          <motion.div
+            key="timers"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.1 }}
+            transition={{ duration: 0.5 }}
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)', // This is overridden by motion, need to handle centering differently or use x/y
+              width: '100%',
+              maxWidth: '450px',
+              x: '-50%',
+              y: '-50%',
+            }}
+          >
+            <Stack gap="md">
+              {[1, 2, 3].map((id) => (
+                <MockTimerCard key={id} id={id} isActive={activeTimerId === id} />
+              ))}
+            </Stack>
+
+            {/* Cursor */}
+            {cursorVisible && (
+              <Box
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  pointerEvents: 'none',
+                  zIndex: 100,
+                }}
+              >
+                <Box
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: 0,
+                    transform: `translate(${cursorPosition.x}px, ${cursorPosition.y}px)`,
+                    transition: 'transform 1s ease-in-out',
+                  }}
+                >
+                  <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' }}>
+                    <path d="M5 5L12 25L16 17L24 16L5 5Z" fill="black" stroke="white" strokeWidth="2" />
+                  </svg>
+                </Box>
+              </Box>
+            )}
+          </motion.div>
+        )}
+
+        {step === 'display' && (
+          <motion.div
+            key="display"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.5 }}
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              width: '100%',
+              maxWidth: '600px',
+              x: '-50%',
+              y: '-50%',
+            }}
+          >
+            <Paper
+              radius="lg"
+              style={{
+                background: '#000',
+                aspectRatio: '16/9',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+                boxShadow: '0 30px 60px rgba(0,0,0,0.3)',
+                border: '4px solid #333',
+              }}
+            >
+              {/* Header */}
+              <Box p="md" style={{ borderBottom: '1px solid #333' }}>
+                <Text c="white" ta="center" size="xl" fw={700} style={{ fontFamily: 'Roboto Mono' }}>
+                  Brainstorming Session
+                </Text>
+              </Box>
+
+              {/* Main Timer */}
+              <Box style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                <Text
+                  c="white"
+                  style={{
+                    fontSize: '5rem',
+                    fontFamily: 'Roboto Mono',
+                    fontWeight: 700,
+                    lineHeight: 1,
+                  }}
+                >
+                  {Math.floor(countdown / 60).toString().padStart(2, '0')}:{(countdown % 60).toString().padStart(2, '0')}
+                </Text>
+
+                {/* Progress Bar */}
+                <Box
+                  style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    height: '8px',
+                    background: 'green',
+                    width: `${(countdown / 600) * 100}%`,
+                    transition: 'width 1s linear',
+                  }}
+                />
+              </Box>
+
+              {/* Footer */}
+              <Box p="md" style={{ borderTop: '1px solid #333' }}>
+                <Text c="dimmed" ta="center" size="sm" style={{ fontFamily: 'Roboto Mono' }}>
+                  Speaker 1: Introduction
+                </Text>
+              </Box>
+            </Paper>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <style>{`
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
+        }
+      `}</style>
+    </Box>
+  );
+}
+
+function MockTimerCard({ id, isActive }: { id: number; isActive: boolean }) {
+  const titles = ['Brainstorming', 'Discussion', 'Wrap-up'];
+  const durations = ['10:00', '15:00', '05:00'];
+  const speakers = ['Speaker 1', 'Speaker 2', 'Speaker 3'];
+
+  return (
+    <Paper
+      p="sm"
+      radius="md"
+      withBorder
+      style={{
+        borderColor: isActive ? 'var(--mantine-color-blue-4)' : undefined,
+        backgroundColor: isActive ? 'var(--mantine-color-blue-0)' : 'white',
+        transition: 'all 0.2s',
+      }}
+    >
+      <Group justify="space-between">
+        <Group gap="sm">
+          <IconGripVertical size={16} color="gray" />
+          <RingProgress
+            size={32}
+            thickness={3}
+            roundCaps
+            sections={[{ value: 100, color: 'blue' }]}
+          />
+          <Stack gap={0}>
+            <Text size="sm" fw={600}>{titles[id - 1]}</Text>
+            <Text size="xs" c="dimmed">{speakers[id - 1]}</Text>
+          </Stack>
+        </Group>
+
+        <Group gap="xs">
+          <Group gap={4} style={{ background: '#f1f3f5', padding: '4px 8px', borderRadius: '4px' }}>
+            <IconClock size={12} />
+            <Text size="xs" fw={500}>{durations[id - 1]}</Text>
+          </Group>
+          <ActionIcon variant="light" color="blue" radius="xl" size="sm">
+            <IconPlayerPlay size={14} />
+          </ActionIcon>
+        </Group>
+      </Group>
+    </Paper>
   );
 }
