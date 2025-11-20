@@ -22,8 +22,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isInitialized, setIsInitialized] = useState(false);
 
 useEffect(() => {
-  // Skip authentication check for controller routes - they use room tokens instead
-  if (window.location.pathname.startsWith('/controller')) {
+  // Skip authentication check for controller routes and checkout routes - they use other auth methods
+  if (window.location.pathname.startsWith('/controller') ||
+      window.location.pathname.startsWith('/checkout')) {
     setIsAuthenticated(false);
     setIsInitialized(true);
     return;

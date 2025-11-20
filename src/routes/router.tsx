@@ -61,6 +61,14 @@ const router = createBrowserRouter([
   ...docsRoutes,
 
   {
+    path: '/checkout/success',
+    element: LazyPage(() => import('@/pages/checkout/success')),
+  },
+  {
+    path: '/checkout/cancel',
+    element: LazyPage(() => import('@/pages/checkout/cancel')),
+  },
+  {
     path: '/',
     element: <Suspense><LandingPage /></Suspense>,
   },

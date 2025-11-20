@@ -1,0 +1,31 @@
+.plansGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.planCard {
+  transition: all 0.3s ease;
+  border: 1px solid var(--mantine-color-gray-6);
+}
+
+.planCard:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.currentPlanCard {
+  border: 2px solid var(--mantine-color-blue-6);
+  background-color: var(--mantine-color-blue-0);
+}
+
+.currentPlan {
+  background-color: var(--mantine-color-green-0);
+  border: 1px solid var(--mantine-color-green-3);
+}
+
+@media (max-width: 768px) {
+  .plansGrid {
+    grid-template-columns: 1fr;
+  }
+}

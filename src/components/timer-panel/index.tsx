@@ -14,7 +14,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { IconPlayerPlay, IconPlayerPause, IconRestore, IconGripVertical, IconSettings, IconNotes, IconTrash, IconClock, IconUser, IconCalendar, IconArrowDown, IconLink, IconPlayerStop } from '@tabler/icons-react';
+import { IconPlayerPlay, IconPlayerPause, IconRestore, IconGripVertical, IconSettings, IconNotes, IconTrash, IconClock, IconUser, IconCalendar, IconArrowDown, IconLink, IconPlayerStop, IconClockCheck } from '@tabler/icons-react';
 import cx from 'clsx';
 import { Text, Button, Group, Alert, useMantineColorScheme, useMantineTheme, HoverCard, TextInput, Modal, Popover, Switch, Paper, Stack, ActionIcon, RingProgress, Badge, ThemeIcon, Collapse, Box } from '@mantine/core';
 import { Menu } from '@mantine/core';
@@ -383,7 +383,7 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
   // State for schedule popover
   const [schedulePopoverOpened, setSchedulePopoverOpened] = useState(false);
   const [scheduleDateTime, setScheduleDateTime] = useState<Date | null>(null);
-  const [pendingAutoStart, setPendingAutoStart] = useState(false);
+  const [isAutoStartEnabled, setIsAutoStartEnabled] = useState(!item.is_manual_start);
 
   // Track bulk update operations to disable hover animations during linking
   const [isBulkUpdatePending, setIsBulkUpdatePending] = useState(false);
@@ -397,6 +397,11 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
   useEffect(() => {
     setScheduleWarningDismissed(false);
   }, [item.scheduled_start_date, item.scheduled_start_time]);
+
+  // Update auto-start state when item changes
+  useEffect(() => {
+    setIsAutoStartEnabled(!item.is_manual_start);
+  }, [item.is_manual_start]);
 
   // Check if this item should show the connector (not the last item when all linked)
   const shouldShowConnector = isAllTimersLinked && itemIndex < allTimers.length - 1;
@@ -525,7 +530,6 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
     // If trying to enable auto start (is_manual_start = false), check if schedule exists
     if (!newValue && (!item.scheduled_start_date || !item.scheduled_start_time)) {
       // Auto start requires a schedule - open the schedule popover
-      setPendingAutoStart(true);
       handleScheduleClick();
       return;
     }
@@ -534,30 +538,6 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
     onUpdateTimer(item.id, updates);
     events?.onTimerEdit?.(item, 'is_manual_start', newValue);
     wsUpdateTimer(item.id, updates as any);
-  };
-
-  // Handle schedule save
-  const handleScheduleSave = (newDateTime: Date | null) => {
-    const updates: any = {
-      scheduled_start_date: newDateTime ? dayjs(newDateTime).format('YYYY-MM-DD') : null,
-      scheduled_start_time: newDateTime ? dayjs(newDateTime).format('HH:mm:ss') : null,
-    };
-
-    // If there was a pending auto start request and a valid schedule is being set
-    if (pendingAutoStart && newDateTime) {
-      updates.is_manual_start = false; // Enable auto start
-      setPendingAutoStart(false);
-    }
-
-    // If clearing the schedule and auto start is currently enabled, disable auto start
-    if (!newDateTime && !item.is_manual_start) {
-      updates.is_manual_start = true; // Disable auto start since schedule is being removed
-    }
-
-    onUpdateTimer(item.id, updates);
-    events?.onTimerEdit?.(item, 'scheduled_start_time', updates);
-    wsUpdateTimer(item.id, updates as any);
-    setSchedulePopoverOpened(false);
   };
 
   // Open schedule popover with current value
@@ -572,6 +552,7 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
     } else {
       setScheduleDateTime(null);
     }
+    setIsAutoStartEnabled(!item.is_manual_start);
     setSchedulePopoverOpened(true);
   };
 
@@ -686,7 +667,7 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
                 )}
               </Group>
 
-              <Group gap="xs" className={classes.timerMeta}>
+              <Group gap="xs" className={classes.timerMeta} wrap="wrap">
                 {/* Duration/Time Display */}
                 <Group gap={4} className={classes.editableField}>
                   <IconClock size={12} />
@@ -763,6 +744,48 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
                     )}
                   </Group>
                 )}
+
+                {/* Schedule & AutoStart Status Indicator */}
+                <Tooltip
+                  label={isActive && !item.is_paused
+                    ? "Cannot edit schedule while timer is running - pause or stop the timer first"
+                    : (item.scheduled_start_date && item.scheduled_start_time
+                      ? `${!item.is_manual_start ? 'Auto-start at' : 'Scheduled for'} ${dayjs(`${item.scheduled_start_date}T${item.scheduled_start_time}`).format('MMM D, HH:mm')} - Click to edit`
+                      : "Click to add a schedule")
+                  }
+                  openDelay={500}
+                >
+                  <Group gap={3} style={{
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    backgroundColor: isActive && !item.is_paused
+                      ? 'var(--mantine-color-gray-3)'
+                      : (item.scheduled_start_date && item.scheduled_start_time
+                        ? 'var(--mantine-color-gray-0)'
+                        : 'var(--mantine-color-gray-1)'),
+                    border: isActive && !item.is_paused
+                      ? 'none'
+                      : (item.scheduled_start_date && item.scheduled_start_time
+                        ? `1px solid ${!item.is_manual_start ? 'var(--mantine-color-green-6)' : 'var(--mantine-color-blue-6)'}`
+                        : '1px solid var(--mantine-color-gray-3)'),
+                    opacity: isActive && !item.is_paused ? 0.6 : 1,
+                    cursor: isActive && !item.is_paused ? 'not-allowed' : 'pointer'
+                  }} onClick={handleScheduleClick}>
+                    <IconCalendar size={12} color={isActive && !item.is_paused ? "var(--mantine-color-gray-7)" : (item.scheduled_start_date && item.scheduled_start_time ? (!item.is_manual_start ? "var(--mantine-color-green-6)" : "var(--mantine-color-blue-6)") : "var(--mantine-color-gray-6)")} />
+                    <Text size="xs" c={isActive && !item.is_paused ? "var(--mantine-color-gray-7)" : (item.scheduled_start_date && item.scheduled_start_time ? (!item.is_manual_start ? "var(--mantine-color-green-7)" : "var(--mantine-color-blue-7)") : "var(--mantine-color-gray-7)")} fw={item.scheduled_start_date && item.scheduled_start_time ? 600 : 500}>
+                      {item.scheduled_start_date && item.scheduled_start_time
+                        ? dayjs(`${item.scheduled_start_date}T${item.scheduled_start_time}`).format('MMM D, HH:mm')
+                        : "No Schedule"
+                      }
+                    </Text>
+                    {item.scheduled_start_date && item.scheduled_start_time && !item.is_manual_start && !(isActive && !item.is_paused) && (
+                      <Badge size="xs" variant="filled" color="white" style={{ fontSize: '9px', color: 'var(--mantine-color-green-6)' }}>AUTO</Badge>
+                    )}
+                    {item.scheduled_start_date && item.scheduled_start_time && item.is_manual_start && !(isActive && !item.is_paused) && (
+                      <Badge size="xs" variant="filled" color="white" style={{ fontSize: '9px', color: 'var(--mantine-color-blue-6)' }}>MANUAL</Badge>
+                    )}
+                  </Group>
+                </Tooltip>
               </Group>
             </Stack>
 
@@ -858,7 +881,7 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
 
       {/* Schedule Popover */}
       <Popover
-        width={300}
+        width={320}
         position="bottom"
         withArrow
         shadow="md"
@@ -873,17 +896,72 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
         </Popover.Target>
         <Popover.Dropdown>
           <Stack gap="sm">
-            <Text size="sm" fw={500}>Schedule Auto-Start</Text>
-            <DateTimePicker
-              value={scheduleDateTime}
-              onChange={setScheduleDateTime}
-              placeholder="Pick date and time"
-              clearable
-              minDate={new Date()}
-            />
+            <div>
+              <Text size="sm" fw={600} c="gray.9" mb="xs">Schedule Auto-Start</Text>
+              <DateTimePicker
+                value={scheduleDateTime}
+                onChange={setScheduleDateTime}
+                placeholder="Pick date and time"
+                clearable
+                minDate={new Date()}
+              />
+            </div>
+
+            {/* Auto-Start Toggle */}
+            <div style={{
+              padding: '8px',
+              borderRadius: '4px',
+              backgroundColor: scheduleDateTime ? 'var(--mantine-color-gray-0)' : 'var(--mantine-color-gray-1)',
+            }}>
+              <Group justify="space-between" gap="sm">
+                <div>
+                  <Text size="sm" fw={600} c="gray.9">Auto-Start</Text>
+                  <Text size="xs" c="gray.7">Automatically start at scheduled time</Text>
+                </div>
+                <Switch
+                  checked={isAutoStartEnabled}
+                  onChange={(e) => {
+                    const newCheckedState = e.currentTarget.checked;
+                    // When enabling auto-start, ensure there's a schedule
+                    if (newCheckedState && !scheduleDateTime) {
+                      // User tried to enable without a schedule - don't allow
+                      return;
+                    }
+                    // Allow toggling on/off when schedule exists
+                    setIsAutoStartEnabled(newCheckedState);
+                  }}
+                  disabled={!scheduleDateTime}
+                  size="sm"
+                />
+              </Group>
+              {!scheduleDateTime && (
+                <Text size="xs" c="red" mt="xs" fs="italic">
+                  Select a schedule date and time to enable auto-start
+                </Text>
+              )}
+            </div>
+
             <Group justify="flex-end">
               <Button variant="default" size="xs" onClick={() => setSchedulePopoverOpened(false)}>Cancel</Button>
-              <Button size="xs" onClick={() => handleScheduleSave(scheduleDateTime)}>Save Schedule</Button>
+              <Button
+                size="xs"
+                onClick={() => {
+                  // Save with the auto-start toggle state
+                  const updates: any = {
+                    scheduled_start_date: scheduleDateTime ? dayjs(scheduleDateTime).format('YYYY-MM-DD') : null,
+                    scheduled_start_time: scheduleDateTime ? dayjs(scheduleDateTime).format('HH:mm:ss') : null,
+                    // If there's a schedule, use the toggle state; otherwise force manual start
+                    is_manual_start: scheduleDateTime ? !isAutoStartEnabled : true,
+                  };
+
+                  onUpdateTimer(item.id, updates);
+                  events?.onTimerEdit?.(item, 'scheduled_start_time', updates);
+                  wsUpdateTimer(item.id, updates as any);
+                  setSchedulePopoverOpened(false);
+                }}
+              >
+                Save Schedule
+              </Button>
             </Group>
           </Stack>
         </Popover.Dropdown>
