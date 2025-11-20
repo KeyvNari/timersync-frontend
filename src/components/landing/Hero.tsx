@@ -12,11 +12,13 @@ import {
   Paper,
   RingProgress,
   ActionIcon,
+  Progress,
 } from '@mantine/core';
 import { IconArrowRight, IconSparkles, IconPlayerPlay, IconGripVertical, IconClock } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Logo } from '../logo';
 
 interface HeroProps {
   onScrollToSection: (sectionId: string) => void;
@@ -214,6 +216,88 @@ function HeroAnimation() {
   const [activeTimerId, setActiveTimerId] = useState<number | null>(null);
   const [countdown, setCountdown] = useState(600);
 
+  const getProgressColor = (time: number) => {
+    const duration = 600;
+    const warningTime = duration * 0.3; // 30% = 180 seconds
+    const criticalTime = duration * 0.1; // 10% = 60 seconds
+
+    if (time <= criticalTime) {
+      return 'red';
+    } else if (time <= warningTime) {
+      return 'orange';
+    } else {
+      return 'green';
+    }
+  };
+
+  const getProgressSections = (time: number) => {
+    const duration = 600;
+    const warningTime = duration * 0.3; // 180 seconds (30%)
+    const criticalTime = duration * 0.1; // 60 seconds (10%)
+
+    const redPercent = (criticalTime / duration) * 100; // 10%
+    const yellowPercent = ((warningTime - criticalTime) / duration) * 100; // 20%
+    const greenPercent = ((duration - warningTime) / duration) * 100; // 70%
+
+    const currentPercent = (time / duration) * 100;
+    let redFilled = 0;
+    let yellowFilled = 0;
+    let greenFilled = 0;
+
+    if (currentPercent > (redPercent + yellowPercent)) {
+      greenFilled = currentPercent - (redPercent + yellowPercent);
+      yellowFilled = yellowPercent;
+      redFilled = redPercent;
+    } else if (currentPercent > redPercent) {
+      yellowFilled = currentPercent - redPercent;
+      redFilled = redPercent;
+      greenFilled = 0;
+    } else {
+      redFilled = currentPercent;
+      yellowFilled = 0;
+      greenFilled = 0;
+    }
+
+    return [
+      <Progress.Section
+        key="red"
+        value={redFilled}
+        color="red"
+        style={{ transition: 'width 100ms linear' }}
+      />,
+      <Progress.Section
+        key="red-empty"
+        value={redPercent - redFilled}
+        color="gray"
+        style={{ transition: 'width 100ms linear' }}
+      />,
+      <Progress.Section
+        key="yellow"
+        value={yellowFilled}
+        color="orange"
+        style={{ transition: 'width 100ms linear' }}
+      />,
+      <Progress.Section
+        key="yellow-empty"
+        value={yellowPercent - yellowFilled}
+        color="gray"
+        style={{ transition: 'width 100ms linear' }}
+      />,
+      <Progress.Section
+        key="green"
+        value={greenFilled}
+        color="green"
+        style={{ transition: 'width 100ms linear' }}
+      />,
+      <Progress.Section
+        key="green-empty"
+        value={greenPercent - greenFilled}
+        color="gray"
+        style={{ transition: 'width 100ms linear' }}
+      />,
+    ];
+  };
+
   // Animation Sequence
   useEffect(() => {
     let mounted = true;
@@ -228,20 +312,20 @@ function HeroAnimation() {
         setCountdown(600);
 
         // Step 1: Typing
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, 500));
         for (let i = 0; i <= fullText.length; i++) {
           if (!mounted) return;
           setTypedText(fullText.slice(0, i));
-          await new Promise(r => setTimeout(r, 50));
+          await new Promise(r => setTimeout(r, 25));
         }
 
         // Step 2: Show Timers
-        await new Promise(r => setTimeout(r, 800));
+        await new Promise(r => setTimeout(r, 400));
         if (!mounted) return;
         setStep('timers');
 
         // Step 3: Move Cursor and Click
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, 600));
         if (!mounted) return;
         setCursorVisible(true);
         // Start position (bottom rightish)
@@ -249,18 +333,18 @@ function HeroAnimation() {
 
         // Animate to play button (approximate coordinates relative to container)
         // We'll use CSS transition for smooth movement
-        await new Promise(r => setTimeout(r, 100));
+        await new Promise(r => setTimeout(r, 50));
         if (!mounted) return;
         setCursorPosition({ x: 280, y: 160 }); // Target the first timer's play button
 
-        await new Promise(r => setTimeout(r, 1000)); // Wait for cursor to arrive
+        await new Promise(r => setTimeout(r, 500)); // Wait for cursor to arrive
         if (!mounted) return;
 
         // Click effect
         setActiveTimerId(1);
 
         // Step 4: Show Display
-        await new Promise(r => setTimeout(r, 600));
+        await new Promise(r => setTimeout(r, 300));
         if (!mounted) return;
         setStep('display');
         setCursorVisible(false);
@@ -300,7 +384,7 @@ function HeroAnimation() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.8 }}
             style={{
               position: 'absolute',
               top: '30%',
@@ -351,7 +435,7 @@ function HeroAnimation() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 1.1 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.8 }}
             style={{
               position: 'absolute',
               top: '50%',
@@ -406,7 +490,7 @@ function HeroAnimation() {
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.8 }}
             style={{
               position: 'absolute',
               top: '50%',
@@ -426,18 +510,27 @@ function HeroAnimation() {
                 flexDirection: 'column',
                 overflow: 'hidden',
                 boxShadow: '0 30px 60px rgba(0,0,0,0.3)',
-                border: '4px solid #333',
+                border: `4px solid ${getProgressColor(countdown)}`,
+                transition: 'border-color 0.1s ease',
+                position: 'relative',
               }}
             >
-              {/* Header */}
-              <Box p="md" style={{ borderBottom: '1px solid #333' }}>
-                <Text c="white" ta="center" size="xl" fw={700} style={{ fontFamily: 'Roboto Mono' }}>
-                  Brainstorming Session
-                </Text>
+              {/* Logo */}
+              <Box
+                style={{
+                  position: 'absolute',
+                  top: 16,
+                  left: 16,
+                  zIndex: 10,
+                  width: 50,
+                  height: 50,
+                }}
+              >
+                <Logo size={50} />
               </Box>
 
-              {/* Main Timer */}
-              <Box style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+              {/* Main Timer - centered, takes up most of space */}
+              <Box style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                 <Text
                   c="white"
                   style={{
@@ -449,26 +542,34 @@ function HeroAnimation() {
                 >
                   {Math.floor(countdown / 60).toString().padStart(2, '0')}:{(countdown % 60).toString().padStart(2, '0')}
                 </Text>
+                <Box style={{ marginTop: '1rem' }}>
+                  <Text c="white" ta="center" size="lg" style={{ fontFamily: 'Roboto Mono' }}>
+                    Speaker 1: Introduction
+                  </Text>
+                </Box>
+              </Box>
 
-                {/* Progress Bar */}
+              {/* Three-color Progress Bar at Bottom */}
+              <Box style={{ position: 'relative', height: '8px', width: '100%' }}>
+                <Progress.Root size="8" radius="0" style={{ width: '100%' }}>
+                  {getProgressSections(countdown)}
+                </Progress.Root>
                 <Box
                   style={{
                     position: 'absolute',
-                    bottom: 0,
-                    left: 0,
-                    height: '8px',
-                    background: 'green',
-                    width: `${(countdown / 600) * 100}%`,
-                    transition: 'width 1s linear',
+                    top: '50%',
+                    left: `${Math.max(0, Math.min(100, (countdown / 600) * 100))}%`,
+                    transform: 'translate(-50%, -50%)',
+                    width: '4px',
+                    height: '16px',
+                    backgroundColor: 'white',
+                    borderRadius: '2px',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.5)',
+                    zIndex: 2,
+                    pointerEvents: 'none',
+                    transition: 'left 100ms linear',
                   }}
                 />
-              </Box>
-
-              {/* Footer */}
-              <Box p="md" style={{ borderTop: '1px solid #333' }}>
-                <Text c="dimmed" ta="center" size="sm" style={{ fontFamily: 'Roboto Mono' }}>
-                  Speaker 1: Introduction
-                </Text>
               </Box>
             </Paper>
           </motion.div>
