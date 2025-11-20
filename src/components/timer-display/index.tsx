@@ -625,6 +625,7 @@ function TimerDisplay({
                 key={index}
                 value={section.value}
                 color={section.color}
+                style={{ transition: 'width 100ms linear' }}
               />
             ))}
           </Progress.Root>
@@ -641,6 +642,7 @@ function TimerDisplay({
               boxShadow: '0 2px 4px rgba(0,0,0,0.5)',
               zIndex: 2,
               pointerEvents: 'none',
+              transition: 'left 100ms linear',
             }}
           />
         </Box>
@@ -756,6 +758,7 @@ function TimerDisplay({
               boxShadow: '0 2px 4px rgba(0,0,0,0.5)',
               zIndex: 2,
               pointerEvents: 'none',
+              transition: 'transform 100ms linear',
             }}
           />
         </Box>
