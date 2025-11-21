@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Text, Image, Flex, Stack, Progress, Box, RingProgress, ActionIcon } from '@mantine/core';
-import { Maximize, Minimize } from 'lucide-react';
+import { Text, Image, Flex, Stack, Progress, Box, RingProgress, ActionIcon, Tooltip, Group } from '@mantine/core';
+import { Maximize, Minimize, FlipHorizontal, FlipVertical } from 'lucide-react';
 
 // CSS for flashing animation and fullscreen styling
 const messageStyles = `
@@ -178,6 +178,8 @@ function TimerDisplay({
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showControls, setShowControls] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isMirroredH, setIsMirroredH] = useState(false);
+  const [isMirroredV, setIsMirroredV] = useState(false);
   const [hideTimeout, setHideTimeout] = useState<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -484,7 +486,8 @@ function TimerDisplay({
   const charCount = timerText.length;
   // Calculate max font size to fill width (assuming monospace ~0.6ch width)
   // 100cqw / (charCount * 0.6)
-  const widthConstrainedSize = 100 / (Math.max(charCount, 1) * 0.6);
+  // Reduced to 90 to add 5% margin on each side
+  const widthConstrainedSize = 90 / (Math.max(charCount, 1) * 0.6);
   const heightConstrainedSize = 80; // Max 80% height to leave room for headers/footers
 
   const effectiveSizePercent = Math.min(safeDisplay.timer_size_percent || 100, 100) / 100;
@@ -496,6 +499,7 @@ function TimerDisplay({
     fontFamily: safeDisplay.timer_font_family || 'Roboto Mono',
     color: getTimerColor(),
     fontSize: `min(${fontSizeCQW}cqw, ${fontSizeCQH}cqh)`,
+    textShadow: isFullscreen ? '0 4px 30px rgba(0, 0, 0, 0.5)' : undefined,
     textAlign: 'center',
     margin: 0,
     lineHeight: 1,
@@ -948,11 +952,115 @@ function TimerDisplay({
           containerType: 'size',
         }}
       >
-        {progressStyle === 'top_bar' && (
-          <Box style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1 }}>
-            {progressComponent}
-          </Box>
-        )}
+        <Box
+          style={{
+            width: '100%',
+            height: '100%',
+            transform: `scale(${isMirroredH ? -1 : 1}, ${isMirroredV ? -1 : 1})`,
+            transformOrigin: 'center',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+          }}
+        >
+          {progressStyle === 'top_bar' && (
+            <Box style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1 }}>
+              {progressComponent}
+            </Box>
+          )}
+
+          <Flex
+            direction="column"
+            justify="space-between"
+            style={{
+              height: '100%',
+              width: '100%',
+              padding: '1rem',
+              position: 'relative',
+              overflow: 'hidden',
+            }}
+          >
+            {header && <Box style={{ flexShrink: 0 }}>{header}</Box>}
+
+            <Stack align="center" justify={stackJustify} gap="md" style={{ flex: 1, minHeight: 0 }}>
+              {/* In focus mode, only show the message */}
+              {message?.is_focused ? (
+                messageComponent && (
+                  <Box style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+                    {messageComponent}
+                  </Box>
+                )
+              ) : (
+                <>
+                  {showTimer && (
+                    <Box style={{
+                      maxWidth: '100%',
+                      maxHeight: '100%',
+                      overflow: 'visible',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                      <Text style={{
+                        ...timerStyle,
+                        // Remove the complex min calculation here as it's now handled in timerStyle
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {timerText}
+                      </Text>
+                    </Box>
+                  )}
+
+                  {safeDisplay.clock_visible && !showOnlyClock && (
+                    <Box style={{ maxWidth: '100%', overflow: 'hidden' }}>
+                      <Text style={{
+                        ...clockStyle,
+                        fontSize: `min(${clockStyle.fontSize}, 8cqw, 8cqh)`,
+                      }}>{clockText}</Text>
+                    </Box>
+                  )}
+
+                  {showOnlyClock && (
+                    <Box style={{ maxWidth: '100%', overflow: 'hidden' }}>
+                      <Text style={{
+                        ...clockStyle,
+                        fontSize: `min(${clockStyle.fontSize}, 12cqw, 12cqh)`,
+                      }}>{clockText}</Text>
+                    </Box>
+                  )}
+
+                  {messageComponent && (
+                    <Box style={{ maxWidth: '100%', overflow: 'hidden' }}>
+                      {messageComponent}
+                    </Box>
+                  )}
+                </>
+              )}
+            </Stack>
+
+            {footer && <Box style={{ flexShrink: 0 }}>{footer}</Box>}
+          </Flex>
+
+          {progressStyle === 'bottom_bar' && (
+            <Box style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 1 }}>
+              {progressComponent}
+            </Box>
+          )}
+
+          {safeDisplay.logo_image && (
+            <Image
+              src={safeDisplay.logo_image}
+              style={logoStyle}
+              alt="Logo"
+            />
+          )}
+
+          {progressStyle === 'ring' && progressComponent && (
+            <Box style={{ position: 'absolute', bottom: 20, right: 20, zIndex: 10 }}>
+              {progressComponent}
+            </Box>
+          )}
+        </Box>
 
         {in_view_mode && (
           <Box
@@ -960,119 +1068,53 @@ function TimerDisplay({
             onMouseLeave={handleControlsMouseLeave}
             style={{
               position: 'absolute',
-              top: 0,
-              right: 0,
+              top: '1rem',
+              right: '1rem',
               padding: '0.5rem',
-              backgroundColor: 'rgba(0, 0, 0, 0.7)',
-              backdropFilter: 'blur(4px)',
-              borderBottomLeftRadius: '8px',
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              borderRadius: '12px',
               zIndex: 20,
               opacity: showControls ? 1 : 0,
               transition: 'opacity 0.3s ease',
               pointerEvents: showControls ? 'auto' : 'none',
             }}
           >
-            <ActionIcon
-              variant="subtle"
-              color="gray"
-              size="lg"
-              onClick={(e) => toggleFullscreen(e)}
-              title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
-            >
-              {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
-            </ActionIcon>
-          </Box>
-        )}
-
-        <Flex
-          direction="column"
-          justify="space-between"
-          style={{
-            height: '100%',
-            width: '100%',
-            padding: '1rem',
-            position: 'relative',
-            overflow: 'hidden',
-          }}
-        >
-          {header && <Box style={{ flexShrink: 0 }}>{header}</Box>}
-
-          <Stack align="center" justify={stackJustify} gap="md" style={{ flex: 1, minHeight: 0 }}>
-            {/* In focus mode, only show the message */}
-            {message?.is_focused ? (
-              messageComponent && (
-                <Box style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
-                  {messageComponent}
-                </Box>
-              )
-            ) : (
-              <>
-                {showTimer && (
-                  <Box style={{
-                    maxWidth: '100%',
-                    maxHeight: '100%',
-                    overflow: 'visible',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <Text style={{
-                      ...timerStyle,
-                      // Remove the complex min calculation here as it's now handled in timerStyle
-                      whiteSpace: 'nowrap',
-                    }}>
-                      {timerText}
-                    </Text>
-                  </Box>
-                )}
-
-                {safeDisplay.clock_visible && !showOnlyClock && (
-                  <Box style={{ maxWidth: '100%', overflow: 'hidden' }}>
-                    <Text style={{
-                      ...clockStyle,
-                      fontSize: `min(${clockStyle.fontSize}, 8cqw, 8cqh)`,
-                    }}>{clockText}</Text>
-                  </Box>
-                )}
-
-                {showOnlyClock && (
-                  <Box style={{ maxWidth: '100%', overflow: 'hidden' }}>
-                    <Text style={{
-                      ...clockStyle,
-                      fontSize: `min(${clockStyle.fontSize}, 12cqw, 12cqh)`,
-                    }}>{clockText}</Text>
-                  </Box>
-                )}
-
-                {messageComponent && (
-                  <Box style={{ maxWidth: '100%', overflow: 'hidden' }}>
-                    {messageComponent}
-                  </Box>
-                )}
-              </>
-            )}
-          </Stack>
-
-          {footer && <Box style={{ flexShrink: 0 }}>{footer}</Box>}
-        </Flex>
-
-        {progressStyle === 'bottom_bar' && (
-          <Box style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 1 }}>
-            {progressComponent}
-          </Box>
-        )}
-
-        {safeDisplay.logo_image && (
-          <Image
-            src={safeDisplay.logo_image}
-            style={logoStyle}
-            alt="Logo"
-          />
-        )}
-
-        {progressStyle === 'ring' && progressComponent && (
-          <Box style={{ position: 'absolute', bottom: 20, right: 20, zIndex: 10 }}>
-            {progressComponent}
+            <Group gap="xs">
+              <Tooltip label="Mirror Horizontal" withArrow>
+                <ActionIcon
+                  variant="subtle"
+                  color="gray"
+                  size="lg"
+                  onClick={() => setIsMirroredH(!isMirroredH)}
+                  style={{ color: isMirroredH ? 'var(--mantine-color-blue-filled)' : undefined }}
+                >
+                  <FlipHorizontal size={20} />
+                </ActionIcon>
+              </Tooltip>
+              <Tooltip label="Mirror Vertical" withArrow>
+                <ActionIcon
+                  variant="subtle"
+                  color="gray"
+                  size="lg"
+                  onClick={() => setIsMirroredV(!isMirroredV)}
+                  style={{ color: isMirroredV ? 'var(--mantine-color-blue-filled)' : undefined }}
+                >
+                  <FlipVertical size={20} />
+                </ActionIcon>
+              </Tooltip>
+              <Tooltip label={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'} withArrow>
+                <ActionIcon
+                  variant="subtle"
+                  color="gray"
+                  size="lg"
+                  onClick={(e) => toggleFullscreen(e)}
+                >
+                  {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
+                </ActionIcon>
+              </Tooltip>
+            </Group>
           </Box>
         )}
       </Box>
