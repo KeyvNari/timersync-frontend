@@ -6,6 +6,8 @@ import { removeClientAccessToken, setClientAccessToken } from '@/api/axios';
 import { LoginRequestSchema, LoginResponseSchema } from '@/api/dtos';
 import { createPostMutationHook } from '@/api/helpers';
 import { auth } from '@/services/firebase';
+import { useAuth } from '@/hooks/use-auth';
+import { queryClient } from '@/api/query-client';
 
 // Keep existing login schemas
 export const useLogin = createPostMutationHook({
@@ -83,10 +85,26 @@ export const useRegister = createPostMutationHook({
 });
 
 export const useLogout = () => {
+  const { setIsAuthenticated } = useAuth();
+
   return useMutation({
     mutationFn: async () => {
-      await auth.signOut();
+      try {
+        // Sign out from Firebase
+        await auth.signOut();
+      } catch (error) {
+        console.error('Firebase signOut error:', error);
+        // Continue with cleanup even if Firebase signOut fails
+      }
+
+      // Clear access token from localStorage and axios
       removeClientAccessToken();
+
+      // Clear auth state in provider - this triggers AuthGuard redirect
+      setIsAuthenticated(false);
+
+      // Invalidate all queries to clear cached data
+      await queryClient.clear();
     },
     onSuccess: () => {
       notifications.show({
@@ -96,11 +114,17 @@ export const useLogout = () => {
       });
     },
     onError: (error: any) => {
-      removeClientAccessToken();
       console.error('Logout error:', error);
+
+      // Even on error, ensure we're logged out locally
+      removeClientAccessToken();
+      setIsAuthenticated(false);
+      queryClient.clear();
+
+      // Show notification
       notifications.show({
-        title: 'Logged Out',
-        message: 'Session ended',
+        title: 'Session Ended',
+        message: 'You have been logged out',
         color: 'blue'
       });
     },

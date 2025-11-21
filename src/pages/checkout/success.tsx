@@ -12,6 +12,9 @@ export default function CheckoutSuccess() {
   const [planName, setPlanName] = useState<string | null>(null);
   const [attempts, setAttempts] = useState(0);
 
+  // Get the return URL from query params, default to dashboard
+  const returnUrl = searchParams.get('return_url') || '/dashboard/rooms';
+
   useEffect(() => {
     console.log('[CHECKOUT SUCCESS] Page loaded');
     const sessionId = searchParams.get('session_id');
@@ -32,10 +35,10 @@ export default function CheckoutSuccess() {
             color: 'green',
             autoClose: 3000,
           });
-          // Redirect to dashboard after 2 seconds
+          // Redirect to original location after 2 seconds
           setTimeout(() => {
-            console.log('[CHECKOUT SUCCESS] Redirecting to dashboard');
-            navigate('/dashboard/rooms', { replace: true });
+            console.log('[CHECKOUT SUCCESS] Redirecting to', returnUrl);
+            navigate(returnUrl, { replace: true });
           }, 2000);
         } else {
           // Not ready yet, retry
@@ -123,8 +126,8 @@ export default function CheckoutSuccess() {
               </Text>
             </Stack>
             <Group grow>
-              <Button variant="default" onClick={() => navigate('/dashboard/rooms')}>
-                Go to Dashboard
+              <Button variant="default" onClick={() => navigate(returnUrl)}>
+                Go Back
               </Button>
               <Button onClick={() => window.location.reload()}>
                 Retry

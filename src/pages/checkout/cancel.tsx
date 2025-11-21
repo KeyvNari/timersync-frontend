@@ -1,9 +1,13 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Container, Stack, Center, Text, Button, Group, Card, ThemeIcon } from '@mantine/core';
 import { IconX } from '@tabler/icons-react';
 
 export default function CheckoutCancel() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Get the return URL from query params, default to dashboard
+  const returnUrl = searchParams.get('return_url') || '/dashboard/rooms';
 
   return (
     <Container size="sm" py="xl">
@@ -22,8 +26,8 @@ export default function CheckoutCancel() {
               </Text>
             </Stack>
             <Group grow>
-              <Button variant="default" onClick={() => navigate('/dashboard/rooms')}>
-                Back to Dashboard
+              <Button variant="default" onClick={() => navigate(returnUrl)}>
+                Go Back
               </Button>
               <Button color="blue" onClick={() => navigate('/checkout/upgrade')}>
                 Try Again

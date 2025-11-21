@@ -279,36 +279,40 @@ export function EditableRoomName({
           </Group>
         }
         centered
-        size="md"
+        size="lg"
       >
         <Stack gap="lg">
           {/* Time Comparison */}
-          <Box p="md" bg="gray.0" style={{ borderRadius: '8px' }}>
-            <Group grow align="flex-start">
+          <Box p="lg" bg="gray.0" style={{ borderRadius: '8px' }}>
+            <Stack gap="lg">
               <Stack gap="xs" align="center">
                 <Badge variant="dot" size="lg" color="blue">Room Time</Badge>
-                <Text size="2rem" fw={800} lh={1} variant="gradient" gradient={{ from: 'blue', to: 'cyan', deg: 90 }}>
+                <Text size="2.5rem" fw={800} lh={1.1} variant="gradient" gradient={{ from: 'blue', to: 'cyan', deg: 90 }}>
                   {formatTime(roomTime)}
                 </Text>
-                <Text size="xs" c="dimmed" ta="center">
-                  {formatDate(roomTime)}<br />
+                <Text size="sm" c="dimmed" ta="center" maw="100%">
+                  {formatDate(roomTime)}
+                </Text>
+                <Text size="xs" c="dimmed" ta="center" maw="100%" style={{ wordBreak: 'break-word' }}>
                   {timeZone}
                 </Text>
               </Stack>
 
-              <Divider orientation="vertical" />
+              <Divider />
 
               <Stack gap="xs" align="center">
                 <Badge variant="dot" size="lg" color="gray">Your Time</Badge>
-                <Text size="2rem" fw={800} lh={1} c="dimmed">
+                <Text size="2.5rem" fw={800} lh={1.1} c="dimmed">
                   {formatTime(localTime)}
                 </Text>
-                <Text size="xs" c="dimmed" ta="center">
-                  {formatDate(localTime)}<br />
+                <Text size="sm" c="dimmed" ta="center" maw="100%">
+                  {formatDate(localTime)}
+                </Text>
+                <Text size="xs" c="dimmed" ta="center" maw="100%" style={{ wordBreak: 'break-word' }}>
                   {browserTimeZone}
                 </Text>
               </Stack>
-            </Group>
+            </Stack>
           </Box>
 
           {/* Timezone Selection */}

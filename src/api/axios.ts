@@ -2,6 +2,11 @@ import axios from 'axios';
 import { app } from '@/config';
 import { auth } from '@/services/firebase';
 
+// Track retry attempts per request config
+const retryCountMap = new WeakMap<any, number>();
+const MAX_RETRY_ATTEMPTS = 3;
+const RETRY_DELAY_MS = 100;
+
 export const client = axios.create({
   baseURL: app.apiBaseUrl,
   headers: {
@@ -29,26 +34,42 @@ client.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor to handle token refresh
-// In src/api/axios.ts
+// Helper: Exponential backoff delay
+function getExponentialBackoffDelay(retryCount: number): number {
+  return RETRY_DELAY_MS * Math.pow(2, retryCount);
+}
+
+// Response interceptor to handle token refresh with retry logic
 client.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
+    // Get current retry count for this request
+    const retryCount = retryCountMap.get(originalRequest) || 0;
+
     // Don't try to refresh tokens for login/auth endpoints or controller routes
     const isAuthEndpoint = originalRequest.url?.includes('/login') ||
                           originalRequest.url?.includes('/refresh') ||
-                          originalRequest.url?.includes('/register');
+                          originalRequest.url?.includes('/register') ||
+                          originalRequest.url?.includes('/firebase-login');
 
     // Don't redirect to login if we're on a controller page - controller uses room tokens, not user auth
     const isControllerRoute = window.location.pathname.startsWith('/controller') ||
                              window.location.pathname.startsWith('/viewer');
 
-    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
-      originalRequest._retry = true;
+    if (error.response?.status === 401 &&
+        retryCount < MAX_RETRY_ATTEMPTS &&
+        !isAuthEndpoint) {
+
+      // Increment retry count for this request
+      retryCountMap.set(originalRequest, retryCount + 1);
 
       try {
+        // Calculate exponential backoff delay
+        const delayMs = getExponentialBackoffDelay(retryCount);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+
         // Try to refresh Firebase token from current user
         const currentUser = auth.currentUser;
         if (currentUser) {
@@ -57,6 +78,8 @@ client.interceptors.response.use(
           setClientAccessToken(newFirebaseToken);
 
           originalRequest.headers.authorization = `Bearer ${newFirebaseToken}`;
+
+          // Retry the original request
           return client(originalRequest);
         } else {
           throw new Error('No user logged in');
@@ -64,11 +87,27 @@ client.interceptors.response.use(
       } catch (refreshError) {
         removeClientAccessToken();
 
-        // Only redirect to login if not on controller/viewer routes
+        // Only dispatch auth-required event if not on controller/viewer routes
         if (!isControllerRoute) {
-          window.location.href = '/auth/login';
+          // Dispatch a custom event that auth-provider can listen to
+          // This prevents hard navigation and allows React Router to handle redirect
+          window.dispatchEvent(new CustomEvent('auth-required', {
+            detail: { reason: 'token-refresh-failed' }
+          }));
         }
+
         return Promise.reject(refreshError);
+      }
+    }
+
+    // If max retries exceeded and still 401, clear token and signal auth required
+    if (error.response?.status === 401 && retryCount >= MAX_RETRY_ATTEMPTS) {
+      removeClientAccessToken();
+
+      if (!isControllerRoute) {
+        window.dispatchEvent(new CustomEvent('auth-required', {
+          detail: { reason: 'max-retries-exceeded' }
+        }));
       }
     }
 

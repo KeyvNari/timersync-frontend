@@ -16,6 +16,7 @@ import {
   MessageData,
   createSimpleWebSocketService,
 } from '@/services/websocket';
+import { useAuth } from '@/hooks/use-auth';
 
 interface PlanFeatures {
   max_rooms: number;
@@ -136,6 +137,7 @@ export function WebSocketProvider({
   children,
   defaultOptions = {},
 }: WebSocketProviderProps) {
+  const { setIsAuthenticated } = useAuth();
   const wsServiceRef = useRef<SimpleWebSocketService | null>(null);
 
   const [connected, setConnected] = useState(false);
@@ -677,6 +679,16 @@ wsService.on('error', (message: any) => {
         // but we prepare for disconnection
         setConnectionStatus('disconnected');
         setConnectionMessage('Access token revoked');
+
+        // Sign out the user if their token is revoked
+        setIsAuthenticated(false);
+
+        // Clear room state
+        setTimers([]);
+        setSelectedTimerId(null);
+        setRoomInfo(null);
+        setDisplays([]);
+        setMessages([]);
       }
     });
 
@@ -725,7 +737,7 @@ wsService.on('error', (message: any) => {
         reason: message.reason
       });
 
-      // Disconnect websocket and show error
+      // Immediately disconnect and clear auth state
       if (wsServiceRef.current) {
         wsServiceRef.current.disconnect();
         wsServiceRef.current = null;
@@ -734,6 +746,17 @@ wsService.on('error', (message: any) => {
       setConnected(false);
       setConnectionStatus('disconnected');
       setConnectionMessage('Token expired');
+
+      // Clear auth state in provider - this triggers AuthGuard redirect
+      setIsAuthenticated(false);
+
+      // Clear all room-related state
+      setTimers([]);
+      setSelectedTimerId(null);
+      setRoomInfo(null);
+      setDisplays([]);
+      setConnections([]);
+      setMessages([]);
     });
 
     // Token revocation event
@@ -744,7 +767,7 @@ wsService.on('error', (message: any) => {
         reason: message.reason
       });
 
-      // Disconnect websocket and show error
+      // Immediately disconnect and clear auth state
       if (wsServiceRef.current) {
         wsServiceRef.current.disconnect();
         wsServiceRef.current = null;
@@ -753,6 +776,16 @@ wsService.on('error', (message: any) => {
       setConnected(false);
       setConnectionStatus('disconnected');
       setConnectionMessage('Token revoked');
+
+      // Clear auth state - this will trigger redirect
+      setIsAuthenticated(false);
+
+      // Clear room state
+      setTimers([]);
+      setSelectedTimerId(null);
+      setRoomInfo(null);
+      setDisplays([]);
+      setMessages([]);
     });
   };
 
