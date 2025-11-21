@@ -18,6 +18,8 @@ import {
   Loader,
   Tooltip,
   Transition,
+  Card,
+  ThemeIcon,
 } from '@mantine/core';
 import {
   IconSend,
@@ -31,6 +33,10 @@ import {
   IconX,
   IconFile,
   IconCheck,
+  IconClock,
+  IconBulb,
+  IconUpload,
+  IconWand,
 } from '@tabler/icons-react';
 import { useWebSocketContext } from '@/providers/websocket-provider';
 import { notifications } from '@mantine/notifications';
@@ -49,6 +55,33 @@ interface AITimerChatProps {
   onTimerCreate?: (timerData: any) => void;
   roomId: number | null;
 }
+
+const SAMPLE_PROMPTS = [
+  {
+    icon: IconClock,
+    title: 'Quick workout - 15 min',
+    description: 'Fast HIIT session with warm-up and cool-down',
+    prompt: 'Create a quick 15-minute HIIT (High-Intensity Interval Training) workout with these timers:\n- 2 minute warm-up (light cardio)\n- 40 seconds high intensity (burpees or jumping jacks)\n- 20 seconds rest\n- Repeat the high/rest cycle 5 times\n- 1 minute cool-down (stretching)\n\nCreate individual timers for each segment with clear names so I can follow along.',
+  },
+  {
+    icon: IconBulb,
+    title: '2 Pomodoro sessions',
+    description: 'Two 25-minute focus blocks with a 5-minute break',
+    prompt: 'Create a Pomodoro study session with exactly 2 focus sessions:\n- Timer 1: "Pomodoro Session 1" for 25 minutes\n- Timer 2: "Break" for 5 minutes\n- Timer 3: "Pomodoro Session 2" for 25 minutes\n\nThese timers should run sequentially. Make them clear and easy to follow for focused studying.',
+  },
+  {
+    icon: IconUpload,
+    title: 'Upload a schedule',
+    description: 'Extract timers from your calendar, syllabus, or event list',
+    prompt: 'I\'m about to upload a file with my schedule or agenda. Please analyze it and:\n1. Identify all the events and deadlines\n2. Create timers for each event or deadline\n3. Suggest any helpful reminders or recurring timers\n4. Ask me clarifying questions about which items need timers or if any need to repeat\n\nFeel free to organize them by priority or time of day.',
+  },
+  {
+    icon: IconWand,
+    title: 'Morning routine',
+    description: 'Daily routine with exercise, shower, breakfast, and commute',
+    prompt: 'Create timers for my morning routine:\n- 20 minute exercise (jogging or home workout)\n- 15 minute shower\n- 10 minute breakfast\n- 15 minute commute/travel time\n\nPlease create these as sequential timers so I can stay on schedule in the morning. Feel free to adjust these durations if they seem unrealistic.',
+  },
+];
 
 export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerChatProps) {
   const [messages, setMessages] = useState<Message[]>([
@@ -69,6 +102,7 @@ export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerC
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [feedbackId, setFeedbackId] = useState<string | null>(null);
   const [feedbackType, setFeedbackType] = useState<'good' | 'bad' | null>(null);
+  const [showHero, setShowHero] = useState(true);
   const resetRef = useRef<() => void>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const viewport = useRef<HTMLDivElement>(null);
@@ -143,6 +177,7 @@ export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerC
     const question = inputValue || 'Please analyze this file and help me create a timer based on its content.';
     setInputValue('');
     setIsThinking(true);
+    setShowHero(false);
 
     if (hasFileSent && extractedFileContent) {
       setHasFileSent(true);
@@ -188,7 +223,7 @@ export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerC
       {
         id: '1',
         role: 'assistant',
-        content: 'Hello! How can I help you create a timer today? If you have any questions about creating timers, their features, or settings, feel free to ask.',
+        content: 'Hi! I can help you create custom timers. Just describe what you need, or upload a file for me to analyze. I can also manage your existing timers by removing specific ones or clearing them all.',
         timestamp: new Date(),
       },
     ]);
@@ -196,7 +231,43 @@ export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerC
     setExtractedFileContent(null);
     setHasFileSent(false);
     setSessionId(null);
+    setShowHero(true);
     resetRef.current?.();
+  };
+
+  const handleSamplePromptClick = (prompt: string) => {
+    // Use setTimeout to ensure the state update is processed before sending
+    setTimeout(() => {
+      if (!roomId) {
+        notifications.show({
+          title: 'Error',
+          message: 'No room selected. Please select a room first.',
+          color: 'red',
+        });
+        return;
+      }
+
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        role: 'user',
+        content: prompt,
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => [...prev, userMessage]);
+      setInputValue('');
+      setIsThinking(true);
+      setShowHero(false);
+
+      // Send WebSocket message
+      const wsMessage = {
+        type: 'agent_query',
+        question: prompt,
+        ...(sessionId && { session_id: sessionId }),
+      };
+
+      wsService?.send(wsMessage);
+    }, 0);
   };
 
   const handleFileUpload = async (file: File | null) => {
@@ -285,17 +356,94 @@ export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerC
           viewportRef={viewport}
         >
           <Stack gap="md">
-            {messages.map((message, index) => (
-              <Transition
-                key={message.id}
-                mounted={true}
-                transition="slide-up"
-                duration={300}
-                timingFunction="ease"
-              >
-                {(styles) => (
-                  <Box style={styles}>
-                    {message.role === 'assistant' ? (
+            {showHero && messages.length === 1 ? (
+              <>
+                {/* Hero Section */}
+                <Box
+                  style={{
+                    background: 'linear-gradient(135deg, var(--mantine-color-blue-6) 0%, var(--mantine-color-blue-7) 100%)',
+                    borderRadius: 'var(--mantine-radius-lg)',
+                    padding: 'var(--mantine-spacing-xl)',
+                    marginBottom: 'var(--mantine-spacing-md)',
+                    color: 'white',
+                    textAlign: 'center',
+                  }}
+                >
+                  <Group justify="center" mb="sm">
+                    <IconSparkles size={32} style={{ animation: 'float 3s ease-in-out infinite' }} />
+                  </Group>
+                  <Text size="xl" fw={700} mb="xs">
+                    Welcome to Timer Assistant
+                  </Text>
+                  <Text size="sm" style={{ opacity: 0.9 }}>
+                    Create timers using natural language, upload files for analysis, or customize your schedule with AI
+                  </Text>
+                </Box>
+
+                {/* Sample Instructions */}
+                <Box>
+                  <Text size="sm" fw={600} mb="md" c="dimmed">
+                    Quick Start Examples
+                  </Text>
+                  <Stack gap="sm">
+                    {SAMPLE_PROMPTS.map((prompt, index) => {
+                      const Icon = prompt.icon;
+                      return (
+                        <Card
+                          key={index}
+                          p="md"
+                          radius="md"
+                          withBorder
+                          style={{
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            border: '1px solid var(--mantine-color-gray-2)',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = 'var(--mantine-color-blue-6)';
+                            e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.1)';
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = 'var(--mantine-color-gray-2)';
+                            e.currentTarget.style.boxShadow = 'none';
+                            e.currentTarget.style.transform = 'translateY(0)';
+                          }}
+                          onClick={() => handleSamplePromptClick(prompt.title)}
+                        >
+                          <Group gap="md" wrap="nowrap">
+                            <ThemeIcon
+                              size="lg"
+                              radius="md"
+                              variant="light"
+                              color="blue"
+                            >
+                              <Icon size={20} />
+                            </ThemeIcon>
+                            <Stack gap={0} style={{ flex: 1 }}>
+                              <Text size="sm" fw={600}>
+                                {prompt.title}
+                              </Text>
+                              <Text size="xs" c="dimmed">
+                                {prompt.description}
+                              </Text>
+                            </Stack>
+                          </Group>
+                        </Card>
+                      );
+                    })}
+                  </Stack>
+                </Box>
+
+                {/* Initial Message */}
+                <Transition
+                  mounted={true}
+                  transition="slide-up"
+                  duration={300}
+                  timingFunction="ease"
+                >
+                  {(styles) => (
+                    <Box style={styles}>
                       <Group align="flex-start" gap="sm" wrap="nowrap">
                         <Avatar
                           size="sm"
@@ -318,113 +466,159 @@ export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerC
                             }}
                           >
                             <Box className="markdown-content">
-                              <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+                              <ReactMarkdown remarkPlugins={[remarkGfm]}>{messages[0].content}</ReactMarkdown>
                             </Box>
                           </Paper>
-                          {index > 0 && (
-                            <Group gap="xs" ml="sm">
-                              <Tooltip label={copiedId === message.id ? "Copied!" : "Copy"}>
-                                <ActionIcon
-                                  size="xs"
-                                  variant="subtle"
-                                  color="gray"
-                                  onClick={() => handleCopyMessage(message.content, message.id)}
-                                >
-                                  {copiedId === message.id ? (
-                                    <IconCheck size={14} />
-                                  ) : (
-                                    <IconCopy size={14} />
-                                  )}
-                                </ActionIcon>
-                              </Tooltip>
-                              <Tooltip label="Good answer">
-                                <ActionIcon
-                                  size="xs"
-                                  variant={feedbackId === message.id && feedbackType === 'good' ? 'filled' : 'subtle'}
-                                  color={feedbackId === message.id && feedbackType === 'good' ? 'green' : 'gray'}
-                                  onClick={() => handleFeedback(message.id, 'good')}
-                                >
-                                  <IconThumbUp size={14} />
-                                </ActionIcon>
-                              </Tooltip>
-                              <Tooltip label="Bad answer">
-                                <ActionIcon
-                                  size="xs"
-                                  variant={feedbackId === message.id && feedbackType === 'bad' ? 'filled' : 'subtle'}
-                                  color={feedbackId === message.id && feedbackType === 'bad' ? 'red' : 'gray'}
-                                  onClick={() => handleFeedback(message.id, 'bad')}
-                                >
-                                  <IconThumbDown size={14} />
-                                </ActionIcon>
-                              </Tooltip>
-                            </Group>
-                          )}
                         </Stack>
                       </Group>
-                    ) : (
-                      <Group align="flex-start" gap="sm" wrap="nowrap" justify="flex-end">
-                        <Stack gap="xs" align="flex-end" style={{ flex: 1, maxWidth: '85%' }}>
-                          <Paper
-                            p="lg"
-                            radius="md"
-                            style={{
-                              backgroundColor: 'var(--mantine-color-blue-6)',
-                              color: 'white',
-                            }}
-                          >
-                            <Text style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
-                              {message.content}
-                            </Text>
-                          </Paper>
-                        </Stack>
-                        <Avatar
-                          size="sm"
-                          radius="md"
-                          color="gray"
-                          style={{
-                            flexShrink: 0,
-                          }}
-                        >
-                          <IconUser size={16} />
-                        </Avatar>
-                      </Group>
-                    )}
-                  </Box>
-                )}
-              </Transition>
-            ))}
-
-            {isThinking && (
-              <Group align="flex-start" gap="sm" wrap="nowrap">
-                <Avatar
-                  size="sm"
-                  radius="md"
-                  color="blue"
-                  style={{
-                    flexShrink: 0,
-                    backgroundColor: 'var(--mantine-color-blue-light)',
-                  }}
-                >
-                  <IconSparkles size={16} />
-                </Avatar>
-                <Stack gap="xs" style={{ flex: 1 }}>
-                  <Paper
-                    p="md"
-                    radius="md"
-                    withBorder
-                    style={{
-                      backgroundColor: 'white',
-                      maxWidth: '120px',
-                    }}
+                    </Box>
+                  )}
+                </Transition>
+              </>
+            ) : (
+              <>
+                {messages.map((message, index) => (
+                  <Transition
+                    key={message.id}
+                    mounted={true}
+                    transition="slide-up"
+                    duration={300}
+                    timingFunction="ease"
                   >
-                    <Group gap="xs" justify="center">
-                      <Box className="dot-pulse" />
-                      <Box className="dot-pulse" style={{ animationDelay: '0.2s' }} />
-                      <Box className="dot-pulse" style={{ animationDelay: '0.4s' }} />
-                    </Group>
-                  </Paper>
-                </Stack>
-              </Group>
+                    {(styles) => (
+                      <Box style={styles}>
+                        {message.role === 'assistant' ? (
+                          <Group align="flex-start" gap="sm" wrap="nowrap">
+                            <Avatar
+                              size="sm"
+                              radius="md"
+                              color="blue"
+                              style={{
+                                flexShrink: 0,
+                                backgroundColor: 'var(--mantine-color-blue-light)',
+                              }}
+                            >
+                              <IconSparkles size={16} />
+                            </Avatar>
+                            <Stack gap="xs" style={{ flex: 1, maxWidth: '85%' }}>
+                              <Paper
+                                p="lg"
+                                radius="md"
+                                withBorder
+                                style={{
+                                  backgroundColor: 'white',
+                                }}
+                              >
+                                <Box className="markdown-content">
+                                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+                                </Box>
+                              </Paper>
+                              {index > 0 && (
+                                <Group gap="xs" ml="sm">
+                                  <Tooltip label={copiedId === message.id ? "Copied!" : "Copy"}>
+                                    <ActionIcon
+                                      size="xs"
+                                      variant="subtle"
+                                      color="gray"
+                                      onClick={() => handleCopyMessage(message.content, message.id)}
+                                    >
+                                      {copiedId === message.id ? (
+                                        <IconCheck size={14} />
+                                      ) : (
+                                        <IconCopy size={14} />
+                                      )}
+                                    </ActionIcon>
+                                  </Tooltip>
+                                  <Tooltip label="Good answer">
+                                    <ActionIcon
+                                      size="xs"
+                                      variant={feedbackId === message.id && feedbackType === 'good' ? 'filled' : 'subtle'}
+                                      color={feedbackId === message.id && feedbackType === 'good' ? 'green' : 'gray'}
+                                      onClick={() => handleFeedback(message.id, 'good')}
+                                    >
+                                      <IconThumbUp size={14} />
+                                    </ActionIcon>
+                                  </Tooltip>
+                                  <Tooltip label="Bad answer">
+                                    <ActionIcon
+                                      size="xs"
+                                      variant={feedbackId === message.id && feedbackType === 'bad' ? 'filled' : 'subtle'}
+                                      color={feedbackId === message.id && feedbackType === 'bad' ? 'red' : 'gray'}
+                                      onClick={() => handleFeedback(message.id, 'bad')}
+                                    >
+                                      <IconThumbDown size={14} />
+                                    </ActionIcon>
+                                  </Tooltip>
+                                </Group>
+                              )}
+                            </Stack>
+                          </Group>
+                        ) : (
+                          <Group align="flex-start" gap="sm" wrap="nowrap" justify="flex-end">
+                            <Stack gap="xs" align="flex-end" style={{ flex: 1, maxWidth: '85%' }}>
+                              <Paper
+                                p="lg"
+                                radius="md"
+                                style={{
+                                  backgroundColor: 'var(--mantine-color-blue-6)',
+                                  color: 'white',
+                                }}
+                              >
+                                <Text style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+                                  {message.content}
+                                </Text>
+                              </Paper>
+                            </Stack>
+                            <Avatar
+                              size="sm"
+                              radius="md"
+                              color="gray"
+                              style={{
+                                flexShrink: 0,
+                              }}
+                            >
+                              <IconUser size={16} />
+                            </Avatar>
+                          </Group>
+                        )}
+                      </Box>
+                    )}
+                  </Transition>
+                ))}
+
+                {isThinking && (
+                  <Group align="flex-start" gap="sm" wrap="nowrap">
+                    <Avatar
+                      size="sm"
+                      radius="md"
+                      color="blue"
+                      style={{
+                        flexShrink: 0,
+                        backgroundColor: 'var(--mantine-color-blue-light)',
+                      }}
+                    >
+                      <IconSparkles size={16} />
+                    </Avatar>
+                    <Stack gap="xs" style={{ flex: 1 }}>
+                      <Paper
+                        p="md"
+                        radius="md"
+                        withBorder
+                        style={{
+                          backgroundColor: 'white',
+                          maxWidth: '120px',
+                        }}
+                      >
+                        <Group gap="xs" justify="center">
+                          <Box className="dot-pulse" />
+                          <Box className="dot-pulse" style={{ animationDelay: '0.2s' }} />
+                          <Box className="dot-pulse" style={{ animationDelay: '0.4s' }} />
+                        </Group>
+                      </Paper>
+                    </Stack>
+                  </Group>
+                )}
+              </>
             )}
           </Stack>
         </ScrollArea>
@@ -565,6 +759,15 @@ export function AITimerChat({ opened, onClose, onTimerCreate, roomId }: AITimerC
             50% {
               opacity: 1;
               transform: scale(1.2);
+            }
+          }
+
+          @keyframes float {
+            0%, 100% {
+              transform: translateY(0px);
+            }
+            50% {
+              transform: translateY(-8px);
             }
           }
 
