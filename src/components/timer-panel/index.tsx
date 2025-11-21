@@ -26,7 +26,7 @@ import dayjs from 'dayjs';
 import { Tooltip } from '@mantine/core';
 import { IconAlertTriangle } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
-import { Drawer, Textarea, NumberInput, Checkbox, Title, Divider } from '@mantine/core';
+import { Drawer, Textarea, NumberInput, Checkbox, Title, Divider, TimeInput, DateInput } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { Select } from '@mantine/core';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -379,7 +379,8 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
 
   // State for schedule popover
   const [schedulePopoverOpened, setSchedulePopoverOpened] = useState(false);
-  const [scheduleDateTime, setScheduleDateTime] = useState<Date | null>(null);
+  const [scheduleDate, setScheduleDate] = useState<Date | null>(null);
+  const [scheduleTime, setScheduleTime] = useState<string>('09:00');
   const [isAutoStartEnabled, setIsAutoStartEnabled] = useState(!item.is_manual_start);
 
   // Track bulk update operations to disable hover animations during linking
@@ -545,9 +546,12 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
     }
 
     if (item.scheduled_start_date && item.scheduled_start_time) {
-      setScheduleDateTime(new Date(`${item.scheduled_start_date}T${item.scheduled_start_time}`));
+      const dateObj = new Date(`${item.scheduled_start_date}T${item.scheduled_start_time}`);
+      setScheduleDate(dateObj);
+      setScheduleTime(dayjs(dateObj).format('HH:mm'));
     } else {
-      setScheduleDateTime(null);
+      setScheduleDate(null);
+      setScheduleTime('09:00');
     }
     setIsAutoStartEnabled(!item.is_manual_start);
     setSchedulePopoverOpened(true);
@@ -590,7 +594,6 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
         </>
       )}
 
-      <Tooltip label="Double-click to select" openDelay={1000} position="top">
         <Paper
           className={cx(classes.card, {
             [classes.cardSelected]: item.is_selected,
@@ -598,7 +601,7 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
             [classes.cardWarning]: isWarning,
             [classes.cardCritical]: isCritical,
           })}
-          p="sm"
+          p="md"
           radius="md"
           withBorder
         >
@@ -704,30 +707,20 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
                 }
                 openDelay={500}
               >
-                <Group gap={4} style={{
-                  padding: '2px 8px',
-                  borderRadius: '4px',
-                  backgroundColor: isActive && !item.is_paused
-                    ? 'var(--mantine-color-gray-1)'
-                    : (item.scheduled_start_date && item.scheduled_start_time
-                      ? 'transparent'
-                      : 'var(--mantine-color-gray-0)'),
-                  border: item.scheduled_start_date && item.scheduled_start_time
-                    ? `1px solid ${!item.is_manual_start ? 'var(--mantine-color-green-3)' : 'var(--mantine-color-blue-3)'}`
-                    : '1px solid var(--mantine-color-gray-3)',
-                  cursor: isActive && !item.is_paused ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-                  className={classes.scheduleBadge}
-                  onClick={handleScheduleClick}>
-                  <IconCalendar size={14} color={isActive && !item.is_paused ? "var(--mantine-color-gray-5)" : (item.scheduled_start_date && item.scheduled_start_time ? (!item.is_manual_start ? "var(--mantine-color-green-6)" : "var(--mantine-color-blue-6)") : "var(--mantine-color-gray-6)")} />
-                  <Text size="xs" c={isActive && !item.is_paused ? "var(--mantine-color-gray-6)" : (item.scheduled_start_date && item.scheduled_start_time ? (!item.is_manual_start ? "var(--mantine-color-green-7)" : "var(--mantine-color-blue-7)") : "var(--mantine-color-gray-7)")} fw={500} style={{ fontSize: '11px' }}>
-                    {item.scheduled_start_date && item.scheduled_start_time
-                      ? dayjs(`${item.scheduled_start_date}T${item.scheduled_start_time}`).format('HH:mm')
-                      : "Schedule"
-                    }
-                  </Text>
-                </Group>
+                <Text
+                  size="xs"
+                  c="dimmed"
+                  style={{
+                    cursor: isActive && !item.is_paused ? 'not-allowed' : 'pointer',
+                    opacity: isActive && !item.is_paused ? 0.5 : 1,
+                  }}
+                  onClick={handleScheduleClick}
+                >
+                  {item.scheduled_start_date && item.scheduled_start_time
+                    ? dayjs(`${item.scheduled_start_date}T${item.scheduled_start_time}`).format('HH:mm')
+                    : "Set schedule..."
+                  }
+                </Text>
               </Tooltip>
 
               {/* Duration/Time Display - Compact */}
@@ -803,16 +796,18 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
               {/* Controls */}
               <Group gap={2} className={classes.controls}>
                 {/* Left Side Controls - Select & Link */}
-                <Tooltip label="Select Timer" openDelay={500}>
-                  <ActionIcon
-                    variant={item.is_selected ? "filled" : "subtle"}
-                    color={item.is_selected ? "blue" : "gray"}
-                    size="sm"
-                    onClick={(e) => { e.stopPropagation(); onSelectTimer(item.id); }}
-                  >
-                    <IconHandClick size={14} />
-                  </ActionIcon>
-                </Tooltip>
+                {!item.is_selected && (
+                  <Tooltip label="Select Timer" openDelay={500}>
+                    <ActionIcon
+                      variant="subtle"
+                      color="gray"
+                      size="lg"
+                      onClick={(e) => { e.stopPropagation(); onSelectTimer(item.id); }}
+                    >
+                      <IconHandClick size={18} />
+                    </ActionIcon>
+                  </Tooltip>
+                )}
 
                 {/* Link Button - Only show if not the first timer */}
                 {itemIndex > 0 && (
@@ -820,52 +815,60 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
                     <ActionIcon
                       variant={isLinkedToPrevious ? "filled" : "subtle"}
                       color={isLinkedToPrevious ? "blue" : "gray"}
-                      size="sm"
+                      size="lg"
                       onClick={(e) => { e.stopPropagation(); onToggleLink(item); }}
                     >
-                      <IconLink size={14} />
+                      <IconLink size={18} />
                     </ActionIcon>
                   </Tooltip>
                 )}
 
                 {/* Center Controls - Play/Pause/Stop (Fixed Position) */}
                 {!item.is_active || item.is_paused ? (
-                  <ActionIcon
-                    variant="light"
-                    color="teal"
-                    size="sm"
-                    onClick={(e) => { e.stopPropagation(); handlePlay(); }}
-                    disabled={item.is_finished}
-                  >
-                    <IconPlayerPlay size={14} />
-                  </ActionIcon>
+                  <Tooltip label="Play Timer" openDelay={500}>
+                    <ActionIcon
+                      variant="light"
+                      color="teal"
+                      size="lg"
+                      onClick={(e) => { e.stopPropagation(); handlePlay(); }}
+                      disabled={item.is_finished}
+                    >
+                      <IconPlayerPlay size={18} />
+                    </ActionIcon>
+                  </Tooltip>
                 ) : (
-                  <ActionIcon
-                    variant="light"
-                    color="orange"
-                    size="sm"
-                    onClick={(e) => { e.stopPropagation(); handlePause(); }}
-                  >
-                    <IconPlayerPause size={14} />
-                  </ActionIcon>
+                  <Tooltip label="Pause Timer" openDelay={500}>
+                    <ActionIcon
+                      variant="light"
+                      color="orange"
+                      size="lg"
+                      onClick={(e) => { e.stopPropagation(); handlePause(); }}
+                    >
+                      <IconPlayerPause size={18} />
+                    </ActionIcon>
+                  </Tooltip>
                 )}
 
-                <ActionIcon
-                  variant="light"
-                  color="red"
-                  size="sm"
-                  onClick={(e) => { e.stopPropagation(); handleStop(); }}
-                  disabled={item.is_stopped}
-                >
-                  <IconPlayerStop size={14} />
-                </ActionIcon>
+                <Tooltip label="Stop Timer" openDelay={500}>
+                  <ActionIcon
+                    variant="light"
+                    color="red"
+                    size="lg"
+                    onClick={(e) => { e.stopPropagation(); handleStop(); }}
+                    disabled={item.is_stopped}
+                  >
+                    <IconPlayerStop size={18} />
+                  </ActionIcon>
+                </Tooltip>
 
                 {/* Right Side Controls - Settings Menu */}
                 <Menu position="bottom-end" withArrow>
                   <Menu.Target>
-                    <ActionIcon variant="subtle" color="gray" size="sm">
-                      <IconSettings size={14} />
-                    </ActionIcon>
+                    <Tooltip label="Timer Settings" openDelay={500}>
+                      <ActionIcon variant="subtle" color="gray" size="lg">
+                        <IconSettings size={18} />
+                      </ActionIcon>
+                    </Tooltip>
                   </Menu.Target>
                   <Menu.Dropdown>
                     <Menu.Label>Timer Settings</Menu.Label>
@@ -889,8 +892,6 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
             </Group>
           </Group>
         </Paper>
-      </Tooltip>
-
 
       {/* Schedule Popover */}
       <Popover
@@ -929,21 +930,30 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
                 )}
               </Group>
 
-              <DateTimePicker
-                value={scheduleDateTime}
-                onChange={setScheduleDateTime}
-                placeholder="Pick date and time"
-                clearable
-                minDate={new Date()}
-                size="sm"
-                leftSection={<IconCalendar size={16} />}
-              />
+              <Stack gap="sm">
+                <DateInput
+                  label="Date"
+                  placeholder="Pick a date"
+                  value={scheduleDate}
+                  onChange={setScheduleDate}
+                  minDate={new Date()}
+                  size="sm"
+                  leftSection={<IconCalendar size={16} />}
+                />
+                <TimeInput
+                  label="Time"
+                  placeholder="Pick a time"
+                  value={scheduleTime}
+                  onChange={setScheduleTime}
+                  size="sm"
+                />
+              </Stack>
 
               {/* Auto-Start Toggle */}
               <Paper
                 p="xs"
                 radius="sm"
-                bg={scheduleDateTime ? "var(--mantine-color-gray-0)" : "var(--mantine-color-gray-1)"}
+                bg={scheduleDate && scheduleTime ? "var(--mantine-color-gray-0)" : "var(--mantine-color-gray-1)"}
                 style={{ transition: 'background-color 0.2s ease' }}
               >
                 <Group justify="space-between" gap="sm">
@@ -951,7 +961,7 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
                     <ThemeIcon
                       size="sm"
                       variant="light"
-                      color={scheduleDateTime ? (isAutoStartEnabled ? "green" : "blue") : "gray"}
+                      color={scheduleDate && scheduleTime ? (isAutoStartEnabled ? "green" : "blue") : "gray"}
                     >
                       {isAutoStartEnabled ? <IconPlayerPlay size={12} /> : <IconCalendar size={12} />}
                     </ThemeIcon>
@@ -968,17 +978,17 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
                     checked={isAutoStartEnabled}
                     onChange={(e) => {
                       const newCheckedState = e.currentTarget.checked;
-                      if (newCheckedState && !scheduleDateTime) return;
+                      if (newCheckedState && !(scheduleDate && scheduleTime)) return;
                       setIsAutoStartEnabled(newCheckedState);
                     }}
-                    disabled={!scheduleDateTime}
+                    disabled={!(scheduleDate && scheduleTime)}
                     size="sm"
                     color="green"
                   />
                 </Group>
               </Paper>
 
-              {!scheduleDateTime && (
+              {!(scheduleDate && scheduleTime) && (
                 <Text size="xs" c="dimmed" ta="center" fs="italic">
                   Select a date and time to enable auto-start
                 </Text>
@@ -989,18 +999,32 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
                 <Button
                   size="xs"
                   onClick={() => {
-                    const updates: any = {
-                      scheduled_start_date: scheduleDateTime ? dayjs(scheduleDateTime).format('YYYY-MM-DD') : null,
-                      scheduled_start_time: scheduleDateTime ? dayjs(scheduleDateTime).format('HH:mm:ss') : null,
-                      is_manual_start: scheduleDateTime ? !isAutoStartEnabled : true,
-                    };
+                    let updates: any;
+
+                    if (scheduleDate && scheduleTime) {
+                      const [hours, minutes] = scheduleTime.split(':');
+                      const combinedDate = new Date(scheduleDate);
+                      combinedDate.setHours(parseInt(hours), parseInt(minutes), 0);
+
+                      updates = {
+                        scheduled_start_date: dayjs(combinedDate).format('YYYY-MM-DD'),
+                        scheduled_start_time: dayjs(combinedDate).format('HH:mm:ss'),
+                        is_manual_start: !isAutoStartEnabled,
+                      };
+                    } else {
+                      updates = {
+                        scheduled_start_date: null,
+                        scheduled_start_time: null,
+                        is_manual_start: true,
+                      };
+                    }
 
                     onUpdateTimer(item.id, updates);
                     events?.onTimerEdit?.(item, 'scheduled_start_time', updates);
                     wsUpdateTimer(item.id, updates as any);
                     setSchedulePopoverOpened(false);
                   }}
-                  disabled={!scheduleDateTime && (item.scheduled_start_date === null)}
+                  disabled={!(scheduleDate && scheduleTime) && (item.scheduled_start_date === null)}
                 >
                   Save Schedule
                 </Button>

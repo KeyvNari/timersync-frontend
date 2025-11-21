@@ -104,6 +104,7 @@
 .controls {
   opacity: 0.6;
   transition: opacity 0.2s ease;
+  gap: 8px !important;
 }
 
 .card:hover .controls,
