@@ -350,13 +350,21 @@ function TimerDisplay({
     setHideTimeout(timeout);
   };
 
-  const toggleFullscreen = async () => {
-    if (!document.fullscreenElement) {
-      if (containerRef.current) {
-        await containerRef.current.requestFullscreen();
+  const toggleFullscreen = async (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    try {
+      if (!document.fullscreenElement) {
+        if (containerRef.current) {
+          await containerRef.current.requestFullscreen();
+        }
+      } else {
+        await document.exitFullscreen();
       }
-    } else {
-      await document.exitFullscreen();
+    } catch (err) {
+      console.error('Fullscreen toggle failed:', err);
     }
   };
 
@@ -473,11 +481,21 @@ function TimerDisplay({
     }
   }
 
-  const baseFontSize = (safeDisplay.timer_size_percent || 100) / 100;
+  const charCount = timerText.length;
+  // Calculate max font size to fill width (assuming monospace ~0.6ch width)
+  // 100cqw / (charCount * 0.6)
+  const widthConstrainedSize = 100 / (Math.max(charCount, 1) * 0.6);
+  const heightConstrainedSize = 80; // Max 80% height to leave room for headers/footers
+
+  const effectiveSizePercent = Math.min(safeDisplay.timer_size_percent || 100, 100) / 100;
+
+  const fontSizeCQW = widthConstrainedSize * effectiveSizePercent;
+  const fontSizeCQH = heightConstrainedSize * effectiveSizePercent;
+
   const timerStyle: React.CSSProperties = {
     fontFamily: safeDisplay.timer_font_family || 'Roboto Mono',
     color: getTimerColor(),
-    fontSize: `${baseFontSize * 42}rem`,
+    fontSize: `min(${fontSizeCQW}cqw, ${fontSizeCQH}cqh)`,
     textAlign: 'center',
     margin: 0,
     lineHeight: 1,
@@ -497,7 +515,7 @@ function TimerDisplay({
   const clockStyle: React.CSSProperties = {
     fontFamily: safeDisplay.clock_font_family || 'Roboto Mono',
     color: safeDisplay.clock_color || safeDisplay.time_of_day_color || '#ffffff',
-    fontSize: showOnlyClock ? `${baseFontSize * 4}rem` : '2rem',
+    fontSize: showOnlyClock ? `min(${effectiveSizePercent * 25}cqw, ${effectiveSizePercent * 20}cqh)` : '2rem',
     textAlign: 'center',
     lineHeight: 1,
     whiteSpace: 'nowrap',
@@ -505,35 +523,38 @@ function TimerDisplay({
 
   // Apply size limits in small view mode
   let logoSize = safeDisplay.logo_size_percent || 60;
-  // In small view (not in view_mode and not fullscreen), cap logo size at 100px maximum
+  // In small view (not in view_mode and not fullscreen), cap logo size at 100%
   if (!in_view_mode && !isFullscreen) {
     logoSize = Math.min(logoSize, 100);
   }
 
   const logoStyle: React.CSSProperties = {
     position: 'absolute',
-    maxWidth: `${logoSize}px`,
-    maxHeight: `${logoSize}px`,
-    objectFit: 'contain',
+    maxWidth: `${logoSize}%`,
+    maxHeight: `${logoSize}%`,
+    width: 'auto',
+    height: 'auto',
+    // objectFit: 'contain', // Removed to prevent centering within the box
     zIndex: 10,
+    pointerEvents: 'none', // Ensure clicks pass through to controls if overlapping
   };
 
   switch (safeDisplay.logo_position || 'top_left') {
     case 'top_left':
-      logoStyle.top = 5;
-      logoStyle.left = 20;
+      logoStyle.top = 0;
+      logoStyle.left = 0;
       break;
     case 'top_right':
-      logoStyle.top = 5;
-      logoStyle.right = 20;
+      logoStyle.top = 0;
+      logoStyle.right = 0;
       break;
     case 'bottom_left':
-      logoStyle.bottom = 20;
-      logoStyle.left = 20;
+      logoStyle.bottom = 0;
+      logoStyle.left = 0;
       break;
     case 'bottom_right':
-      logoStyle.bottom = 20;
-      logoStyle.right = 20;
+      logoStyle.bottom = 0;
+      logoStyle.right = 0;
       break;
   }
 
@@ -955,7 +976,7 @@ function TimerDisplay({
               variant="subtle"
               color="gray"
               size="lg"
-              onClick={toggleFullscreen}
+              onClick={(e) => toggleFullscreen(e)}
               title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
             >
               {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
@@ -997,9 +1018,7 @@ function TimerDisplay({
                   }}>
                     <Text style={{
                       ...timerStyle,
-                      fontSize: isFullscreen
-                        ? `min(${baseFontSize * 42}rem, ${baseFontSize * 18}cqw, ${baseFontSize * 12}cqh)`
-                        : `min(${baseFontSize * 42}rem, ${baseFontSize * 12}cqw, ${baseFontSize * 8}cqh)`,
+                      // Remove the complex min calculation here as it's now handled in timerStyle
                       whiteSpace: 'nowrap',
                     }}>
                       {timerText}
