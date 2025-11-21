@@ -80,6 +80,9 @@ interface WebSocketContextValue {
   lastError: string | null;
   lastSuccess: string | null;
 
+  // Initial data loading state
+  initialDataLoaded: boolean;
+
   // Loading/Pending operations state
   pendingOperations: Set<string>;
   isOperationPending: (operationKey: string) => boolean;
@@ -192,6 +195,10 @@ export function WebSocketProvider({
   const [lastError, setLastError] = useState<string | null>(null);
   const [lastSuccess, setLastSuccess] = useState<string | null>(null);
 
+  // Track when initial data has been loaded
+  const [initialDataLoaded, setInitialDataLoaded] = useState(false);
+  const initialDataRef = useRef({ timerDataReceived: false, displayDataReceived: false });
+
   // Helper functions for operation tracking
   const addPendingOperation = useCallback((key: string) => {
     pendingOperationsRef.current.add(key);
@@ -205,6 +212,22 @@ export function WebSocketProvider({
 
   const isOperationPending = useCallback((key: string) => {
     return pendingOperationsRef.current.has(key);
+  }, []);
+
+  // Helper to check and update initial data loaded state
+  const updateInitialDataLoadedState = useCallback((dataType: 'timers' | 'displays') => {
+    initialDataRef.current[dataType === 'timers' ? 'timerDataReceived' : 'displayDataReceived'] = true;
+
+    // Mark as loaded only when both timer and display data have been received
+    if (initialDataRef.current.timerDataReceived && initialDataRef.current.displayDataReceived) {
+      setInitialDataLoaded(true);
+    }
+  }, []);
+
+  // Reset initial data loaded state when connecting to a new room
+  const resetInitialDataLoadedState = useCallback(() => {
+    initialDataRef.current = { timerDataReceived: false, displayDataReceived: false };
+    setInitialDataLoaded(false);
   }, []);
 
   // Setup event handlers
@@ -557,6 +580,8 @@ wsService.on('error', (message: any) => {
           wsServiceRef.current?.selectTimer(sortedTimers[0].id);
         }, 100);
       }
+      // Mark timer data as received
+      updateInitialDataLoadedState('timers');
     });
 
     // Room events
@@ -610,6 +635,9 @@ wsService.on('error', (message: any) => {
         // Return array of all displays
         return Array.from(existingMap.values());
       });
+
+      // Mark display data as received
+      updateInitialDataLoadedState('displays');
     });
 
     wsService.on('default_display_id', (message: any) => {
@@ -649,6 +677,9 @@ wsService.on('error', (message: any) => {
       setMessages([]);
       setLastError(null);
       setLastSuccess(null);
+
+      // Reset initial data loaded state
+      resetInitialDataLoadedState();
     });
 
     // Token revocation event - central handler for all token revocations
@@ -848,6 +879,9 @@ wsService.on('error', (message: any) => {
   // Initial state for reconnection
   setConnectionStatus('reconnecting');
   setConnectionMessage('Connecting to room...');
+
+  // Reset initial data loaded state when connecting to a new room
+  resetInitialDataLoadedState();
 
   wsServiceRef.current = wsService;
   setupEventHandlers(wsService);
@@ -1166,6 +1200,7 @@ const deleteMessage = useCallback((messageId: string) => {
     messages,
     lastError,
     lastSuccess,
+    initialDataLoaded,
     pendingOperations,
     isOperationPending,
     wsService: wsServiceRef.current,

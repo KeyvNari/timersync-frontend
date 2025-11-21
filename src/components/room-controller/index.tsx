@@ -57,6 +57,7 @@ export default function RoomController({
     connectionCount,
     connections,
     roomInfo,
+    initialDataLoaded,
     createTimer,
     createDisplay,
     updateDisplay,
@@ -282,8 +283,8 @@ export default function RoomController({
     }
   }, [roomId, authMode, roomToken, tokenPassword, requiresPassword, connect]);
 
-  // Show loading if roomId is present but roomInfo not loaded yet
-  const isLoading = roomId && !roomInfo;
+  // Show loading if roomId is present but initial data (timers and displays) not loaded yet
+  const isLoading = roomId && !initialDataLoaded;
 
   // Only show reconnection notification if we've been connected before
   const showConnectionNotification = hasBeenConnected && connectionStatus !== 'connected' && connectionMessage;
