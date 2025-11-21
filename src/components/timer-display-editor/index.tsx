@@ -130,9 +130,10 @@ export default function TimerDisplayEditorV2({
     { value: '21:9', label: '21:9 (Ultrawide)' },
     { value: '1:1', label: '1:1 (Square)' },
   ];
-  const monoFontOptions = ['Roboto Mono', 'Courier New', 'monospace'];
+  const monoFontOptions = ['Roboto Mono', 'Oswald', 'Courier New', 'monospace'];
   const fontOptions = [
     'Roboto Mono',
+    'Oswald',
     'Arial',
     'Times New Roman',
     'Courier New',

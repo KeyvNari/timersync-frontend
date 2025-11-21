@@ -499,6 +499,7 @@ function TimerDisplay({
     fontFamily: safeDisplay.timer_font_family || 'Roboto Mono',
     color: getTimerColor(),
     fontSize: `min(${fontSizeCQW}cqw, ${fontSizeCQH}cqh)`,
+    fontWeight: 700,
     textShadow: isFullscreen ? '0 4px 30px rgba(0, 0, 0, 0.5)' : undefined,
     textAlign: 'center',
     margin: 0,
