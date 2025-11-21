@@ -299,9 +299,9 @@ function checkForOverlaps(timers: Timer[]) {
       const timer1 = scheduledTimers[i];
       const timer2 = scheduledTimers[j];
 
-      const start1 = new Date(`${timer1.scheduled_start_date}T${timer1.scheduled_start_time}`);
+      const start1 = dayjs(`${timer1.scheduled_start_date}T${timer1.scheduled_start_time}`, 'YYYY-MM-DDTHH:mm:ss').toDate();
       const end1 = new Date(start1.getTime() + timer1.duration_seconds * 1000);
-      const start2 = new Date(`${timer2.scheduled_start_date}T${timer2.scheduled_start_time}`);
+      const start2 = dayjs(`${timer2.scheduled_start_date}T${timer2.scheduled_start_time}`, 'YYYY-MM-DDTHH:mm:ss').toDate();
       const end2 = new Date(start2.getTime() + timer2.duration_seconds * 1000);
 
       if (start1 < end2 && start2 < end1) {
@@ -323,7 +323,7 @@ function checkForOverlaps(timers: Timer[]) {
 // Helper function to check if scheduled time is in the past
 function isScheduledTimeInPast(scheduledDate: string | null, scheduledTime: string | null): boolean {
   if (!scheduledDate || !scheduledTime) return false;
-  const scheduled = new Date(`${scheduledDate}T${scheduledTime}`);
+  const scheduled = dayjs(`${scheduledDate}T${scheduledTime}`, 'YYYY-MM-DDTHH:mm:ss').toDate();
   return scheduled.getTime() < Date.now();
 }
 
@@ -340,19 +340,52 @@ interface ItemProps {
 
 // Custom comparison for React.memo to prevent unnecessary re-renders
 const areItemsEqual = (prev: ItemProps, next: ItemProps): boolean => {
-  // Re-render if the specific item changed
-  if (prev.item !== next.item) return false;
   // Re-render if linked timer relationship changed
   if (prev.item.linked_timer_id !== next.item.linked_timer_id) return false;
 
   // Re-render if item index changed (for connector display)
   if (prev.itemIndex !== next.itemIndex) return false;
-  // Don't re-render for allTimers reference changes if the linked timer ID is the same
-  // (we'll memoize the lookup inside)
+
+  // Re-render if schedule fields changed (so local state can sync)
+  if (prev.item.scheduled_start_date !== next.item.scheduled_start_date) return false;
+  if (prev.item.scheduled_start_time !== next.item.scheduled_start_time) return false;
+  if (prev.item.is_manual_start !== next.item.is_manual_start) return false;
+
+  // For other properties, skip uuid for comparison
+  const relevantFields = Object.keys(prev.item).filter(
+    key => key !== 'uuid' &&
+           key !== 'scheduled_start_date' &&
+           key !== 'scheduled_start_time' &&
+           key !== 'is_manual_start'
+  );
+
+  for (const field of relevantFields) {
+    if ((prev.item as any)[field] !== (next.item as any)[field]) {
+      return false;
+    }
+  }
+
   return true;
 };
 
-function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSettings, events, onToggleLink, itemIndex = -1 }: ItemProps) {
+function SortableItem({
+  item,
+  allTimers,
+  onUpdateTimer,
+  onSelectTimer,
+  onOpenSettings,
+  events,
+  onToggleLink,
+  itemIndex = -1,
+}: ItemProps) {
+  // Local state for schedule popover - keep a separate copy of the item during editing
+  const [schedulePopoverOpened, setSchedulePopoverOpened] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState<Date | null>(null);
+  const [scheduleTime, setScheduleTime] = useState<string>('09:00');
+  const [isAutoStartEnabled, setIsAutoStartEnabled] = useState(false);
+
+  // Keep track of the item at the time the popover was opened to detect external changes
+  const itemAtPopoverOpenRef = useRef<Timer | null>(null);
   // Memoize the linked timer lookup to prevent unnecessary recalculations
   const linkedTimer = useMemo(() => {
     return item.linked_timer_id
@@ -377,12 +410,6 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
   // State for dismissed schedule warnings
   const [scheduleWarningDismissed, setScheduleWarningDismissed] = useState(false);
 
-  // State for schedule popover
-  const [schedulePopoverOpened, setSchedulePopoverOpened] = useState(false);
-  const [scheduleDate, setScheduleDate] = useState<Date | null>(null);
-  const [scheduleTime, setScheduleTime] = useState<string>('09:00');
-  const [isAutoStartEnabled, setIsAutoStartEnabled] = useState(!item.is_manual_start);
-
   // Track bulk update operations to disable hover animations during linking
   const [isBulkUpdatePending, setIsBulkUpdatePending] = useState(false);
   const wsContext = useWebSocketContext();
@@ -396,10 +423,50 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
     setScheduleWarningDismissed(false);
   }, [item.scheduled_start_date, item.scheduled_start_time]);
 
-  // Update auto-start state when item changes
+  // Sync external timer updates to local popover state when props change (while popover is closed)
   useEffect(() => {
-    setIsAutoStartEnabled(!item.is_manual_start);
-  }, [item.is_manual_start]);
+    // Only sync when popover is closed to avoid interrupting user edits
+    if (!schedulePopoverOpened) {
+      // Check if this is an external change from the backend
+      // (not just the initial render or a lingering effect from closing the popover)
+      setScheduleDate(currentDate => {
+        const currentValue = currentDate ? dayjs(currentDate).format('YYYY-MM-DDTHH:mm') : null;
+        const incomingValue = item.scheduled_start_date && item.scheduled_start_time
+          ? dayjs(`${item.scheduled_start_date}T${item.scheduled_start_time}`, 'YYYY-MM-DDTHH:mm:ss').format('YYYY-MM-DDTHH:mm')
+          : null;
+
+        // Only update if there's an actual change
+        if (currentValue !== incomingValue) {
+          if (item.scheduled_start_date && item.scheduled_start_time) {
+            const dateObj = dayjs(`${item.scheduled_start_date}T${item.scheduled_start_time}`, 'YYYY-MM-DDTHH:mm:ss').toDate();
+            return dateObj;
+          } else {
+            return null;
+          }
+        }
+        return currentDate;
+      });
+
+      setScheduleTime(currentTime => {
+        const incomingTime = item.scheduled_start_time
+          ? dayjs(item.scheduled_start_time, 'HH:mm:ss').format('HH:mm')
+          : '09:00';
+
+        if (currentTime !== incomingTime && item.scheduled_start_date && item.scheduled_start_time) {
+          return incomingTime;
+        }
+        return currentTime;
+      });
+
+      setIsAutoStartEnabled(currentAutoStart => {
+        const incomingAutoStart = !item.is_manual_start;
+        if (currentAutoStart !== incomingAutoStart) {
+          return incomingAutoStart;
+        }
+        return currentAutoStart;
+      });
+    }
+  }, [item.scheduled_start_date, item.scheduled_start_time, item.is_manual_start, schedulePopoverOpened]);
 
   // Check if this item is linked to the previous item (for button state)
   const isLinkedToPrevious = itemIndex > 0 && allTimers[itemIndex - 1]?.linked_timer_id === item.id;
@@ -546,7 +613,7 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
     }
 
     if (item.scheduled_start_date && item.scheduled_start_time) {
-      const dateObj = new Date(`${item.scheduled_start_date}T${item.scheduled_start_time}`);
+      const dateObj = dayjs(`${item.scheduled_start_date}T${item.scheduled_start_time}`, 'YYYY-MM-DDTHH:mm:ss').toDate();
       setScheduleDate(dateObj);
       setScheduleTime(dayjs(dateObj).format('HH:mm'));
     } else {
@@ -554,7 +621,13 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
       setScheduleTime('09:00');
     }
     setIsAutoStartEnabled(!item.is_manual_start);
+    itemAtPopoverOpenRef.current = item;
     setSchedulePopoverOpened(true);
+  };
+
+  const handleSchedulePopoverClose = () => {
+    itemAtPopoverOpenRef.current = null;
+    setSchedulePopoverOpened(false);
   };
 
   // Calculate progress for ring
@@ -697,30 +770,33 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
                 )}
               </Stack>
 
-              {/* Schedule & AutoStart Status Indicator - Compact */}
+              {/* Schedule & AutoStart Status Indicator - Full Info */}
               <Tooltip
                 label={isActive && !item.is_paused
                   ? "Cannot edit schedule while timer is running - pause or stop the timer first"
-                  : (item.scheduled_start_date && item.scheduled_start_time
-                    ? `${!item.is_manual_start ? 'Auto-start at' : 'Scheduled for'} ${dayjs(`${item.scheduled_start_date}T${item.scheduled_start_time}`).format('MMM D, HH:mm')} - Click to edit`
-                    : "Click to add a schedule")
-                }
+                  : "Click to edit schedule"}
                 openDelay={500}
               >
-                <Text
-                  size="xs"
-                  c="dimmed"
+                <div
                   style={{
                     cursor: isActive && !item.is_paused ? 'not-allowed' : 'pointer',
                     opacity: isActive && !item.is_paused ? 0.5 : 1,
                   }}
                   onClick={handleScheduleClick}
                 >
-                  {item.scheduled_start_date && item.scheduled_start_time
-                    ? dayjs(`${item.scheduled_start_date}T${item.scheduled_start_time}`).format('HH:mm')
-                    : "Set schedule..."
-                  }
-                </Text>
+                  {item.scheduled_start_date && item.scheduled_start_time ? (
+                    <div>
+                      <Text size="xs" fw={500}>
+                        {dayjs(`${item.scheduled_start_date}T${item.scheduled_start_time}`, 'YYYY-MM-DDTHH:mm:ss').format('MMM D, HH:mm')}
+                      </Text>
+                      <Text size="xs" c="dimmed">
+                        {!item.is_manual_start ? '↻ Auto-start' : 'Manual start'}
+                      </Text>
+                    </div>
+                  ) : (
+                    <Text size="xs" c="dimmed">Set schedule...</Text>
+                  )}
+                </div>
               </Tooltip>
 
               {/* Duration/Time Display - Compact */}
@@ -911,8 +987,19 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
         <Popover.Dropdown p={0} style={{ overflow: 'hidden' }}>
           <Paper p="sm" style={{ width: '100%' }}>
             <Stack gap="sm">
-              <Group justify="space-between" align="center">
-                <Text size="sm" fw={600} c="gray.9">Schedule Auto-Start</Text>
+              <Group justify="space-between" align="flex-start" wrap="wrap">
+                <div style={{ flex: 1 }}>
+                  <Text size="sm" fw={600} c="gray.9">{item.title}</Text>
+                  {scheduleDate && scheduleTime && (
+                    <Text size="xs" c="dimmed" mt={2}>
+                      {dayjs(`${dayjs(scheduleDate).format('YYYY-MM-DD')}T${scheduleTime}`, 'YYYY-MM-DDTHH:mm').format('MMM D, HH:mm')}
+                      {isAutoStartEnabled && <span> • Auto-start</span>}
+                    </Text>
+                  )}
+                  {!scheduleDate && (
+                    <Text size="xs" c="dimmed" mt={2}>No schedule set</Text>
+                  )}
+                </div>
                 {scheduleDate && scheduleTime && (
                   <Tooltip label="Clear Schedule">
                     <ActionIcon
@@ -935,7 +1022,7 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
                 <DateInput
                   label="Date"
                   placeholder="Pick a date"
-                  value={scheduleDate}
+                  value={scheduleDate || undefined}
                   onChange={setScheduleDate}
                   minDate={new Date()}
                   size="sm"
@@ -996,7 +1083,7 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
               )}
 
               <Group justify="flex-end" mt="xs">
-                <Button variant="subtle" size="xs" color="gray" onClick={() => setSchedulePopoverOpened(false)}>Cancel</Button>
+                <Button variant="subtle" size="xs" color="gray" onClick={handleSchedulePopoverClose}>Cancel</Button>
                 <Button
                   size="xs"
                   onClick={() => {
@@ -1021,9 +1108,8 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
                     }
 
                     onUpdateTimer(item.id, updates);
-                    events?.onTimerEdit?.(item, 'scheduled_start_time', updates);
                     wsUpdateTimer(item.id, updates as any);
-                    setSchedulePopoverOpened(false);
+                    handleSchedulePopoverClose();
                   }}
                   disabled={!(scheduleDate && scheduleTime) && (item.scheduled_start_date === null)}
                 >
@@ -1280,6 +1366,7 @@ export function Timers({
     }
   };
 
+
   const [editingTimer, setEditingTimer] = useState<Timer | null>(null);
   const [opened, { open, close }] = useDisclosure(false);
 
@@ -1323,7 +1410,7 @@ export function Timers({
         duration_seconds: editingTimer.duration_seconds || 0,
         timer_format: editingTimer.timer_format || 'mm:ss',
         scheduled_start_time: editingTimer.scheduled_start_date && editingTimer.scheduled_start_time
-          ? new Date(`${editingTimer.scheduled_start_date}T${editingTimer.scheduled_start_time}`)
+          ? dayjs(`${editingTimer.scheduled_start_date}T${editingTimer.scheduled_start_time}`, 'YYYY-MM-DDTHH:mm:ss').toDate()
           : null,
         is_manual_start: !editingTimer.is_manual_start,
         display_id: editingTimer.display_id ? editingTimer.display_id.toString() : null,

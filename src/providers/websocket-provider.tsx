@@ -422,6 +422,14 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
         scheduled_start_time: timerData.scheduled_start_time,
         is_manual_start: timerData.is_manual_start,
       };
+
+      // Clear the rollback timeout since server has confirmed
+      const optimisticUpdate = optimisticUpdatesRef.current.get(timerData.id);
+      if (optimisticUpdate) {
+        clearTimeout(optimisticUpdate.timeout);
+        optimisticUpdatesRef.current.delete(timerData.id);
+      }
+      removePendingOperation(`timer_update_${timerData.id}`);
     } else if (isPartOfBulkUpdate) {
       // During bulk update (linking operation), preserve local state completely
       // Only update runtime state fields that don't affect linking
