@@ -417,6 +417,10 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
         completed_at: timerData.completed_at,
         actual_start_time: timerData.actual_start_time,
         last_calculated_at: timerData.last_calculated_at,
+        // Always accept schedule fields from server (these are managed by timer_update)
+        scheduled_start_date: timerData.scheduled_start_date,
+        scheduled_start_time: timerData.scheduled_start_time,
+        is_manual_start: timerData.is_manual_start,
       };
     } else if (isPartOfBulkUpdate) {
       // During bulk update (linking operation), preserve local state completely
@@ -437,6 +441,10 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
         completed_at: timerData.completed_at,
         actual_start_time: timerData.actual_start_time,
         last_calculated_at: timerData.last_calculated_at,
+        // Always accept schedule fields from server (these are managed by timer_update)
+        scheduled_start_date: timerData.scheduled_start_date,
+        scheduled_start_time: timerData.scheduled_start_time,
+        is_manual_start: timerData.is_manual_start,
       };
     } else {
       // No pending update - accept all server data

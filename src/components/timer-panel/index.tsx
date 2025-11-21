@@ -18,7 +18,7 @@ import { IconPlayerPlay, IconPlayerPause, IconRestore, IconGripVertical, IconSet
 import cx from 'clsx';
 import { Text, Button, Group, Alert, useMantineColorScheme, useMantineTheme, HoverCard, TextInput, Modal, Popover, Switch, Paper, Stack, ActionIcon, RingProgress, Badge, ThemeIcon, Collapse, Box } from '@mantine/core';
 import { Menu } from '@mantine/core';
-import { DateTimePicker } from '@mantine/dates';
+import { DateTimePicker, DateInput, TimeInput } from '@mantine/dates';
 import { useListState } from '@mantine/hooks';
 import { useState, useEffect, useRef, useMemo, memo } from 'react';
 import { useWebSocketContext } from '@/providers/websocket-provider';
@@ -26,7 +26,7 @@ import dayjs from 'dayjs';
 import { Tooltip } from '@mantine/core';
 import { IconAlertTriangle } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
-import { Drawer, Textarea, NumberInput, Checkbox, Title, Divider, TimeInput, DateInput } from '@mantine/core';
+import { Drawer, Textarea, NumberInput, Checkbox, Title, Divider } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { Select } from '@mantine/core';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -913,14 +913,15 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
             <Stack gap="sm">
               <Group justify="space-between" align="center">
                 <Text size="sm" fw={600} c="gray.9">Schedule Auto-Start</Text>
-                {scheduleDateTime && (
+                {scheduleDate && scheduleTime && (
                   <Tooltip label="Clear Schedule">
                     <ActionIcon
                       variant="subtle"
                       color="red"
                       size="sm"
                       onClick={() => {
-                        setScheduleDateTime(null);
+                        setScheduleDate(null);
+                        setScheduleTime('09:00');
                         setIsAutoStartEnabled(false);
                       }}
                     >
@@ -944,7 +945,7 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
                   label="Time"
                   placeholder="Pick a time"
                   value={scheduleTime}
-                  onChange={setScheduleTime}
+                  onChange={(e) => setScheduleTime(e.currentTarget.value)}
                   size="sm"
                 />
               </Stack>
