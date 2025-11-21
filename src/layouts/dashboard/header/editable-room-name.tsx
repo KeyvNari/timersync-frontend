@@ -1,6 +1,21 @@
-import { useState, useRef, useEffect } from 'react';
-import { Text, TextInput, ActionIcon, Group, Tooltip, Select } from '@mantine/core';
-import { PiPencilSimpleDuotone as EditIcon, PiCheckDuotone as CheckIcon, PiXDuotone as CancelIcon } from 'react-icons/pi';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { Text, TextInput, ActionIcon, Group, Tooltip, Select, Modal, Stack, Divider, Button, Box, ThemeIcon, Badge } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
+import {
+  IconEdit,
+  IconCheck,
+  IconX,
+  IconClock,
+  IconWorld,
+  IconMapPin
+} from '@tabler/icons-react';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+
+// Extend dayjs with plugins
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 interface EditableRoomNameProps {
   initialName?: string;
@@ -21,8 +36,22 @@ export function EditableRoomName({
   const [timeZone, setTimeZone] = useState(initialTimeZone);
   const [isEditing, setIsEditing] = useState(false);
   const [tempName, setTempName] = useState(roomName);
-  const [tempTimeZone, setTempTimeZone] = useState(timeZone);
+
+  // Modal state
+  const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false);
+  const [modalTimeZone, setModalTimeZone] = useState(timeZone);
+
+  // Time state
+  const [currentTime, setCurrentTime] = useState(dayjs());
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Update time every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(dayjs());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -31,188 +60,281 @@ export function EditableRoomName({
     }
   }, [isEditing]);
 
-  // Update the roomName state when initialName prop changes
+  // Sync props with state
   useEffect(() => {
     setRoomName(initialName);
   }, [initialName]);
 
-  // Update the timeZone state when initialTimeZone prop changes
   useEffect(() => {
     setTimeZone(initialTimeZone);
+    setModalTimeZone(initialTimeZone);
   }, [initialTimeZone]);
-
-  // Sync tempName and tempTimeZone when not editing
-  useEffect(() => {
-    if (!isEditing) {
-      setTempName(roomName);
-      setTempTimeZone(timeZone);
-    }
-  }, [roomName, timeZone, isEditing]);
 
   const handleStartEdit = () => {
     setTempName(roomName);
     setIsEditing(true);
   };
 
-  const handleSave = () => {
+  const handleSaveName = () => {
     const trimmedName = tempName.trim();
     if (trimmedName && trimmedName !== roomName) {
       setRoomName(trimmedName);
       onSave?.(trimmedName);
     }
-    if (tempTimeZone !== timeZone) {
-      setTimeZone(tempTimeZone);
-      onTimeZoneSave?.(tempTimeZone);
-    }
     setIsEditing(false);
   };
 
-  const handleCancel = () => {
+  const handleCancelEdit = () => {
     setTempName(roomName);
-    setTempTimeZone(timeZone);
     setIsEditing(false);
+  };
+
+  const handleSaveTimeZone = () => {
+    if (modalTimeZone !== timeZone) {
+      setTimeZone(modalTimeZone);
+      onTimeZoneSave?.(modalTimeZone);
+    }
+    closeModal();
   };
 
   const handleKeyPress = (event: React.KeyboardEvent) => {
     if (event.key === 'Enter') {
-      handleSave();
+      handleSaveName();
     } else if (event.key === 'Escape') {
-      handleCancel();
+      handleCancelEdit();
     }
   };
 
-  // Timezone options
-  const timeZoneOptions = [
-    { value: 'UTC', label: 'UTC (Coordinated Universal Time)' },
-    { value: 'America/New_York', label: 'EST (Eastern Standard Time)' },
-    { value: 'America/Chicago', label: 'CST (Central Standard Time)' },
-    { value: 'America/Denver', label: 'MST (Mountain Standard Time)' },
-    { value: 'America/Los_Angeles', label: 'PST (Pacific Standard Time)' },
-    { value: 'Europe/London', label: 'GMT (Greenwich Mean Time)' },
-    { value: 'Europe/Berlin', label: 'CET (Central European Time)' },
-    { value: 'Europe/Amsterdam', label: 'CET (Central European Time)' },
-    { value: 'Europe/Moscow', label: 'MSK (Moscow Time)' },
-    { value: 'Asia/Dubai', label: 'GST (Gulf Standard Time)' },
-    { value: 'Asia/Kolkata', label: 'IST (Indian Standard Time)' },
-    { value: 'Asia/Shanghai', label: 'CST (China Standard Time)' },
-    { value: 'Asia/Tokyo', label: 'JST (Japan Standard Time)' },
-    { value: 'Asia/Seoul', label: 'KST (Korea Standard Time)' },
-    { value: 'Australia/Sydney', label: 'AEST (Australian Eastern Standard Time)' },
-    { value: 'Pacific/Auckland', label: 'NZST (New Zealand Standard Time)' },
-  ];
+  // Get browser timezone
+  const browserTimeZone = useMemo(() => {
+    try {
+      return dayjs.tz.guess();
+    } catch (e) {
+      return 'UTC';
+    }
+  }, []);
 
-  if (isEditing) {
-    return (
-      <Group gap="sm" wrap="wrap" align="flex-start">
-        <div>
-          <TextInput
-            ref={inputRef}
-            value={tempName}
-            onChange={(e) => setTempName(e.currentTarget.value)}
-            onKeyDown={handleKeyPress}
-            placeholder="Room name"
-            size="sm"
-            mb="xs"
-            styles={{
-              input: {
-                minWidth: '120px',
-                maxWidth: '250px',
-                fontSize: '1rem',
-                fontWeight: 500,
-              },
-            }}
-            maxLength={maxLength}
-          />
-          <Select
-            value={tempTimeZone}
-            onChange={(value) => setTempTimeZone(value || 'UTC')}
-            data={timeZoneOptions}
-            placeholder="Select timezone"
-            size="sm"
-            styles={{
-              input: {
-                minWidth: '120px',
-                maxWidth: '250px',
-              },
-            }}
-          />
-        </div>
-        <Group gap={4}>
-          <Tooltip label="Save">
-            <ActionIcon
-              size="sm"
-              variant="subtle"
-              color="green"
-              onClick={handleSave}
-            >
-              <CheckIcon size="0.875rem" />
-            </ActionIcon>
-          </Tooltip>
-          <Tooltip label="Cancel">
-            <ActionIcon
-              size="sm"
-              variant="subtle"
-              color="red"
-              onClick={handleCancel}
-            >
-              <CancelIcon size="0.875rem" />
-            </ActionIcon>
-          </Tooltip>
-        </Group>
-      </Group>
-    );
-  }
+  // Generate timezone options with groups
+  const timeZoneOptions = useMemo(() => {
+    // Common timezones list
+    const commonTimezones = [
+      'UTC',
+      'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles', 'America/Toronto', 'America/Sao_Paulo',
+      'Europe/London', 'Europe/Berlin', 'Europe/Paris', 'Europe/Amsterdam', 'Europe/Moscow', 'Europe/Istanbul',
+      'Asia/Dubai', 'Asia/Kolkata', 'Asia/Shanghai', 'Asia/Tokyo', 'Asia/Seoul', 'Asia/Singapore', 'Asia/Bangkok',
+      'Australia/Sydney', 'Pacific/Auckland'
+    ];
+
+    // Group by region
+    const groups: Record<string, { value: string; label: string }[]> = {};
+
+    commonTimezones.forEach(tz => {
+      try {
+        const offset = dayjs().tz(tz).format('Z');
+        const region = tz.includes('/') ? tz.split('/')[0] : 'Other';
+        const city = tz.includes('/') ? tz.split('/')[1].replace(/_/g, ' ') : tz;
+
+        if (!groups[region]) {
+          groups[region] = [];
+        }
+
+        groups[region].push({
+          value: tz,
+          label: `(UTC${offset}) ${city}`
+        });
+      } catch (e) {
+        console.error(`Error parsing timezone ${tz}`, e);
+      }
+    });
+
+    // Convert to Mantine format and sort
+    return Object.entries(groups)
+      .map(([group, items]) => ({
+        group,
+        items: items.sort((a, b) => a.label.localeCompare(b.label))
+      }))
+      .sort((a, b) => a.group.localeCompare(b.group));
+  }, []);
+
+  // Format times for display
+  const roomTime = useMemo(() => {
+    try {
+      return currentTime.tz(timeZone);
+    } catch (e) {
+      return currentTime;
+    }
+  }, [currentTime, timeZone]);
+
+  const localTime = currentTime;
+
+  const formatTime = (time: dayjs.Dayjs) => time.format('HH:mm');
+  const formatDate = (time: dayjs.Dayjs) => time.format('ddd, MMM D');
 
   return (
-    <Group gap="xs" wrap="nowrap" align="center">
-      <Group gap="xs" align="baseline">
-        <Text
-          fw={500}
-          style={{
-            cursor: 'pointer',
-            minWidth: '60px',
-            fontSize: '2rem',
-          }}
-          onClick={handleStartEdit}
-          title="Click to edit room name and timezone"
-        >
-          {roomName}
-        </Text>
-        <Group gap={4} align="center">
-          <Text
-            size="xs"
-            c="dimmed"
-            fw={500}
-            style={{
-              cursor: 'pointer',
-              letterSpacing: '0.5px',
+    <>
+      <Group gap="md" align="center">
+        {/* Room Name Section */}
+        <Box>
+          {isEditing ? (
+            <Group gap="xs">
+              <TextInput
+                ref={inputRef}
+                value={tempName}
+                onChange={(e) => setTempName(e.currentTarget.value)}
+                onKeyDown={handleKeyPress}
+                placeholder="Room name"
+                size="md"
+                styles={{
+                  input: {
+                    fontSize: '1.5rem',
+                    fontWeight: 700,
+                    height: 'auto',
+                    padding: '0 8px',
+                    minWidth: '200px'
+                  }
+                }}
+                maxLength={maxLength}
+              />
+              <ActionIcon size="lg" color="green" variant="light" onClick={handleSaveName}>
+                <IconCheck size={20} />
+              </ActionIcon>
+              <ActionIcon size="lg" color="red" variant="light" onClick={handleCancelEdit}>
+                <IconX size={20} />
+              </ActionIcon>
+            </Group>
+          ) : (
+            <Group gap="xs" align="center">
+              <Text
+                fw={800}
+                size="xl"
+                style={{
+                  fontSize: '1.75rem',
+                  lineHeight: 1.2,
+                  cursor: 'pointer'
+                }}
+                onClick={handleStartEdit}
+              >
+                {roomName}
+              </Text>
+              <Tooltip label="Edit room name">
+                <ActionIcon
+                  variant="transparent"
+                  color="gray"
+                  size="sm"
+                  onClick={handleStartEdit}
+                  style={{ opacity: 0.5 }}
+                >
+                  <IconEdit size={16} />
+                </ActionIcon>
+              </Tooltip>
+            </Group>
+          )}
+        </Box>
+
+        <Divider orientation="vertical" h={30} visibleFrom="sm" />
+
+        {/* Time & Timezone Section - Clickable */}
+        <Tooltip label="View time details & change timezone" withArrow position="bottom">
+          <Button
+            variant="subtle"
+            color="gray"
+            onClick={openModal}
+            h="auto"
+            py={4}
+            px="xs"
+            styles={{
+              root: {
+                fontWeight: 400,
+                '&:hover': {
+                  backgroundColor: 'var(--mantine-color-gray-1)'
+                }
+              }
             }}
-            onClick={handleStartEdit}
-            title="Click to edit room name and timezone"
           >
-            TimeZone:
-          </Text>
-          <Text
-            size="sm"
-            c="dimmed"
-            style={{ cursor: 'pointer' }}
-            onClick={handleStartEdit}
-            title="Click to edit room name and timezone"
-          >
-            {timeZone}
-          </Text>
-        </Group>
+            <Group gap="xs">
+              <ThemeIcon variant="light" color="blue" size="md" radius="md">
+                <IconClock size={18} />
+              </ThemeIcon>
+              <Stack gap={0} align="flex-start">
+                <Text size="sm" fw={700} lh={1.2} c="dark">
+                  {formatTime(roomTime)}
+                </Text>
+                <Text size="xs" c="dimmed" lh={1.2}>
+                  {timeZone.split('/').pop()?.replace(/_/g, ' ')}
+                </Text>
+              </Stack>
+            </Group>
+          </Button>
+        </Tooltip>
       </Group>
-      <Tooltip label="Edit room name and timezone">
-        <ActionIcon
-          size="sm"
-          variant="subtle"
-          onClick={handleStartEdit}
-          style={{ opacity: 0.7 }}
-        >
-          <EditIcon size="0.875rem" />
-        </ActionIcon>
-      </Tooltip>
-    </Group>
+
+      {/* Timezone Settings Modal */}
+      <Modal
+        opened={modalOpened}
+        onClose={closeModal}
+        title={
+          <Group gap="xs">
+            <IconWorld size={20} />
+            <Text fw={700}>Room Time Settings</Text>
+          </Group>
+        }
+        centered
+        size="md"
+      >
+        <Stack gap="lg">
+          {/* Time Comparison */}
+          <Box p="md" bg="gray.0" style={{ borderRadius: '8px' }}>
+            <Group grow align="flex-start">
+              <Stack gap="xs" align="center">
+                <Badge variant="dot" size="lg" color="blue">Room Time</Badge>
+                <Text size="2rem" fw={800} lh={1} variant="gradient" gradient={{ from: 'blue', to: 'cyan', deg: 90 }}>
+                  {formatTime(roomTime)}
+                </Text>
+                <Text size="xs" c="dimmed" ta="center">
+                  {formatDate(roomTime)}<br />
+                  {timeZone}
+                </Text>
+              </Stack>
+
+              <Divider orientation="vertical" />
+
+              <Stack gap="xs" align="center">
+                <Badge variant="dot" size="lg" color="gray">Your Time</Badge>
+                <Text size="2rem" fw={800} lh={1} c="dimmed">
+                  {formatTime(localTime)}
+                </Text>
+                <Text size="xs" c="dimmed" ta="center">
+                  {formatDate(localTime)}<br />
+                  {browserTimeZone}
+                </Text>
+              </Stack>
+            </Group>
+          </Box>
+
+          {/* Timezone Selection */}
+          <Stack gap="xs">
+            <Text size="sm" fw={500}>Select Room Timezone</Text>
+            <Select
+              searchable
+              data={timeZoneOptions}
+              value={modalTimeZone}
+              onChange={(val) => setModalTimeZone(val || 'UTC')}
+              leftSection={<IconMapPin size={16} />}
+              placeholder="Search timezone..."
+              maxDropdownHeight={200}
+              nothingFoundMessage="No timezone found"
+            />
+            <Text size="xs" c="dimmed">
+              This will update the countdown timers for everyone in the room.
+            </Text>
+          </Stack>
+
+          <Group justify="flex-end" mt="md">
+            <Button variant="default" onClick={closeModal}>Cancel</Button>
+            <Button onClick={handleSaveTimeZone} color="blue">Save Changes</Button>
+          </Group>
+        </Stack>
+      </Modal>
+    </>
   );
 }
