@@ -9,6 +9,7 @@ import { useSafeAuth, useGetAccountInfo } from '@/hooks';
 import { app } from '@/config';
 import { useDisclosure } from '@mantine/hooks';
 import { AITimerChat } from '@/components/ai-timer-chat';
+import { IdentifyNotificationOverlay } from '@/components/identify-notification-overlay';
 import { Modal, Button, Text, Group, Stack, Box, Paper, Center, Title, Alert } from '@mantine/core';
 import { IconAlertCircle } from '@tabler/icons-react';
 import ShareRoomModal from '@/components/share-room-modal';
@@ -52,6 +53,7 @@ export default function RoomController({
     disconnectedByHost,
     revokedToken,
     tokenEvent,
+    identifyNotification,
     connect,
     disconnect,
     displays,
@@ -64,6 +66,7 @@ export default function RoomController({
     updateDisplay,
     deleteDisplay,
     disconnectClient,
+    sendIdentifySignal,
     revokeAccessToken,
     updateRoom,
   } = useWebSocketContext();
@@ -361,6 +364,7 @@ export default function RoomController({
             onUpdateDisplay={updateDisplay}
             onDeleteDisplay={deleteDisplay}
             onDisconnectDevice={disconnectClient}
+            onIdentifyConnection={sendIdentifySignal}
             onRevokeAccessToken={revokeAccessToken}
             showBackButton={false}
             showShareButton={true}
@@ -579,6 +583,15 @@ export default function RoomController({
         roomId={roomId!}
         roomName={roomInfo?.name || `Room ${roomId}`}
       />
+
+      {/* Identify Notification Overlay */}
+      {identifyNotification && (
+        <IdentifyNotificationOverlay
+          connectionName={identifyNotification.connectionName}
+          isVisible={!!identifyNotification}
+          duration={3000}
+        />
+      )}
     </Page>
   );
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Text, Image, Flex, Stack, Progress, Box, RingProgress, ActionIcon, Tooltip, Group } from '@mantine/core';
 import { Maximize, Minimize, FlipHorizontal, FlipVertical } from 'lucide-react';
+import { ConnectionNameInput } from '@/components/connection-name-input';
 
 // CSS for flashing animation and fullscreen styling
 const messageStyles = `
@@ -1080,8 +1081,12 @@ function TimerDisplay({
               opacity: showControls ? 1 : 0,
               transition: 'opacity 0.3s ease',
               pointerEvents: showControls ? 'auto' : 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
             }}
           >
+            <ConnectionNameInput />
             <Group gap="xs">
               <Tooltip label="Mirror Horizontal" withArrow>
                 <ActionIcon

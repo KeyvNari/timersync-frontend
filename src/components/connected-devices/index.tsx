@@ -58,6 +58,8 @@ interface ConnectedDevicesProps {
   currentUserAccess?: 'viewer' | 'full';
   /** Callback when user wants to revoke an access token */
   onRevokeAccessToken?: (tokenId: number) => void;
+  /** Callback to send identify signal to a connection */
+  onIdentifyConnection?: (connectionId: string) => void;
   /** Show only basic connection count */
   compactMode?: boolean;
   /** Custom styles */
@@ -168,11 +170,13 @@ interface ConnectionGroup {
 function ConnectionGroupCard({
   group,
   currentUserAccess,
-  onRevokeToken
+  onRevokeToken,
+  onIdentifyConnection
 }: {
   group: ConnectionGroup;
   currentUserAccess: 'viewer' | 'full';
   onRevokeToken?: (tokenId: number) => void;
+  onIdentifyConnection?: (connectionId: string) => void;
 }) {
   const [revokeModalOpen, setRevokeModalOpen] = useState(false);
   const connectionCount = group.connections.length;
@@ -249,6 +253,7 @@ function ConnectionGroupCard({
             key={conn.connection_id}
             connection={conn}
             currentUserAccess={currentUserAccess}
+            onIdentifyConnection={onIdentifyConnection}
           />
         ))}
       </Stack>
@@ -258,10 +263,12 @@ function ConnectionGroupCard({
 
 function ConnectionItem({
   connection,
-  currentUserAccess
+  currentUserAccess,
+  onIdentifyConnection
 }: {
   connection: ConnectionInfo;
   currentUserAccess: 'viewer' | 'full';
+  onIdentifyConnection?: (connectionId: string) => void;
 }) {
   const isOnline = connection.last_ping ?
     (new Date().getTime() - new Date(connection.last_ping).getTime()) < 300000 : true;
@@ -306,11 +313,16 @@ function ConnectionItem({
         </Group>
       </div>
 
-      {currentUserAccess === 'full' && (
-        <Tooltip label={`Last seen: ${connection.last_ping ? formatTimeAgo(connection.last_ping) : 'Unknown'}`} position="left">
-          <ThemeIcon variant="transparent" color="gray" size="xs">
+      {currentUserAccess === 'full' && !isSelf && onIdentifyConnection && (
+        <Tooltip label="Identify this device" position="left">
+          <ActionIcon
+            variant="subtle"
+            color="blue"
+            size="sm"
+            onClick={() => onIdentifyConnection(connection.connection_id)}
+          >
             <IconInfoCircle size="0.8rem" />
-          </ThemeIcon>
+          </ActionIcon>
         </Tooltip>
       )}
     </Group>
@@ -321,6 +333,7 @@ export function ConnectedDevices({
   connections = mockConnections,
   currentUserAccess = 'full',
   onRevokeAccessToken,
+  onIdentifyConnection,
   compactMode = false,
   className
 }: ConnectedDevicesProps) {
@@ -335,6 +348,12 @@ export function ConnectedDevices({
     if (onRevokeAccessToken) {
       onRevokeAccessToken(tokenId);
       setConnectionList(prev => prev.filter(conn => conn.access_token_id !== tokenId));
+    }
+  };
+
+  const handleIdentifyConnection = (connectionId: string) => {
+    if (onIdentifyConnection) {
+      onIdentifyConnection(connectionId);
     }
   };
 
@@ -420,6 +439,7 @@ export function ConnectedDevices({
                   group={group}
                   currentUserAccess={currentUserAccess}
                   onRevokeToken={handleRevokeToken}
+                  onIdentifyConnection={handleIdentifyConnection}
                 />
               ))}
             </Stack>

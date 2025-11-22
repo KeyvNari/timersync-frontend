@@ -60,6 +60,11 @@ interface WebSocketContextValue {
     reason?: string;
   } | null;
 
+  // Identify notification
+  identifyNotification: {
+    connectionName: string;
+  } | null;
+
   // User plan and features
   userPlan: string | null;
   planFeatures: PlanFeatures | null;
@@ -73,6 +78,7 @@ interface WebSocketContextValue {
   displays: DisplayConfig[];
   connections: ConnectionInfo[];
   connectionCount: number;
+  currentConnection: ConnectionInfo | null;
   defaultDisplayId: number | null;
   messages: MessageData[];
 
@@ -121,7 +127,9 @@ interface WebSocketContextValue {
   // Connections
   requestConnections: () => void;
   disconnectClient: (targetConnectionId: string) => void;
+  sendIdentifySignal: (targetConnectionId?: string) => void;
   revokeAccessToken: (tokenId: number) => void;
+  setConnectionName: (name: string) => void;
 
   // Message management
   addMessage: (messageData: Omit<MessageData, 'id'>) => void;
@@ -189,6 +197,7 @@ export function WebSocketProvider({
   const [displays, setDisplays] = useState<DisplayConfig[]>([]);
   const [connections, setConnections] = useState<ConnectionInfo[]>([]);
   const [connectionCount, setConnectionCount] = useState(0);
+  const [currentConnection, setCurrentConnection] = useState<ConnectionInfo | null>(null);
   const [defaultDisplayId, setDefaultDisplayId] = useState<number | null>(null);
   const [messages, setMessages] = useState<MessageData[]>([]);
 
@@ -198,6 +207,9 @@ export function WebSocketProvider({
   // Track when initial data has been loaded
   const [initialDataLoaded, setInitialDataLoaded] = useState(false);
   const initialDataRef = useRef({ timerDataReceived: false, displayDataReceived: false });
+
+  // Identify notification state
+  const [identifyNotification, setIdentifyNotification] = useState<{ connectionName: string } | null>(null);
 
   // Helper functions for operation tracking
   const addPendingOperation = useCallback((key: string) => {
@@ -236,6 +248,18 @@ const setupEventHandlers = (wsService: SimpleWebSocketService) => {
   wsService.on('success', (message: any) => {
     // Clear any disconnection state on successful connection
     setDisconnectedByHost(null);
+
+    // Check if this is a set_name success
+    if (message.connection_name && message.message && message.message.toLowerCase().includes('name')) {
+      setCurrentConnection((prev) => {
+        if (prev) {
+          return { ...prev, connection_name: message.connection_name };
+        }
+        return prev;
+      });
+      setLastSuccess(message.message);
+      return; // Don't process as connection success
+    }
 
     // Check if this is a token revocation success
     if (message.token_id && message.message && message.message.toLowerCase().includes('revoked')) {
@@ -608,6 +632,9 @@ wsService.on('error', (message: any) => {
     // Connection events
     wsService.on('connection_count', (message: any) => {
       setConnectionCount(message.count || 0);
+      if (message.your_connection) {
+        setCurrentConnection(message.your_connection);
+      }
       if (message.current_connections) {
         setConnections(message.current_connections);
       } else if (message.disconnected_connection) {
@@ -833,6 +860,18 @@ wsService.on('error', (message: any) => {
       setRoomInfo(null);
       setDisplays([]);
       setMessages([]);
+    });
+
+    // Identify request event
+    wsService.on('IDENTIFY_REQUEST', (message: any) => {
+      setIdentifyNotification({
+        connectionName: message.connection_name || 'Unknown Device'
+      });
+
+      // Auto-dismiss after 3 seconds
+      setTimeout(() => {
+        setIdentifyNotification(null);
+      }, 3000);
     });
   };
 
@@ -1169,10 +1208,18 @@ const disconnectClient = useCallback((targetConnectionId: string) => {
   wsServiceRef.current?.disconnectClient(targetConnectionId);
 }, []);
 
+const sendIdentifySignal = useCallback((targetConnectionId?: string) => {
+  wsServiceRef.current?.sendIdentifySignal(targetConnectionId);
+}, []);
+
 const revokeAccessToken = useCallback((tokenId: number) => {
   wsServiceRef.current?.revokeAccessToken(tokenId);
   // Optimistically remove all connections with this token
   setConnections(prev => prev.filter(conn => conn.access_token_id !== tokenId));
+}, []);
+
+const setConnectionName = useCallback((name: string) => {
+  wsServiceRef.current?.send({ type: 'set_name', name });
 }, []);
 
 // Message management
@@ -1207,6 +1254,7 @@ const deleteMessage = useCallback((messageId: string) => {
     disconnectedByHost,
     revokedToken,
     tokenEvent,
+    identifyNotification,
     userPlan,
     planFeatures,
     timers,
@@ -1215,6 +1263,7 @@ const deleteMessage = useCallback((messageId: string) => {
     displays,
     connections,
     connectionCount,
+    currentConnection,
     defaultDisplayId,
     messages,
     lastError,
@@ -1245,7 +1294,9 @@ const deleteMessage = useCallback((messageId: string) => {
     updateRoom,
     requestConnections,
     disconnectClient,
+    sendIdentifySignal,
     revokeAccessToken,
+    setConnectionName,
     addMessage,
     updateMessage,
     deleteMessage,

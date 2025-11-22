@@ -522,6 +522,13 @@ export class SimpleWebSocketService {
     this.send({ type: 'disconnect_client', target_connection_id: targetConnectionId });
   }
 
+  sendIdentifySignal(targetConnectionId?: string): void {
+    this.send({
+      type: 'identify_signal_send',
+      target_connection_id: targetConnectionId,
+    });
+  }
+
   // Message management
   requestMessages(): void {
     this.send({ type: 'get_messages' });

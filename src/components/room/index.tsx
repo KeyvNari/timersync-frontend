@@ -43,6 +43,7 @@ export interface RoomComponentProps {
   onUpdateDisplay?: (displayId: number, updateData: any) => void;
   onDeleteDisplay?: (displayId: number) => void;
   onDisconnectDevice?: (connectionId: string) => void;
+  onIdentifyConnection?: (connectionId: string) => void;
   onRevokeAccessToken?: (tokenId: number) => void;
   onMessagesChange?: (messages: Message[]) => void;
   showBackButton?: boolean;
@@ -76,6 +77,7 @@ export default function RoomComponent({
   onCreateDisplay,
   onUpdateDisplay,
   onDeleteDisplay,
+  onIdentifyConnection,
   onRevokeAccessToken,
   onMessagesChange,
   showBackButton = false,
@@ -436,6 +438,7 @@ export default function RoomComponent({
         currentUserAccess={userAccessLevel}
         compactMode={false}
         onRevokeAccessToken={onRevokeAccessToken}
+        onIdentifyConnection={onIdentifyConnection}
       />
     </Box>
   );
