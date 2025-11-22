@@ -1066,6 +1066,7 @@ function TimerDisplay({
 
         {in_view_mode && (
           <Box
+            data-controls
             onMouseEnter={handleControlsMouseEnter}
             onMouseLeave={handleControlsMouseLeave}
             style={{

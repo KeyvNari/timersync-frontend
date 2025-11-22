@@ -74,14 +74,14 @@ function TimerPageComponent({ slug }: TimerPageProps) {
       setTimerState((prev) =>
         prev
           ? {
-              ...prev,
-              is_active: true,
-              is_paused: false,
-              is_finished: false,
-              current_time_seconds: prev.duration_seconds,
-              accumulated_seconds: 0,
-              actual_start_time: new Date().toISOString(),
-            }
+            ...prev,
+            is_active: true,
+            is_paused: false,
+            is_finished: false,
+            current_time_seconds: prev.duration_seconds,
+            accumulated_seconds: 0,
+            actual_start_time: new Date().toISOString(),
+          }
           : null
       );
     } else if (timerState.is_paused) {
@@ -94,12 +94,12 @@ function TimerPageComponent({ slug }: TimerPageProps) {
       setTimerState((prev) =>
         prev
           ? {
-              ...prev,
-              is_active: true,
-              is_paused: false,
-              actual_start_time: new Date().toISOString(),
-              accumulated_seconds: 0,
-            }
+            ...prev,
+            is_active: true,
+            is_paused: false,
+            actual_start_time: new Date().toISOString(),
+            accumulated_seconds: 0,
+          }
           : null
       );
     }
@@ -112,14 +112,14 @@ function TimerPageComponent({ slug }: TimerPageProps) {
     setTimerState((prev) =>
       prev
         ? {
-            ...prev,
-            is_active: false,
-            is_paused: false,
-            is_finished: false,
-            current_time_seconds: preset.duration,
-            accumulated_seconds: 0,
-            actual_start_time: null,
-          }
+          ...prev,
+          is_active: false,
+          is_paused: false,
+          is_finished: false,
+          current_time_seconds: preset.duration,
+          accumulated_seconds: 0,
+          actual_start_time: null,
+        }
         : null
     );
   };
@@ -129,10 +129,10 @@ function TimerPageComponent({ slug }: TimerPageProps) {
     setTimerState((prev) =>
       prev
         ? {
-            ...prev,
-            is_paused: !prev.is_paused,
-            paused_at: !prev.is_paused ? new Date().toISOString() : null,
-          }
+          ...prev,
+          is_paused: !prev.is_paused,
+          paused_at: !prev.is_paused ? new Date().toISOString() : null,
+        }
         : null
     );
   };
@@ -247,13 +247,13 @@ function TimerPageComponent({ slug }: TimerPageProps) {
             style={{
               borderRadius: '0.5rem',
               overflow: 'hidden',
-              minHeight: '500px',
+              minHeight: '30px',
             }}
           >
             <TimerDisplayStandalone
               display={displayConfig}
               timer={timerState}
-              in_view_mode={true}
+              in_view_mode={false}
             />
           </Box>
 

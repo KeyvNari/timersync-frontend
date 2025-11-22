@@ -285,8 +285,6 @@ function TimerDisplayStandalone({
   }, []);
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!in_view_mode) return;
-
     // Check if mouse is over the controls area
     const controlsElement = e.currentTarget.querySelector('[data-controls]');
     if (controlsElement && controlsElement.contains(e.target as Node)) {
@@ -1021,28 +1019,27 @@ function TimerDisplayStandalone({
           )}
         </Box>
 
-        {in_view_mode && (
-          <Box
-            onMouseEnter={handleControlsMouseEnter}
-            onMouseLeave={handleControlsMouseLeave}
-            style={{
-              position: 'absolute',
-              top: '1rem',
-              right: '1rem',
-              padding: '0.5rem',
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              borderRadius: '12px',
-              zIndex: 20,
-              opacity: showControls ? 1 : 0,
-              transition: 'opacity 0.3s ease',
-              pointerEvents: showControls ? 'auto' : 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-            }}
-          >
+        <Box
+          onMouseEnter={handleControlsMouseEnter}
+          onMouseLeave={handleControlsMouseLeave}
+          style={{
+            position: 'absolute',
+            top: '1rem',
+            right: '1rem',
+            padding: '0.5rem',
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            borderRadius: '12px',
+            zIndex: 20,
+            opacity: showControls ? 1 : 0,
+            transition: 'opacity 0.3s ease',
+            pointerEvents: showControls ? 'auto' : 'none',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+          }}
+        >
             <Group gap="xs">
               <Tooltip label="Mirror Horizontal" withArrow>
                 <ActionIcon
@@ -1078,7 +1075,6 @@ function TimerDisplayStandalone({
               </Tooltip>
             </Group>
           </Box>
-        )}
       </Box>
     </>
   );
