@@ -340,6 +340,9 @@ interface ItemProps {
 
 // Custom comparison for React.memo to prevent unnecessary re-renders
 const areItemsEqual = (prev: ItemProps, next: ItemProps): boolean => {
+  // Re-render if selection changed
+  if ((prev.item as any).is_selected !== (next.item as any).is_selected) return false;
+
   // Re-render if linked timer relationship changed
   if (prev.item.linked_timer_id !== next.item.linked_timer_id) return false;
 

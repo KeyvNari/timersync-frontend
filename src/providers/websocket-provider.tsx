@@ -1100,6 +1100,9 @@ const deleteTimer = useCallback((timerId: number) => {
 const selectTimer = useCallback((timerId: number, timerData?: Partial<TimerData>) => {
   if (!wsServiceRef.current) return;
 
+  // Optimistic update: immediately update the selected timer in the UI
+  setSelectedTimerId(timerId);
+
   // Pause all other active timers before selecting the new one
   const activeTimers = timers.filter(
     timer => timer.is_active && !timer.is_paused && timer.id !== timerId
