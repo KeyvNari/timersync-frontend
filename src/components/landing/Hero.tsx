@@ -93,7 +93,7 @@ export function Hero({ onScrollToSection, animationStyle }: HeroProps) {
                     marginBottom: '0.25rem',
                   }}
                 >
-                  Create remote-controlled countdown timers
+                  Sync timers across devices
                 </Title>
                 <Title
                   order={1}
@@ -108,7 +108,7 @@ export function Hero({ onScrollToSection, animationStyle }: HeroProps) {
                     letterSpacing: '-0.5px',
                   }}
                 >
-                  share easily with others.
+                  keep everyone on track.
                 </Title>
               </Box>
 
@@ -124,7 +124,7 @@ export function Hero({ onScrollToSection, animationStyle }: HeroProps) {
                   animation: 'fadeInUp 1s ease-out 0.4s both',
                 }}
               >
-                Show a fullscreen timer to your presenter while you control it from another device.
+                The professional way to manage time for events, podcasts, and exams. Control remotely, view anywhere.
               </Text>
 
               {/* CTA Buttons */}
@@ -149,14 +149,14 @@ export function Hero({ onScrollToSection, animationStyle }: HeroProps) {
                   radius="xl"
                   variant="default"
                   leftSection={<IconPlayerPlay size={18} />}
-                  onClick={() => onScrollToSection('features')}
+                  onClick={() => document.getElementById('interactive-demo')?.scrollIntoView({ behavior: 'smooth' })}
                   style={{
                     border: '1px solid #dee2e6',
                     backgroundColor: 'rgba(255,255,255,0.8)',
                     backdropFilter: 'blur(10px)',
                   }}
                 >
-                  See How It Works
+                  Try Interactive Demo
                 </Button>
               </Group>
             </Stack>

@@ -57,6 +57,23 @@ export function Testimonials({ sectionRef, animationStyle, onAnimationStyleChang
       }}
     >
       <Container size="xl">
+        {/* Trusted By Strip */}
+        <Stack align="center" mb={80} gap="lg">
+          <Text size="sm" c="dimmed" fw={700} tt="uppercase" style={{ letterSpacing: '1px' }}>
+            Trusted by innovative teams at
+          </Text>
+          <Group gap={50} style={{ opacity: 0.5, filter: 'grayscale(100%)' }}>
+            {/* Using text as placeholders for logos to avoid broken images, or simple SVGs if possible. 
+                 For now, I'll use simple text representations or generic icons if available, 
+                 but text is safer without external assets. */}
+            <Text fw={900} size="xl" c="dimmed">ACME Corp</Text>
+            <Text fw={900} size="xl" c="dimmed">GlobalTech</Text>
+            <Text fw={900} size="xl" c="dimmed">EventPro</Text>
+            <Text fw={900} size="xl" c="dimmed">UniVerse</Text>
+            <Text fw={900} size="xl" c="dimmed">MediaGroup</Text>
+          </Group>
+        </Stack>
+
         <Stack
           align="center"
           gap="xl"

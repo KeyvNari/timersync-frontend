@@ -70,8 +70,8 @@ export const defaultDisplay: Display = {
 
   // Progress bar styling
   progress_style: 'bottom_bar',
-  progress_color_main: '#10B981', // Green
-  progress_color_secondary: '#F59E0B', // Amber/Yellow
+  progress_color_main: '#b88871ff', // Green
+  progress_color_secondary: '#0b0bf5ff', // Amber/Yellow
   progress_color_tertiary: '#EF4444', // Red
 
   // Header and footer

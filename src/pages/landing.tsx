@@ -5,6 +5,8 @@ import { Helmet } from 'react-helmet-async';
 import { Header } from '@/components/landing/Header';
 import { Hero } from '@/components/landing/Hero';
 import { AIFeatureSection } from '@/components/landing/AIFeatureSection';
+import { InteractiveDemo } from '@/components/landing/InteractiveDemo';
+import { UseCases } from '@/components/landing/UseCases';
 import { Stats } from '@/components/landing/Stats';
 import { Features } from '@/components/landing/Features';
 import { Testimonials } from '@/components/landing/Testimonials';
@@ -128,6 +130,36 @@ export default function LandingPage() {
           <Hero
             onScrollToSection={scrollToSection}
             animationStyle={getAnimationStyle('hero')}
+          />
+        </div>
+
+        {/* Interactive Demo Section */}
+        <div
+          ref={(el) => {
+            if (el) sectionRefs.current['interactive-demo'] = el;
+          }}
+        >
+          <InteractiveDemo />
+        </div>
+
+        {/* Use Cases Section */}
+        <div
+          ref={(el) => {
+            if (el) sectionRefs.current['use-cases'] = el;
+          }}
+        >
+          <UseCases />
+        </div>
+
+        {/* Features Section */}
+        <div
+          ref={(el) => {
+            if (el) sectionRefs.current['features'] = el;
+          }}
+        >
+          <Features
+            animationStyle={getAnimationStyle('features')}
+            onAnimationStyleChange={(delay) => getAnimationStyle('features', delay)}
           />
         </div>
 

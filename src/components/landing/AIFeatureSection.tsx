@@ -1,5 +1,5 @@
-import { Box, Container, Grid, Stack, Title, Text, Badge, Button, ThemeIcon, Paper, Group } from '@mantine/core';
-import { IconSparkles, IconWand, IconPlayerPlay, IconFileUpload } from '@tabler/icons-react';
+import { Box, Container, Grid, Stack, Title, Text, Badge, Button, ThemeIcon, Paper, Group, List } from '@mantine/core';
+import { IconSparkles, IconWand, IconFileUpload, IconMessageCircle, IconCheck } from '@tabler/icons-react';
 import { useState, useEffect } from 'react';
 
 export function AIFeatureSection() {
@@ -24,7 +24,7 @@ export function AIFeatureSection() {
 
     return (
         <Box
-            py={100}
+            py={120}
             style={{
                 background: '#0a0a0a',
                 color: 'white',
@@ -37,11 +37,11 @@ export function AIFeatureSection() {
                 style={{
                     position: 'absolute',
                     top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
+                    right: '0%',
+                    transform: 'translate(30%, -50%)',
                     width: '800px',
                     height: '800px',
-                    background: 'radial-gradient(circle, rgba(66, 99, 235, 0.15) 0%, transparent 70%)',
+                    background: 'radial-gradient(circle, rgba(121, 80, 242, 0.15) 0%, transparent 70%)',
                     borderRadius: '50%',
                     filter: 'blur(80px)',
                     pointerEvents: 'none',
@@ -71,45 +71,51 @@ export function AIFeatureSection() {
                                     lineHeight: 1.1,
                                 }}
                             >
-                                Just Describe It. <br />
+                                Build Timers with <br />
                                 <span style={{
                                     background: 'linear-gradient(to right, #7950f2, #4dabf7)',
                                     WebkitBackgroundClip: 'text',
                                     WebkitTextFillColor: 'transparent',
                                 }}>
-                                    We Build It.
+                                    Natural Language
                                 </span>
                             </Title>
 
                             <Text size="xl" c="dimmed" style={{ lineHeight: 1.6 }}>
-                                Forget manual setup. Simply type what you need or upload a schedule file.
-                                Our AI understands context and creates complex, multi-step timers instantly.
+                                Don't waste time setting up complex schedules manually. Just tell our AI what you need, or upload your agenda file.
                             </Text>
 
-                            <Stack gap="md">
-                                <Group>
-                                    <ThemeIcon color="violet" variant="light" size="lg" radius="md">
-                                        <IconWand size={20} />
+                            <List
+                                spacing="md"
+                                size="lg"
+                                center
+                                icon={
+                                    <ThemeIcon color="violet" size={24} radius="xl">
+                                        <IconCheck size={16} />
                                     </ThemeIcon>
-                                    <Text fw={500}>Natural Language Processing</Text>
-                                </Group>
-                                <Group>
-                                    <ThemeIcon color="cyan" variant="light" size="lg" radius="md">
-                                        <IconFileUpload size={20} />
-                                    </ThemeIcon>
-                                    <Text fw={500}>File Upload Support (PDF, Docx)</Text>
-                                </Group>
-                            </Stack>
+                                }
+                            >
+                                <List.Item>
+                                    <Text span fw={500} c="white">Type instructions</Text> like "5 min intro, 10 min Q&A"
+                                </List.Item>
+                                <List.Item>
+                                    <Text span fw={500} c="white">Upload files</Text> (PDF, Word) to auto-generate timers
+                                </List.Item>
+                                <List.Item>
+                                    <Text span fw={500} c="white">Smart context</Text> understanding for complex events
+                                </List.Item>
+                            </List>
 
                             <Button
                                 size="lg"
-                                variant="white"
-                                color="dark"
-                                rightSection={<IconSparkles size={18} />}
+                                variant="gradient"
+                                gradient={{ from: 'violet', to: 'blue' }}
+                                rightSection={<IconWand size={18} />}
                                 mt="md"
                                 style={{ alignSelf: 'flex-start' }}
+                                onClick={() => document.getElementById('interactive-demo')?.scrollIntoView({ behavior: 'smooth' })}
                             >
-                                Try AI Generation
+                                Try AI Generator
                             </Button>
                         </Stack>
                     </Grid.Col>
@@ -122,30 +128,39 @@ export function AIFeatureSection() {
                                 radius="xl"
                                 p="xl"
                                 style={{
-                                    background: 'rgba(255, 255, 255, 0.05)',
-                                    backdropFilter: 'blur(10px)',
+                                    background: 'rgba(255, 255, 255, 0.03)',
+                                    backdropFilter: 'blur(20px)',
                                     border: '1px solid rgba(255, 255, 255, 0.1)',
-                                    boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+                                    boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
                                 }}
                             >
                                 <Stack gap="lg">
                                     {/* Input Area */}
                                     <Box>
-                                        <Text size="xs" c="dimmed" mb={8} fw={700} tt="uppercase">
-                                            Your Prompt
-                                        </Text>
+                                        <Group justify="space-between" mb={8}>
+                                            <Text size="xs" c="dimmed" fw={700} tt="uppercase">
+                                                Input
+                                            </Text>
+                                            <Group gap={5}>
+                                                <IconMessageCircle size={14} color="#868e96" />
+                                                <Text size="xs" c="dimmed">Text</Text>
+                                                <Text size="xs" c="dimmed" mx={2}>|</Text>
+                                                <IconFileUpload size={14} color="#868e96" />
+                                                <Text size="xs" c="dimmed">File</Text>
+                                            </Group>
+                                        </Group>
                                         <Box
                                             p="md"
                                             style={{
                                                 background: 'rgba(0,0,0,0.3)',
                                                 borderRadius: '12px',
                                                 border: '1px solid rgba(255,255,255,0.1)',
-                                                minHeight: '60px',
+                                                minHeight: '80px',
                                                 display: 'flex',
                                                 alignItems: 'center',
                                             }}
                                         >
-                                            <Text style={{ fontFamily: 'monospace', color: '#e0e0e0' }}>
+                                            <Text style={{ fontFamily: 'monospace', color: '#e0e0e0', lineHeight: 1.5 }}>
                                                 {typedText}
                                                 <span style={{ animation: 'blink 1s infinite' }}>|</span>
                                             </Text>
@@ -155,13 +170,14 @@ export function AIFeatureSection() {
                                     {/* Result Preview */}
                                     <Box
                                         style={{
-                                            opacity: typedText.length === fullText.length ? 1 : 0,
+                                            opacity: typedText.length === fullText.length ? 1 : 0.3,
                                             transform: typedText.length === fullText.length ? 'translateY(0)' : 'translateY(10px)',
                                             transition: 'all 0.5s ease-out',
+                                            filter: typedText.length === fullText.length ? 'none' : 'blur(2px)',
                                         }}
                                     >
                                         <Text size="xs" c="dimmed" mb={8} fw={700} tt="uppercase">
-                                            Generated Result
+                                            Generated Timers
                                         </Text>
                                         <Paper
                                             p="md"
@@ -171,26 +187,29 @@ export function AIFeatureSection() {
                                                 border: '1px solid rgba(255,255,255,0.1)',
                                             }}
                                         >
-                                            <Group justify="space-between" mb="xs">
-                                                <Text fw={700} size="sm">Brainstorming Session</Text>
-                                                <Badge color="green" variant="light">Ready</Badge>
+                                            <Group justify="space-between" mb="md">
+                                                <Text fw={700} size="sm" c="white">Brainstorming Session</Text>
+                                                <Badge color="green" variant="filled">Ready to Start</Badge>
                                             </Group>
-                                            <Stack gap="xs">
-                                                <Group justify="space-between">
-                                                    <Text size="xs" c="dimmed">Speaker 1 (Intro)</Text>
-                                                    <Text size="xs" fw={600}>2:00</Text>
-                                                </Group>
-                                                <Box w="100%" h={4} bg="rgba(255,255,255,0.1)" style={{ borderRadius: 2 }}>
-                                                    <Box w="100%" h="100%" bg="blue" style={{ borderRadius: 2 }} />
-                                                </Box>
-                                                <Group justify="space-between">
-                                                    <Text size="xs" c="dimmed">Speaker 2 (Ideas)</Text>
-                                                    <Text size="xs" fw={600}>5:00</Text>
-                                                </Group>
-                                                <Group justify="space-between">
-                                                    <Text size="xs" c="dimmed">Speaker 3 (Wrap-up)</Text>
-                                                    <Text size="xs" fw={600}>3:00</Text>
-                                                </Group>
+                                            <Stack gap="sm">
+                                                <Paper p="xs" bg="rgba(255,255,255,0.05)" radius="sm">
+                                                    <Group justify="space-between">
+                                                        <Text size="sm" c="gray.3">1. Intro & Context</Text>
+                                                        <Text size="sm" fw={700} c="white">02:00</Text>
+                                                    </Group>
+                                                </Paper>
+                                                <Paper p="xs" bg="rgba(255,255,255,0.05)" radius="sm">
+                                                    <Group justify="space-between">
+                                                        <Text size="sm" c="gray.3">2. Idea Generation</Text>
+                                                        <Text size="sm" fw={700} c="white">05:00</Text>
+                                                    </Group>
+                                                </Paper>
+                                                <Paper p="xs" bg="rgba(255,255,255,0.05)" radius="sm">
+                                                    <Group justify="space-between">
+                                                        <Text size="sm" c="gray.3">3. Voting & Wrap-up</Text>
+                                                        <Text size="sm" fw={700} c="white">03:00</Text>
+                                                    </Group>
+                                                </Paper>
                                             </Stack>
                                         </Paper>
                                     </Box>
