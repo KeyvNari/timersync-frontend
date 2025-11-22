@@ -1,6 +1,6 @@
 // src/pages/viewer/index.tsx
 import { useEffect, useState } from 'react';
-import { Box, Alert, Loader, Center, Text, Paper, PasswordInput, Button, Stack, Title, LoadingOverlay } from '@mantine/core';
+import { Box, Alert, Loader, Center, Text, Paper, PasswordInput, Button, Stack, Title, LoadingOverlay, Transition } from '@mantine/core';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { IconAlertCircle, IconLock } from '@tabler/icons-react';
 import { Helmet } from 'react-helmet-async';
@@ -106,7 +106,8 @@ export default function ViewerPage() {
     displays,
     revokedToken,
     tokenEvent,
-    messages
+    messages,
+    identifyNotification
   } = useWebSocketContext();
 
   const {
@@ -158,39 +159,39 @@ export default function ViewerPage() {
 
 
   useEffect(() => {
-  if (connected) {
-    // Add wildcard listener to see ALL messages
-    const wildcardHandler = (message: any) => {
-      // Wildcard message caught
-    };
-    
-    addEventListener('*', wildcardHandler);
-    
-    return () => {
-      removeEventListener('*', wildcardHandler);
-    };
-  }
-}, [connected, addEventListener, removeEventListener]);
+    if (connected) {
+      // Add wildcard listener to see ALL messages
+      const wildcardHandler = (message: any) => {
+        // Wildcard message caught
+      };
+
+      addEventListener('*', wildcardHandler);
+
+      return () => {
+        removeEventListener('*', wildcardHandler);
+      };
+    }
+  }, [connected, addEventListener, removeEventListener]);
   // Request initial data after successful connection
-useEffect(() => {
-  if (connected && lastSuccess) {
-    // Brief delay to ensure WebSocket is fully ready
-    setTimeout(() => {
-      refreshTimers();
-      // Don't request connections for viewers - they don't have permission
-      // Only request if we have permission (which viewers typically don't)
-      // requestConnections(); // Remove this line or make it conditional
-    }, 500);
-  }
-}, [connected, lastSuccess, refreshTimers]); 
+  useEffect(() => {
+    if (connected && lastSuccess) {
+      // Brief delay to ensure WebSocket is fully ready
+      setTimeout(() => {
+        refreshTimers();
+        // Don't request connections for viewers - they don't have permission
+        // Only request if we have permission (which viewers typically don't)
+        // requestConnections(); // Remove this line or make it conditional
+      }, 500);
+    }
+  }, [connected, lastSuccess, refreshTimers]);
 
   // Handle connection errors
   useEffect(() => {
     if (lastError) {
       // Handle password-related errors
       if (lastError.includes('Invalid password') ||
-          lastError.includes('Password required') ||
-          lastError.includes('Unauthorized')) {
+        lastError.includes('Password required') ||
+        lastError.includes('Unauthorized')) {
         setConnectionState('password_required');
         setIsAuthenticated(false);
         setErrorMessage('Invalid password. Please try again.');
@@ -203,41 +204,41 @@ useEffect(() => {
   }, [lastError]);
 
   // Connect to WebSocket when authenticated and room ID is valid
-useEffect(() => {
-  // Only connect once when conditions are met
-  if (isAuthenticated && roomId && token && !connected) {
-    const connectToRoom = async () => {
-      try {
-        setConnectionState('connecting');
-        await connect(roomId, {
-          roomToken: token,
-          tokenPassword: requiresPassword ? roomPassword : undefined,
-          autoReconnect: true,
-          reconnectInterval: 3000,
-          maxReconnectAttempts: 5,
-        });
-      } catch (error) {
-        // Connection failed
-        setConnectionState('error');
-        setErrorMessage('Failed to connect to room... Check your link.');
+  useEffect(() => {
+    // Only connect once when conditions are met
+    if (isAuthenticated && roomId && token && !connected) {
+      const connectToRoom = async () => {
+        try {
+          setConnectionState('connecting');
+          await connect(roomId, {
+            roomToken: token,
+            tokenPassword: requiresPassword ? roomPassword : undefined,
+            autoReconnect: true,
+            reconnectInterval: 3000,
+            maxReconnectAttempts: 5,
+          });
+        } catch (error) {
+          // Connection failed
+          setConnectionState('error');
+          setErrorMessage('Failed to connect to room... Check your link.');
+        }
+      };
+
+      connectToRoom();
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (connected) {
+        disconnect();
       }
     };
-
-    connectToRoom();
-  }
-  
-  // Cleanup on unmount
-  return () => {
-    if (connected) {
-      disconnect();
-    }
-  };
-}, [isAuthenticated, roomId, token]);
+  }, [isAuthenticated, roomId, token]);
 
 
-useEffect(() => {
-  // Timer selection changed
-}, [selectedTimerId, timers]);
+  useEffect(() => {
+    // Timer selection changed
+  }, [selectedTimerId, timers]);
 
   // Handle password submission
   const handlePasswordSubmit = (values: { password: string }) => {
@@ -483,88 +484,88 @@ useEffect(() => {
           <meta name="robots" content="noindex" />
         </Helmet>
         <Box
-        style={{
-          width: '100vw',
-          height: '100vh',
-          backgroundColor: '#000000',
-          margin: 0,
-          padding: 0,
-          overflow: 'hidden',
-        }}
-      >
-        <Center h="100%">
-          <Paper shadow="xl" p="xl" radius="md" maw={400} w="90%">
-            <Stack gap="lg">
-              <Center>
-                <IconLock size={48} color="var(--mantine-color-blue-6)" />
-              </Center>
+          style={{
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: '#000000',
+            margin: 0,
+            padding: 0,
+            overflow: 'hidden',
+          }}
+        >
+          <Center h="100%">
+            <Paper shadow="xl" p="xl" radius="md" maw={400} w="90%">
+              <Stack gap="lg">
+                <Center>
+                  <IconLock size={48} color="var(--mantine-color-blue-6)" />
+                </Center>
 
-              <div>
-                <Title order={2} ta="center" mb="xs">
-                  Room Password Required
-                </Title>
-                <Text size="sm" c="dimmed" ta="center">
-                  This room is password protected. Please enter the password to continue.
-                </Text>
-              </div>
+                <div>
+                  <Title order={2} ta="center" mb="xs">
+                    Room Password Required
+                  </Title>
+                  <Text size="sm" c="dimmed" ta="center">
+                    This room is password protected. Please enter the password to continue.
+                  </Text>
+                </div>
 
-              <form onSubmit={passwordForm.onSubmit(handlePasswordSubmit)}>
-                <Stack gap="md">
-                  <PasswordInput
-                    label="Password"
-                    placeholder="Enter room password"
-                    required
-                    {...passwordForm.getInputProps('password')}
-                    error={errorMessage && passwordForm.errors.password ? errorMessage : passwordForm.errors.password}
-                  />
+                <form onSubmit={passwordForm.onSubmit(handlePasswordSubmit)}>
+                  <Stack gap="md">
+                    <PasswordInput
+                      label="Password"
+                      placeholder="Enter room password"
+                      required
+                      {...passwordForm.getInputProps('password')}
+                      error={errorMessage && passwordForm.errors.password ? errorMessage : passwordForm.errors.password}
+                    />
 
-                  <Button type="submit" fullWidth size="md">
-                    Connect to Room
-                  </Button>
+                    <Button type="submit" fullWidth size="md">
+                      Connect to Room
+                    </Button>
 
-                  <Button variant="light" onClick={handleGoBack}>
-                    Go Back
-                  </Button>
-                </Stack>
-              </form>
-            </Stack>
-          </Paper>
-        </Center>
-      </Box>
+                    <Button variant="light" onClick={handleGoBack}>
+                      Go Back
+                    </Button>
+                  </Stack>
+                </form>
+              </Stack>
+            </Paper>
+          </Center>
+        </Box>
       </>
     );
   }
 
   // Show loading state while connecting
-if (connectionState === 'connecting') {
-  return (
-    <>
-      <Helmet>
-        <title>{pageTitle}</title>
-        <meta name="description" content={pageDescription} />
-        <meta name="robots" content="noindex" />
-      </Helmet>
-      <Box
-      pos="relative"
-      style={{
-        width: '100vw',
-        height: '100vh',
-        backgroundColor: '#000000',
-        margin: 0,
-        padding: 0,
-        overflow: 'hidden',
-      }}
-    >
-      <LoadingOverlay
-        visible={true}
-        zIndex={1000}
-        overlayProps={{ radius: 'sm', blur: 2 }}
-        loaderProps={{ color: 'blue', type: 'bars' }}
-      />
-      </Box>
-    </>
-  );
-}
+  if (connectionState === 'connecting') {
+    return (
+      <>
+        <Helmet>
+          <title>{pageTitle}</title>
+          <meta name="description" content={pageDescription} />
+          <meta name="robots" content="noindex" />
+        </Helmet>
+        <Box
+          pos="relative"
+          style={{
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: '#000000',
+            margin: 0,
+            padding: 0,
+            overflow: 'hidden',
+          }}
+        >
+          <LoadingOverlay
+            visible={true}
+            zIndex={1000}
+            overlayProps={{ radius: 'sm', blur: 2 }}
+            loaderProps={{ color: 'blue', type: 'bars' }}
+          />
+        </Box>
+      </>
+    );
+  }
 
   // Show error state
   if (connectionState === 'error') {
@@ -576,6 +577,224 @@ if (connectionState === 'connecting') {
           <meta name="robots" content="noindex" />
         </Helmet>
         <Box
+          style={{
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: '#000000',
+            margin: 0,
+            padding: 0,
+            overflow: 'hidden',
+          }}
+        >
+          <Center h="100%">
+            <Alert
+              icon={<IconAlertCircle size="1rem" />}
+              title="Connection Error"
+              color="red"
+              maw={400}
+            >
+              {errorMessage || 'Unable to connect to the timer room'}
+              {roomId && <Text size="sm" mt="xs">Room: {roomId}</Text>}
+              <Button
+                variant="light"
+                size="xs"
+                mt="md"
+                onClick={() => {
+                  if (requiresPassword) {
+                    // Auto-reset auth for password-protected rooms
+                    setConnectionState('password_required');
+                    setIsAuthenticated(false);
+                    setErrorMessage(null);
+                    passwordForm.reset();
+                  } else {
+                    // Try reconnecting for non-password rooms
+                    disconnect();
+                    setConnectionState('connecting');
+                    setErrorMessage(null);
+                  }
+                }}
+              >
+                {requiresPassword ? 'Try Different Password' : 'Try Again'}
+              </Button>
+              <Button
+                variant="subtle"
+                size="xs"
+                mt="xs"
+                color="gray"
+                onClick={handleGoBack}
+              >
+                Go Back
+              </Button>
+            </Alert>
+          </Center>
+        </Box>
+      </>
+    );
+  }
+
+  // Show loading screen only when not connected yet
+  if (!connected) {
+    return (
+      <>
+        <Helmet>
+          <title>{pageTitle}</title>
+          <meta name="description" content={pageDescription} />
+          <meta name="robots" content="noindex" />
+        </Helmet>
+        <Box
+          pos="relative"
+          style={{
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: '#000000',
+            margin: 0,
+            padding: 0,
+            overflow: 'hidden',
+          }}
+        >
+          <LoadingOverlay
+            visible={true}
+            zIndex={1000}
+            overlayProps={{ radius: 'sm', blur: 2 }}
+            loaderProps={{ color: 'blue', type: 'bars' }}
+          />
+        </Box>
+      </>
+    );
+  }
+
+  // Show message when connected but no timer is available
+  if (connected && !displayTimer) {
+    return (
+      <>
+        <Helmet>
+          <title>{pageTitle}</title>
+          <meta name="description" content={pageDescription} />
+          <meta name="robots" content="noindex" />
+        </Helmet>
+        <Box
+          style={{
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: '#000000',
+            margin: 0,
+            padding: 0,
+            overflow: 'hidden',
+          }}
+        >
+          <Center h="100%">
+            <Stack align="center" gap="lg">
+              <IconAlertCircle size={64} color="var(--mantine-color-yellow-6)" />
+              <Title order={2} c="white" ta="center">
+                No Timer Available
+              </Title>
+              <Text size="lg" c="dimmed" ta="center" maw={500}>
+                {timers && timers.length === 0
+                  ? 'There are no timers in this room yet. Please add a timer from the controller.'
+                  : 'No timer is currently selected. Please select a timer from the controller.'}
+              </Text>
+            </Stack>
+          </Center>
+        </Box>
+      </>
+    );
+  }
+
+  // Show timer display when connected
+  // Determine background color based on display config
+  const containerBgColor = displayConfig.background_type === 'transparent' ? 'transparent' : (displayConfig.background_color || '#000000');
+
+  return connected && displayTimer ? (
+    <>
+      <Helmet>
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+        <meta name="robots" content="noindex" />
+      </Helmet>
+      <Box
+        style={{
+          width: '100vw',
+          height: '100vh',
+          margin: 0,
+          padding: 0,
+          overflow: 'hidden',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: containerBgColor,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <TimerDisplay
+          key={`${displayTimer.id}-${displayTimer.timer_format}`}
+          display={displayConfig}
+          timer={convertedTimer}
+          in_view_mode={true}
+          message={showingMessage}
+        />
+      </Box>
+
+      {/* Identify Notification Overlay */}
+      <Transition mounted={!!identifyNotification} transition="fade" duration={400} timingFunction="ease">
+        {(styles) => (
+          <Box
+            style={{
+              ...styles,
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 9999,
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              backdropFilter: 'blur(4px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Paper
+              p="xl"
+              radius="lg"
+              shadow="xl"
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                minWidth: 300,
+                textAlign: 'center',
+              }}
+            >
+              <Stack align="center" gap="md">
+                <Text size="sm" c="dimmed" tt="uppercase" fw={700} style={{ letterSpacing: '1px' }}>
+                  Identify Device
+                </Text>
+                <Title order={2} c="white" style={{ fontSize: '2rem' }}>
+                  {identifyNotification?.connectionName}
+                </Title>
+                <Text c="white" size="sm" style={{ opacity: 0.8 }}>
+                  This screen is connected
+                </Text>
+              </Stack>
+            </Paper>
+          </Box>
+        )}
+      </Transition>
+    </>
+  ) : (
+    // Fallback loading state
+    <>
+      <Helmet>
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+        <meta name="robots" content="noindex" />
+      </Helmet>
+      <Box
+        pos="relative"
         style={{
           width: '100vw',
           height: '100vh',
@@ -585,184 +804,13 @@ if (connectionState === 'connecting') {
           overflow: 'hidden',
         }}
       >
-        <Center h="100%">
-          <Alert
-            icon={<IconAlertCircle size="1rem" />}
-            title="Connection Error"
-            color="red"
-            maw={400}
-          >
-            {errorMessage || 'Unable to connect to the timer room'}
-            {roomId && <Text size="sm" mt="xs">Room: {roomId}</Text>}
-            <Button
-              variant="light"
-              size="xs"
-              mt="md"
-              onClick={() => {
-                if (requiresPassword) {
-                  // Auto-reset auth for password-protected rooms
-                  setConnectionState('password_required');
-                  setIsAuthenticated(false);
-                  setErrorMessage(null);
-                  passwordForm.reset();
-                } else {
-                  // Try reconnecting for non-password rooms
-                  disconnect();
-                  setConnectionState('connecting');
-                  setErrorMessage(null);
-                }
-              }}
-            >
-              {requiresPassword ? 'Try Different Password' : 'Try Again'}
-            </Button>
-            <Button
-              variant="subtle"
-              size="xs"
-              mt="xs"
-              color="gray"
-              onClick={handleGoBack}
-            >
-              Go Back
-            </Button>
-          </Alert>
-        </Center>
-      </Box>
-      </>
-    );
-  }
-
-// Show loading screen only when not connected yet
-if (!connected) {
-  return (
-    <>
-      <Helmet>
-        <title>{pageTitle}</title>
-        <meta name="description" content={pageDescription} />
-        <meta name="robots" content="noindex" />
-      </Helmet>
-      <Box
-      pos="relative"
-      style={{
-        width: '100vw',
-        height: '100vh',
-        backgroundColor: '#000000',
-        margin: 0,
-        padding: 0,
-        overflow: 'hidden',
-      }}
-    >
-      <LoadingOverlay
-        visible={true}
-        zIndex={1000}
-        overlayProps={{ radius: 'sm', blur: 2 }}
-        loaderProps={{ color: 'blue', type: 'bars' }}
-      />
+        <LoadingOverlay
+          visible={true}
+          zIndex={1000}
+          overlayProps={{ radius: 'sm', blur: 2 }}
+          loaderProps={{ color: 'blue', type: 'bars' }}
+        />
       </Box>
     </>
   );
-}
-
-// Show message when connected but no timer is available
-if (connected && !displayTimer) {
-  return (
-    <>
-      <Helmet>
-        <title>{pageTitle}</title>
-        <meta name="description" content={pageDescription} />
-        <meta name="robots" content="noindex" />
-      </Helmet>
-      <Box
-      style={{
-        width: '100vw',
-        height: '100vh',
-        backgroundColor: '#000000',
-        margin: 0,
-        padding: 0,
-        overflow: 'hidden',
-      }}
-    >
-      <Center h="100%">
-        <Stack align="center" gap="lg">
-          <IconAlertCircle size={64} color="var(--mantine-color-yellow-6)" />
-          <Title order={2} c="white" ta="center">
-            No Timer Available
-          </Title>
-          <Text size="lg" c="dimmed" ta="center" maw={500}>
-            {timers && timers.length === 0
-              ? 'There are no timers in this room yet. Please add a timer from the controller.'
-              : 'No timer is currently selected. Please select a timer from the controller.'}
-          </Text>
-        </Stack>
-      </Center>
-      </Box>
-    </>
-  );
-}
-
-  // Show timer display when connected
-  // Determine background color based on display config
-  const containerBgColor = displayConfig.background_type === 'transparent' ? 'transparent' : (displayConfig.background_color || '#000000');
-
-return connected && displayTimer ? (
-  <>
-    <Helmet>
-      <title>{pageTitle}</title>
-      <meta name="description" content={pageDescription} />
-      <meta name="robots" content="noindex" />
-    </Helmet>
-    <Box
-    style={{
-      width: '100vw',
-      height: '100vh',
-      margin: 0,
-      padding: 0,
-      overflow: 'hidden',
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: containerBgColor,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-    }}
-  >
-    <TimerDisplay
-      key={`${displayTimer.id}-${displayTimer.timer_format}`}
-      display={displayConfig}
-      timer={convertedTimer}
-      in_view_mode={true}
-      message={showingMessage}
-    />
-    </Box>
-  </>
-) : (
-  // Fallback loading state
-  <>
-    <Helmet>
-      <title>{pageTitle}</title>
-      <meta name="description" content={pageDescription} />
-      <meta name="robots" content="noindex" />
-    </Helmet>
-    <Box
-    pos="relative"
-    style={{
-      width: '100vw',
-      height: '100vh',
-      backgroundColor: '#000000',
-      margin: 0,
-      padding: 0,
-      overflow: 'hidden',
-    }}
-  >
-    <LoadingOverlay
-      visible={true}
-      zIndex={1000}
-      overlayProps={{ radius: 'sm', blur: 2 }}
-      loaderProps={{ color: 'blue', type: 'bars' }}
-    />
-  </Box>
-  </>
-);
 }
