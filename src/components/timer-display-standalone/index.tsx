@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Text, Image, Flex, Stack, Progress, Box, RingProgress, ActionIcon } from '@mantine/core';
-import { Maximize, Minimize } from 'lucide-react';
+import { Text, Image, Flex, Stack, Progress, Box, RingProgress, ActionIcon, Tooltip, Group } from '@mantine/core';
+import { Maximize, Minimize, FlipHorizontal, FlipVertical } from 'lucide-react';
 
 // CSS for flashing animation and fullscreen styling
 const messageStyles = `
@@ -177,6 +177,8 @@ function TimerDisplayStandalone({
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showControls, setShowControls] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isMirroredH, setIsMirroredH] = useState(false);
+  const [isMirroredV, setIsMirroredV] = useState(false);
   const [hideTimeout, setHideTimeout] = useState<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -282,7 +284,7 @@ function TimerDisplayStandalone({
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
- const handleMouseMove = (e: React.MouseEvent) => {
+  const handleMouseMove = (e: React.MouseEvent) => {
     if (!in_view_mode) return;
 
     // Check if mouse is over the controls area
@@ -401,25 +403,25 @@ function TimerDisplayStandalone({
   const showTimer = !(safeDisplay.auto_hide_completed && safeTimer.is_finished);
   const showOnlyClock = !showTimer && safeDisplay.clock_visible;
 
-const backgroundStyle: React.CSSProperties = {};
-switch (safeDisplay.background_type || 'color') {
-  case 'color':
-    backgroundStyle.backgroundColor = safeDisplay.background_color || '#000000';
-    break;
-  case 'image':
-    if (safeDisplay.background_image) {
-      backgroundStyle.backgroundImage = `url(${safeDisplay.background_image})`;
-      backgroundStyle.backgroundSize = 'cover';
-      backgroundStyle.backgroundPosition = 'center';
-    }
-    break;
-  case 'transparent':
-    backgroundStyle.backgroundColor = 'transparent';
-    break;
-  case 'preset':
-    backgroundStyle.backgroundColor = '#1a1b1e';
-    break;
-}
+  const backgroundStyle: React.CSSProperties = {};
+  switch (safeDisplay.background_type || 'color') {
+    case 'color':
+      backgroundStyle.backgroundColor = safeDisplay.background_color || '#000000';
+      break;
+    case 'image':
+      if (safeDisplay.background_image) {
+        backgroundStyle.backgroundImage = `url(${safeDisplay.background_image})`;
+        backgroundStyle.backgroundSize = 'cover';
+        backgroundStyle.backgroundPosition = 'center';
+      }
+      break;
+    case 'transparent':
+      backgroundStyle.backgroundColor = 'transparent';
+      break;
+    case 'preset':
+      backgroundStyle.backgroundColor = '#1a1b1e';
+      break;
+  }
 
 
   let mainSection = 0;
@@ -442,11 +444,24 @@ switch (safeDisplay.background_type || 'color') {
     }
   }
 
-  const baseFontSize = (safeDisplay.timer_size_percent || 100) / 100;
+  const charCount = timerText.length;
+  // Calculate max font size to fill width (assuming monospace ~0.6ch width)
+  // 100cqw / (charCount * 0.6)
+  // Reduced to 90 to add 5% margin on each side
+  const widthConstrainedSize = 90 / (Math.max(charCount, 1) * 0.6);
+  const heightConstrainedSize = 80; // Max 80% height to leave room for headers/footers
+
+  const effectiveSizePercent = Math.min(safeDisplay.timer_size_percent || 100, 100) / 100;
+
+  const fontSizeCQW = widthConstrainedSize * effectiveSizePercent;
+  const fontSizeCQH = heightConstrainedSize * effectiveSizePercent;
+
   const timerStyle: React.CSSProperties = {
     fontFamily: safeDisplay.timer_font_family || 'Roboto Mono',
     color: getTimerColor(),
-    fontSize: `${baseFontSize * 42}rem`,
+    fontSize: `min(${fontSizeCQW}cqw, ${fontSizeCQH}cqh)`,
+    fontWeight: 700,
+    textShadow: isFullscreen ? '0 4px 30px rgba(0, 0, 0, 0.5)' : undefined,
     textAlign: 'center',
     margin: 0,
     lineHeight: 1,
@@ -466,7 +481,7 @@ switch (safeDisplay.background_type || 'color') {
   const clockStyle: React.CSSProperties = {
     fontFamily: safeDisplay.clock_font_family || 'Roboto Mono',
     color: safeDisplay.clock_color || safeDisplay.time_of_day_color || '#ffffff',
-    fontSize: showOnlyClock ? `${baseFontSize * 4}rem` : '2rem',
+    fontSize: showOnlyClock ? `min(${effectiveSizePercent * 25}cqw, ${effectiveSizePercent * 20}cqh)` : '2rem',
     textAlign: 'center',
     lineHeight: 1,
     whiteSpace: 'nowrap',
@@ -474,17 +489,19 @@ switch (safeDisplay.background_type || 'color') {
 
   // Apply size limits in small view mode
   let logoSize = safeDisplay.logo_size_percent || 60;
-  // In small view (not in view_mode and not fullscreen), cap logo size at 100px maximum
+  // In small view (not in view_mode and not fullscreen), cap logo size at 100%
   if (!in_view_mode && !isFullscreen) {
     logoSize = Math.min(logoSize, 100);
   }
 
   const logoStyle: React.CSSProperties = {
     position: 'absolute',
-    maxWidth: `${logoSize}px`,
-    maxHeight: `${logoSize}px`,
-    objectFit: 'contain',
+    maxWidth: `${logoSize}%`,
+    maxHeight: `${logoSize}%`,
+    width: 'auto',
+    height: 'auto',
     zIndex: 10,
+    pointerEvents: 'none',
   };
 
   switch (safeDisplay.logo_position || 'top_left') {
@@ -610,6 +627,7 @@ switch (safeDisplay.background_type || 'color') {
               boxShadow: '0 2px 4px rgba(0,0,0,0.5)',
               zIndex: 2,
               pointerEvents: 'none',
+              transition: 'left 100ms linear',
             }}
           />
         </Box>
@@ -870,178 +888,198 @@ switch (safeDisplay.background_type || 'color') {
         ref={containerRef}
         onMouseMove={handleMouseMove}
         style={{
-        // Always maintain aspect ratio (except for 16:9 in viewer normal mode)
-        aspectRatio: shouldFillViewport ? undefined : aspectRatio.toString(),
-        // Determine sizing based on mode
-        width: shouldFillViewport ? '100vw' :
-               isFullscreen ? '100vw' :
-               in_view_mode ? `min(100vw, calc(100vh * ${aspectRatio}))` :
-               '100%',
-        height: shouldFillViewport ? '100vh' :
-                isFullscreen ? '100vh' :
-                in_view_mode ? `min(100vh, calc(100vw / ${aspectRatio}))` :
+          // Always maintain aspect ratio (except for 16:9 in viewer normal mode)
+          aspectRatio: shouldFillViewport ? undefined : aspectRatio.toString(),
+          // Determine sizing based on mode
+          width: shouldFillViewport ? '100vw' :
+            isFullscreen ? '100vw' :
+              in_view_mode ? `min(100vw, calc(100vh * ${aspectRatio}))` :
                 '100%',
-        maxWidth: '100%',
-        maxHeight: '100%',
-        position: 'relative',
-        overflow: 'hidden',
-        ...backgroundStyle,
-        borderRadius: '0px',
-        border: `1px solid ${borderColor}`,
-        transition: "border-color 0.1s ease",
-        boxSizing: 'border-box',
-      }}
-    >
-      {progressStyle === 'top_bar' && (
-        <Box style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1 }}>
-          {progressComponent}
-        </Box>
-      )}
-
-      {/* Fullscreen button - always visible, not just in view_mode */}
-      <Box
-        style={{
-          position: 'absolute',
-          top: '1rem',
-          right: '1rem',
-          zIndex: 20,
-        }}
-      >
-        <ActionIcon
-          variant="subtle"
-          color="gray"
-          size="lg"
-          onClick={toggleFullscreen}
-          title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
-        >
-          {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
-        </ActionIcon>
-      </Box>
-
-      {in_view_mode && (
-        <Box
-          onMouseEnter={handleControlsMouseEnter}
-          onMouseLeave={handleControlsMouseLeave}
-          style={{
-            position: 'absolute',
-            top: 0,
-            right: 0,
-            padding: '0.5rem',
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            backdropFilter: 'blur(4px)',
-            borderBottomLeftRadius: '8px',
-            zIndex: 20,
-            opacity: showControls ? 1 : 0,
-            transition: 'opacity 0.3s ease',
-            pointerEvents: showControls ? 'auto' : 'none',
-          }}
-        >
-          <ActionIcon
-            variant="subtle"
-            color="gray"
-            size="lg"
-            onClick={toggleFullscreen}
-            title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
-          >
-            {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
-          </ActionIcon>
-        </Box>
-      )}
-
-      <Flex
-        direction="column"
-        justify="space-between"
-        style={{
-          height: '100%',
-          width: '100%',
-          padding: '1rem',
+          height: shouldFillViewport ? '100vh' :
+            isFullscreen ? '100vh' :
+              in_view_mode ? `min(100vh, calc(100vw / ${aspectRatio}))` :
+                '100%',
+          maxWidth: '100%',
+          maxHeight: '100%',
           position: 'relative',
           overflow: 'hidden',
+          ...backgroundStyle,
+          borderRadius: '0px',
+          border: `1px solid ${borderColor}`,
+          transition: "border-color 0.1s ease",
+          boxSizing: 'border-box',
+          containerType: 'size',
         }}
       >
-        {header && <Box style={{ flexShrink: 0 }}>{header}</Box>}
+        {progressStyle === 'top_bar' && (
+          <Box style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1 }}>
+            {progressComponent}
+          </Box>
+        )}
 
-        <Stack align="center" justify={stackJustify} gap="md" style={{ flex: 1, minHeight: 0 }}>
-          {/* In focus mode, only show the message */}
-          {message?.is_focused ? (
-            messageComponent && (
-              <Box style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
-                {messageComponent}
-              </Box>
-            )
-          ) : (
-            <>
-              {showTimer && (
-                <Box style={{
-                  maxWidth: '100%',
-                  maxHeight: '100%',
-                  overflow: 'visible',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                  <Text style={{
-                    ...timerStyle,
-                    fontSize: isFullscreen
-                      ? `min(${baseFontSize * 42}rem, ${baseFontSize * 18}vw, ${baseFontSize * 12}vh)`
-                      : `min(${baseFontSize * 42}rem, ${baseFontSize * 12}vw, ${baseFontSize * 8}vh)`,
-                    whiteSpace: 'nowrap',
-                  }}>
-                    {timerText}
-                  </Text>
-                </Box>
-              )}
+        <Box
+          style={{
+            width: '100%',
+            height: '100%',
+            transform: `scale(${isMirroredH ? -1 : 1}, ${isMirroredV ? -1 : 1})`,
+            transformOrigin: 'center',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+          }}
+        >
+          <Flex
+            direction="column"
+            justify="space-between"
+            style={{
+              height: '100%',
+              width: '100%',
+              padding: '1rem',
+              position: 'relative',
+              overflow: 'hidden',
+            }}
+          >
+          {header && <Box style={{ flexShrink: 0 }}>{header}</Box>}
 
-              {safeDisplay.clock_visible && !showOnlyClock && (
-                <Box style={{ maxWidth: '100%', overflow: 'hidden' }}>
-                  <Text style={{
-                    ...clockStyle,
-                    fontSize: `min(${clockStyle.fontSize}, 8vw, 8vh)`,
-                  }}>{clockText}</Text>
-                </Box>
-              )}
-
-              {showOnlyClock && (
-                <Box style={{ maxWidth: '100%', overflow: 'hidden' }}>
-                  <Text style={{
-                    ...clockStyle,
-                    fontSize: `min(${clockStyle.fontSize}, 12vw, 12vh)`,
-                  }}>{clockText}</Text>
-                </Box>
-              )}
-
-              {messageComponent && (
-                <Box style={{ maxWidth: '100%', overflow: 'hidden' }}>
+          <Stack align="center" justify={stackJustify} gap="md" style={{ flex: 1, minHeight: 0 }}>
+            {/* In focus mode, only show the message */}
+            {message?.is_focused ? (
+              messageComponent && (
+                <Box style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
                   {messageComponent}
                 </Box>
-              )}
-            </>
+              )
+            ) : (
+              <>
+                {showTimer && (
+                  <Box style={{
+                    maxWidth: '100%',
+                    maxHeight: '100%',
+                    overflow: 'visible',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <Text style={{
+                      ...timerStyle,
+                      // Remove the complex min calculation here as it's now handled in timerStyle
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {timerText}
+                    </Text>
+                  </Box>
+                )}
+
+                {safeDisplay.clock_visible && !showOnlyClock && (
+                  <Box style={{ maxWidth: '100%', overflow: 'hidden' }}>
+                    <Text style={{
+                      ...clockStyle,
+                      fontSize: `min(${clockStyle.fontSize}, 8cqw, 8cqh)`,
+                    }}>{clockText}</Text>
+                  </Box>
+                )}
+
+                {showOnlyClock && (
+                  <Box style={{ maxWidth: '100%', overflow: 'hidden' }}>
+                    <Text style={{
+                      ...clockStyle,
+                      fontSize: `min(${clockStyle.fontSize}, 12cqw, 12cqh)`,
+                    }}>{clockText}</Text>
+                  </Box>
+                )}
+
+                {messageComponent && (
+                  <Box style={{ maxWidth: '100%', overflow: 'hidden' }}>
+                    {messageComponent}
+                  </Box>
+                )}
+              </>
+            )}
+          </Stack>
+
+            {footer && <Box style={{ flexShrink: 0 }}>{footer}</Box>}
+          </Flex>
+
+          {progressStyle === 'bottom_bar' && (
+            <Box style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 1 }}>
+              {progressComponent}
+            </Box>
           )}
-        </Stack>
 
-        {footer && <Box style={{ flexShrink: 0 }}>{footer}</Box>}
-      </Flex>
+          {safeDisplay.logo_image && (
+            <Image
+              src={safeDisplay.logo_image}
+              style={logoStyle}
+              alt="Logo"
+            />
+          )}
 
-      {progressStyle === 'bottom_bar' && (
-        <Box style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 1 }}>
-          {progressComponent}
+          {progressStyle === 'ring' && progressComponent && (
+            <Box style={{ position: 'absolute', bottom: 20, right: 20, zIndex: 10 }}>
+              {progressComponent}
+            </Box>
+          )}
         </Box>
-      )}
 
-      {safeDisplay.logo_image && (
-        <Image
-          src={safeDisplay.logo_image}
-          style={logoStyle}
-          alt="Logo"
-        />
-      )}
-
-      {progressStyle === 'ring' && progressComponent && (
-        <Box style={{ position: 'absolute', bottom: 20, right: 20, zIndex: 10 }}>
-          {progressComponent}
-        </Box>
-      )}
-    </Box>
+        {in_view_mode && (
+          <Box
+            onMouseEnter={handleControlsMouseEnter}
+            onMouseLeave={handleControlsMouseLeave}
+            style={{
+              position: 'absolute',
+              top: '1rem',
+              right: '1rem',
+              padding: '0.5rem',
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              borderRadius: '12px',
+              zIndex: 20,
+              opacity: showControls ? 1 : 0,
+              transition: 'opacity 0.3s ease',
+              pointerEvents: showControls ? 'auto' : 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+            }}
+          >
+            <Group gap="xs">
+              <Tooltip label="Mirror Horizontal" withArrow>
+                <ActionIcon
+                  variant="subtle"
+                  color="gray"
+                  size="lg"
+                  onClick={() => setIsMirroredH(!isMirroredH)}
+                  style={{ color: isMirroredH ? 'var(--mantine-color-blue-filled)' : undefined }}
+                >
+                  <FlipHorizontal size={20} />
+                </ActionIcon>
+              </Tooltip>
+              <Tooltip label="Mirror Vertical" withArrow>
+                <ActionIcon
+                  variant="subtle"
+                  color="gray"
+                  size="lg"
+                  onClick={() => setIsMirroredV(!isMirroredV)}
+                  style={{ color: isMirroredV ? 'var(--mantine-color-blue-filled)' : undefined }}
+                >
+                  <FlipVertical size={20} />
+                </ActionIcon>
+              </Tooltip>
+              <Tooltip label={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'} withArrow>
+                <ActionIcon
+                  variant="subtle"
+                  color="gray"
+                  size="lg"
+                  onClick={toggleFullscreen}
+                >
+                  {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
+                </ActionIcon>
+              </Tooltip>
+            </Group>
+          </Box>
+        )}
+      </Box>
     </>
   );
 }

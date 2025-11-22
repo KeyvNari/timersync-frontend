@@ -253,6 +253,7 @@ function TimerPageComponent({ slug }: TimerPageProps) {
             <TimerDisplayStandalone
               display={displayConfig}
               timer={timerState}
+              in_view_mode={true}
             />
           </Box>
 

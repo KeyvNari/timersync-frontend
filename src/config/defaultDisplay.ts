@@ -48,25 +48,25 @@ export const defaultDisplay: Display = {
   // Timer styling
   timer_color: '#FFFFFF', // White text
   timer_font_family: 'Arial, sans-serif',
-  timer_size_percent: 300, // 42rem
+  timer_size_percent: 100, // 42rem
   timer_position: 'center',
   timer_format: 'mm:ss',
   timer_text_style: 'default',
 
   // Logo configuration
   logo_image: '/logo-dark-full.png', // VeroTime logo
-  logo_size_percent: 500,
+  logo_size_percent: 25,
   logo_position: 'top_left',
 
   // Clock configuration
-  clock_visible: true,
+  clock_visible: false,
   clock_color: '#FFFFFF',
   clock_font_family: 'Arial, sans-serif',
   clock_format: 'hh:mm:ss',
 
   // Background
   background_type: 'color',
-  background_color: '#1a1a1a', // Dark background
+  background_color: '#1c1b1bff', // Dark background
 
   // Progress bar styling
   progress_style: 'bottom_bar',
