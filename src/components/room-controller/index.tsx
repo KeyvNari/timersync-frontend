@@ -1,5 +1,5 @@
 // src/components/room-controller/index.tsx
-import { useEffect, useCallback, useMemo, useState } from 'react';
+import { useEffect, useCallback, useMemo, useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Page } from '@/components/page';
 import { LoadingScreen } from '@/components/loading-screen';
@@ -40,6 +40,7 @@ export default function RoomController({
 
   // Track if we've ever been connected (to avoid showing notification on initial load)
   const [hasBeenConnected, setHasBeenConnected] = useState(false);
+  const autoSelectedRef = useRef<number | null>(null);
 
   const { isAuthenticated } = useSafeAuth();
   const { data: user } = useGetAccountInfo();
@@ -189,6 +190,22 @@ export default function RoomController({
       disconnect();
     };
   }, [roomId]);
+
+  // Auto-select the timer when there's only one in the room
+  useEffect(() => {
+    if (timers?.length === 1) {
+      const timerId = timers[0].id;
+      // Only auto-select if we haven't already auto-selected this timer
+      if (autoSelectedRef.current !== timerId) {
+        console.log('[Auto-select] Single timer detected, selecting:', timerId);
+        autoSelectedRef.current = timerId;
+        selectTimer(timerId);
+      }
+    } else if (timers?.length !== 1) {
+      // Reset ref when we no longer have exactly one timer
+      autoSelectedRef.current = null;
+    }
+  }, [timers, selectTimer]);
 
   const handleRoomNameSave = (newName: string) => {
     if ((authMode === 'authGuard' && !isAuthenticated) || !roomId) {
