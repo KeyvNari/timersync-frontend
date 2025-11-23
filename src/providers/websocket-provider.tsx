@@ -193,6 +193,10 @@ export function WebSocketProvider({
   const pendingOperationsRef = useRef<Set<string>>(new Set());
   const [pendingOperations, setPendingOperations] = useState<Set<string>>(new Set());
 
+  // Timer operation lock - prevents race conditions with rapid timer switches
+  const timerOperationLockRef = useRef<boolean>(false);
+  const timerOperationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const [roomInfo, setRoomInfo] = useState<Record<string, any> | null>(null);
   const [displays, setDisplays] = useState<DisplayConfig[]>([]);
   const [connections, setConnections] = useState<ConnectionInfo[]>([]);
@@ -231,6 +235,33 @@ export function WebSocketProvider({
 
   const isOperationPending = useCallback((key: string) => {
     return pendingOperationsRef.current.has(key);
+  }, []);
+
+  // Timer operation lock management - prevents race conditions with rapid timer switches
+  const acquireTimerOperationLock = useCallback((): boolean => {
+    if (timerOperationLockRef.current) {
+      return false; // Lock already held
+    }
+    timerOperationLockRef.current = true;
+
+    // Auto-release lock after 2 seconds to prevent deadlocks
+    if (timerOperationTimeoutRef.current) {
+      clearTimeout(timerOperationTimeoutRef.current);
+    }
+    timerOperationTimeoutRef.current = setTimeout(() => {
+      timerOperationLockRef.current = false;
+      timerOperationTimeoutRef.current = null;
+    }, 2000);
+
+    return true;
+  }, []);
+
+  const releaseTimerOperationLock = useCallback(() => {
+    timerOperationLockRef.current = false;
+    if (timerOperationTimeoutRef.current) {
+      clearTimeout(timerOperationTimeoutRef.current);
+      timerOperationTimeoutRef.current = null;
+    }
   }, []);
 
   // Helper to check and update initial data loaded state
@@ -572,7 +603,16 @@ export function WebSocketProvider({
         return;
       }
 
-      // Only set error state for non-permission errors
+      // Suppress "Timer is not currently running" errors from pause attempts
+      // These occur during rapid timer switching when pause is sent to a timer
+      // that's already paused on the backend. This is expected and not an error to show.
+      if (errorMessage.includes('Timer is not currently running') ||
+        errorMessage.includes('Failed to pause timer')) {
+        console.debug('Pause operation on inactive timer (expected):', errorMessage);
+        return;
+      }
+
+      // Only set error state for non-permission and non-expected errors
       setLastError(errorMessage);
     });
 
@@ -999,30 +1039,65 @@ export function WebSocketProvider({
   const startTimer = useCallback((timerId: number) => {
     if (!wsServiceRef.current) return;
 
+    // Acquire operation lock to prevent race conditions with rapid timer switches
+    if (!acquireTimerOperationLock()) {
+      console.warn('Timer operation already in progress, ignoring rapid click');
+      return;
+    }
+
     addPendingOperation(`timer_start_${timerId}`);
 
-    // Pause all other active timers before starting the new one
+    // Get timers that are ACTUALLY running on the backend
+    // Only pause timers that are confirmed to be active AND not paused
     const activeTimers = timers.filter(
-      timer => timer.is_active && !timer.is_paused && timer.id !== timerId
+      timer => {
+        // Only pause if: is_active=true, is_paused=false, and NOT currently pending a pause
+        return timer.is_active &&
+               !timer.is_paused &&
+               timer.id !== timerId &&
+               !isOperationPending(`timer_pause_${timer.id}`);
+      }
     );
+
+    // Send pause commands for all truly active timers
     activeTimers.forEach(timer => {
+      addPendingOperation(`timer_pause_${timer.id}`);
       wsServiceRef.current?.pauseTimer(timer.id);
     });
 
     // Then start the requested timer
     wsServiceRef.current.startTimer(timerId);
 
+    // Release lock after operations are sent
+    releaseTimerOperationLock();
+
     // Failsafe: clear pending state after 10 seconds
-    setTimeout(() => removePendingOperation(`timer_start_${timerId}`), 10000);
-  }, [timers, addPendingOperation, removePendingOperation]);
+    setTimeout(() => {
+      removePendingOperation(`timer_start_${timerId}`);
+      activeTimers.forEach(timer => {
+        removePendingOperation(`timer_pause_${timer.id}`);
+      });
+    }, 10000);
+  }, [timers, addPendingOperation, removePendingOperation, acquireTimerOperationLock, releaseTimerOperationLock, isOperationPending]);
 
   const pauseTimer = useCallback((timerId: number) => {
+    if (!wsServiceRef.current) return;
+
+    // Acquire lock for pause operations too
+    if (!acquireTimerOperationLock()) {
+      console.warn('Timer operation already in progress, ignoring pause');
+      return;
+    }
+
     addPendingOperation(`timer_pause_${timerId}`);
-    wsServiceRef.current?.pauseTimer(timerId);
+    wsServiceRef.current.pauseTimer(timerId);
+
+    // Release lock after operation is sent
+    releaseTimerOperationLock();
 
     // Failsafe: clear pending state after 10 seconds
     setTimeout(() => removePendingOperation(`timer_pause_${timerId}`), 10000);
-  }, [addPendingOperation, removePendingOperation]);
+  }, [addPendingOperation, removePendingOperation, acquireTimerOperationLock, releaseTimerOperationLock]);
 
   const stopTimer = useCallback((timerId: number) => {
     addPendingOperation(`timer_stop_${timerId}`);
@@ -1158,22 +1233,41 @@ export function WebSocketProvider({
   const selectTimer = useCallback((timerId: number, timerData?: Partial<TimerData>) => {
     if (!wsServiceRef.current) return;
 
+    // Acquire lock to prevent race conditions with rapid timer selection
+    if (!acquireTimerOperationLock()) {
+      console.warn('Timer operation already in progress, ignoring selection');
+      return;
+    }
+
     // Optimistic update: immediately update the selected timer in the UI
     setSelectedTimerId(timerId);
 
     // Pause all other active timers before selecting the new one
+    // Only pause timers that are ACTUALLY running and not already pending a pause
     const activeTimers = timers.filter(
-      timer => timer.is_active && !timer.is_paused && timer.id !== timerId
+      timer => timer.is_active &&
+               !timer.is_paused &&
+               timer.id !== timerId &&
+               !isOperationPending(`timer_pause_${timer.id}`)
     );
     activeTimers.forEach(timer => {
+      addPendingOperation(`timer_pause_${timer.id}`);
       wsServiceRef.current?.pauseTimer(timer.id);
     });
 
     // Then select the requested timer
     wsServiceRef.current.selectTimer(timerId, timerData);
-    // Ensure timers are updated after selection to include the selected timer data
-    // setTimeout(() => wsServiceRef.current?.requestRoomTimers(), 50);
-  }, [timers]);
+
+    // Release lock after operations are sent
+    releaseTimerOperationLock();
+
+    // Clean up pending operations after timeout
+    setTimeout(() => {
+      activeTimers.forEach(timer => {
+        removePendingOperation(`timer_pause_${timer.id}`);
+      });
+    }, 10000);
+  }, [timers, addPendingOperation, removePendingOperation, acquireTimerOperationLock, releaseTimerOperationLock, isOperationPending]);
 
   // Room actions
   const refreshTimers = useCallback(() => {
