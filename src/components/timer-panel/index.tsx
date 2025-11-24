@@ -18,7 +18,7 @@ import { IconPlayerPlay, IconPlayerPause, IconRestore, IconGripVertical, IconSet
 import cx from 'clsx';
 import { Text, Button, Group, Alert, useMantineColorScheme, useMantineTheme, HoverCard, TextInput, Modal, Popover, Switch, Paper, Stack, ActionIcon, RingProgress, Badge, ThemeIcon, Collapse, Box } from '@mantine/core';
 import { Menu } from '@mantine/core';
-import { DateTimePicker } from '@mantine/dates';
+import { DateTimePicker, DateInput, TimeInput } from '@mantine/dates';
 import { useListState } from '@mantine/hooks';
 import { useState, useEffect, useRef, useMemo, memo } from 'react';
 import { useWebSocketContext } from '@/providers/websocket-provider';
@@ -105,9 +105,7 @@ interface TimersProps {
   showConflictAlerts?: boolean;
   selectedTimerId?: number;
   displays?: DisplayConfig[];
-  onLinkStateChange?: (isLinked: boolean) => void;
-  onToggleLink?: (callback: () => void) => void;
-  forceExecuteLinkRef?: React.MutableRefObject<(() => void) | null>;
+  onToggleLink?: (timer: Timer) => void;
 }
 
 const mockTimers: Timer[] = [
@@ -336,7 +334,7 @@ interface ItemProps {
   onSelectTimer: (id: number) => void;
   onOpenSettings: (timer: Timer) => void;
   events?: TimerEvents;
-  isAllTimersLinked?: boolean;
+  onToggleLink: (timer: Timer) => void;
   itemIndex?: number;
 }
 
@@ -346,8 +344,7 @@ const areItemsEqual = (prev: ItemProps, next: ItemProps): boolean => {
   if (prev.item !== next.item) return false;
   // Re-render if linked timer relationship changed
   if (prev.item.linked_timer_id !== next.item.linked_timer_id) return false;
-  // Re-render if all-timers-linked status changed
-  if (prev.isAllTimersLinked !== next.isAllTimersLinked) return false;
+
   // Re-render if item index changed (for connector display)
   if (prev.itemIndex !== next.itemIndex) return false;
   // Don't re-render for allTimers reference changes if the linked timer ID is the same
@@ -355,7 +352,7 @@ const areItemsEqual = (prev: ItemProps, next: ItemProps): boolean => {
   return true;
 };
 
-function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSettings, events, isAllTimersLinked = false, itemIndex = -1 }: ItemProps) {
+function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSettings, events, onToggleLink, itemIndex = -1 }: ItemProps) {
   // Memoize the linked timer lookup to prevent unnecessary recalculations
   const linkedTimer = useMemo(() => {
     return item.linked_timer_id
@@ -382,7 +379,8 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
 
   // State for schedule popover
   const [schedulePopoverOpened, setSchedulePopoverOpened] = useState(false);
-  const [scheduleDateTime, setScheduleDateTime] = useState<Date | null>(null);
+  const [scheduleDate, setScheduleDate] = useState<Date | null>(null);
+  const [scheduleTime, setScheduleTime] = useState<string>('09:00');
   const [isAutoStartEnabled, setIsAutoStartEnabled] = useState(!item.is_manual_start);
 
   // Track bulk update operations to disable hover animations during linking
@@ -403,17 +401,14 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
     setIsAutoStartEnabled(!item.is_manual_start);
   }, [item.is_manual_start]);
 
-  // Check if this item should show the connector (not the last item when all linked)
-  const shouldShowConnector = isAllTimersLinked && itemIndex < allTimers.length - 1;
-
-  // Check if we should show a regular separator (not linked, and not the last item)
-  const shouldShowSeparator = !shouldShowConnector && itemIndex < allTimers.length - 1;
+  // Check if this item is linked to the next item (for connector display)
+  const shouldShowConnector = itemIndex < allTimers.length - 1 && item.linked_timer_id === allTimers[itemIndex + 1]?.id;
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition: isDragging ? undefined : transition,
     position: 'relative',
-    marginBottom: shouldShowConnector ? '20px' : '16px', // Add margin for spacing
+    marginBottom: '16px',
     zIndex: isDragging ? 100 : 1,
   };
 
@@ -548,9 +543,12 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
     }
 
     if (item.scheduled_start_date && item.scheduled_start_time) {
-      setScheduleDateTime(new Date(`${item.scheduled_start_date}T${item.scheduled_start_time}`));
+      const dateObj = new Date(`${item.scheduled_start_date}T${item.scheduled_start_time}`);
+      setScheduleDate(dateObj);
+      setScheduleTime(dayjs(dateObj).format('HH:mm'));
     } else {
-      setScheduleDateTime(null);
+      setScheduleDate(null);
+      setScheduleTime('09:00');
     }
     setIsAutoStartEnabled(!item.is_manual_start);
     setSchedulePopoverOpened(true);
@@ -567,14 +565,15 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
   const isWarning = timerState === 'warning';
   const isActive = item.is_active && !item.is_paused;
 
+  // Check if this item is linked to the previous item (for button state)
+  const isLinkedToPrevious = itemIndex > 0 && allTimers[itemIndex - 1]?.linked_timer_id === item.id;
+
   return (
     <motion.div
-      layout
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{
-        layout: { duration: 0.2, ease: [0.2, 0, 0, 1] },
         opacity: { duration: 0.15 },
         y: { duration: 0.15 }
       }}
@@ -590,12 +589,11 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
       {/* Connector Line */}
       {shouldShowConnector && (
         <>
-          <div className={classes.connectorLine} />
-          <div className={classes.connectorDot} />
+          <div className={classes.connectorLine} title="Timers are linked - they will start/stop together" />
+          <div className={classes.connectorDot} title="Timers are linked - they will start/stop together" />
         </>
       )}
 
-      <Tooltip label="Double-click to select" openDelay={1000} position="top">
         <Paper
           className={cx(classes.card, {
             [classes.cardSelected]: item.is_selected,
@@ -630,6 +628,55 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
 
             {/* Main Content */}
             <Group gap="md" style={{ flex: 1, minWidth: 0 }} align="center" wrap="nowrap">
+              {/* Duration/Time Display - Compact */}
+              <Group gap={4} className={classes.editableField}>
+                <IconClock size={14} style={{ opacity: 0.5 }} />
+                {editingField === 'duration_seconds' ? (
+                  <div
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}
+                    onBlur={(e) => {
+                      if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                        saveEdit();
+                      }
+                    }}
+                  >
+                    <NumberInput
+                      value={editMinutes}
+                      onChange={(value) => setEditMinutes(typeof value === 'number' ? value : Number(value) || 0)}
+                      onKeyDown={handleKeyPress}
+                      size="xs"
+                      min={0}
+                      max={59}
+                      w={36}
+                      styles={{ input: { padding: '0 2px', height: '20px', minHeight: '20px', fontSize: '11px', textAlign: 'center' } }}
+                      autoFocus
+                    />
+                    <Text size="xs" span>:</Text>
+                    <NumberInput
+                      value={editSeconds}
+                      onChange={(value) => setEditSeconds(typeof value === 'number' ? value : Number(value) || 0)}
+                      onKeyDown={handleKeyPress}
+                      size="xs"
+                      min={0}
+                      max={59}
+                      w={36}
+                      styles={{ input: { padding: '0 2px', height: '20px', minHeight: '20px', fontSize: '11px', textAlign: 'center' } }}
+                    />
+                  </div>
+                ) : (
+                  <Tooltip label="Click to edit duration" openDelay={500}>
+                    <Text
+                      size="sm"
+                      fw={500}
+                      onClick={() => startEditing('duration_seconds', formatDuration(item.duration_seconds))}
+                      style={{ fontVariantNumeric: 'tabular-nums' }}
+                    >
+                      {formatDuration(item.duration_seconds)}
+                    </Text>
+                  </Tooltip>
+                )}
+              </Group>
+
               <Stack gap={2} style={{ minWidth: 0 }}>
                 <Group gap="xs" wrap="nowrap">
                   {editingField === 'title' ? (
@@ -699,6 +746,24 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
                 )}
               </Stack>
 
+              {/* Large Time Display */}
+              <div style={{ textAlign: 'right', minWidth: '60px', flexShrink: 0 }}>
+                <Text
+                  className={cx(classes.timeDisplay, {
+                    [classes.timeDisplayActive]: isActive,
+                    [classes.timeDisplayWarning]: isWarning,
+                    [classes.timeDisplayCritical]: isCritical,
+                  })}
+                  size="lg"
+                  style={{ whiteSpace: 'nowrap' }}
+                >
+                  {item.current_time_seconds < 0 ? '+' : ''}{formatDuration(item.current_time_seconds)}
+                </Text>
+                {item.current_time_seconds < 0 && (
+                  <Text size="xs" c="red" fw={700} ta="right" style={{ fontSize: '9px', lineHeight: 1 }}>OVERTIME</Text>
+                )}
+              </div>
+
               {/* Schedule & AutoStart Status Indicator - Compact */}
               <Tooltip
                 label={isActive && !item.is_paused
@@ -735,125 +800,86 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
                 </Group>
               </Tooltip>
 
-              {/* Duration/Time Display - Compact */}
-              <Group gap={4} className={classes.editableField}>
-                <IconClock size={14} style={{ opacity: 0.5 }} />
-                {editingField === 'duration_seconds' ? (
-                  <div
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}
-                    onBlur={(e) => {
-                      if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                        saveEdit();
-                      }
-                    }}
-                  >
-                    <NumberInput
-                      value={editMinutes}
-                      onChange={(value) => setEditMinutes(typeof value === 'number' ? value : Number(value) || 0)}
-                      onKeyDown={handleKeyPress}
-                      size="xs"
-                      min={0}
-                      max={59}
-                      w={36}
-                      styles={{ input: { padding: '0 2px', height: '20px', minHeight: '20px', fontSize: '11px', textAlign: 'center' } }}
-                      autoFocus
-                    />
-                    <Text size="xs" span>:</Text>
-                    <NumberInput
-                      value={editSeconds}
-                      onChange={(value) => setEditSeconds(typeof value === 'number' ? value : Number(value) || 0)}
-                      onKeyDown={handleKeyPress}
-                      size="xs"
-                      min={0}
-                      max={59}
-                      w={36}
-                      styles={{ input: { padding: '0 2px', height: '20px', minHeight: '20px', fontSize: '11px', textAlign: 'center' } }}
-                    />
-                  </div>
-                ) : (
-                  <Tooltip label="Click to edit duration" openDelay={500}>
-                    <Text
-                      size="sm"
-                      fw={500}
-                      onClick={() => startEditing('duration_seconds', formatDuration(item.duration_seconds))}
-                      style={{ fontVariantNumeric: 'tabular-nums' }}
-                    >
-                      {formatDuration(item.duration_seconds)}
-                    </Text>
-                  </Tooltip>
-                )}
-              </Group>
-
               {/* Spacer to push controls to the right */}
               <div style={{ flex: 1 }} />
 
-              {/* Large Time Display */}
-              <div style={{ textAlign: 'right', minWidth: '60px', flexShrink: 0 }}>
-                <Text
-                  className={cx(classes.timeDisplay, {
-                    [classes.timeDisplayActive]: isActive,
-                    [classes.timeDisplayWarning]: isWarning,
-                    [classes.timeDisplayCritical]: isCritical,
-                  })}
-                  size="lg"
-                  style={{ whiteSpace: 'nowrap' }}
-                >
-                  {item.current_time_seconds < 0 ? '+' : ''}{formatDuration(item.current_time_seconds)}
-                </Text>
-                {item.current_time_seconds < 0 && (
-                  <Text size="xs" c="red" fw={700} ta="right" style={{ fontSize: '9px', lineHeight: 1 }}>OVERTIME</Text>
-                )}
-              </div>
-
               {/* Controls */}
-              <Group gap={2} className={classes.controls}>
-                <Tooltip label="Select Timer" openDelay={500}>
+              <Group gap="sm" justify="flex-end" className={classes.controls}>
+                {/* Select Button */}
+                {!item.is_selected && (
+                  <Tooltip label="Select Timer" openDelay={500}>
+                    <ActionIcon
+                      variant="subtle"
+                      color="gray"
+                      size="lg"
+                      onClick={(e) => { e.stopPropagation(); onSelectTimer(item.id); }}
+                    >
+                      <IconHandClick size={18} />
+                    </ActionIcon>
+                  </Tooltip>
+                )}
+
+                {/* Link Button - Only show if not the first timer */}
+                {itemIndex > 0 && (
+                  <Tooltip label={isLinkedToPrevious ? "Unlink from previous timer" : "Link to previous timer"} openDelay={500}>
+                    <ActionIcon
+                      variant={isLinkedToPrevious ? "filled" : "subtle"}
+                      color={isLinkedToPrevious ? "blue" : "gray"}
+                      size="lg"
+                      onClick={(e) => { e.stopPropagation(); onToggleLink(item); }}
+                    >
+                      <IconLink size={18} />
+                    </ActionIcon>
+                  </Tooltip>
+                )}
+
+                {/* Play/Pause Button */}
+                {!item.is_active || item.is_paused ? (
+                  <Tooltip label="Play Timer" openDelay={500}>
+                    <ActionIcon
+                      variant="light"
+                      color="teal"
+                      size="lg"
+                      onClick={(e) => { e.stopPropagation(); handlePlay(); }}
+                      disabled={item.is_finished}
+                    >
+                      <IconPlayerPlay size={18} />
+                    </ActionIcon>
+                  </Tooltip>
+                ) : (
+                  <Tooltip label="Pause Timer" openDelay={500}>
+                    <ActionIcon
+                      variant="light"
+                      color="orange"
+                      size="lg"
+                      onClick={(e) => { e.stopPropagation(); handlePause(); }}
+                    >
+                      <IconPlayerPause size={18} />
+                    </ActionIcon>
+                  </Tooltip>
+                )}
+
+                {/* Stop/Reset Button */}
+                <Tooltip label="Stop Timer" openDelay={500}>
                   <ActionIcon
-                    variant={item.is_selected ? "filled" : "subtle"}
-                    color={item.is_selected ? "blue" : "gray"}
-                    size="sm"
-                    onClick={(e) => { e.stopPropagation(); onSelectTimer(item.id); }}
+                    variant="light"
+                    color="red"
+                    size="lg"
+                    onClick={(e) => { e.stopPropagation(); handleStop(); }}
+                    disabled={item.is_stopped}
                   >
-                    <IconHandClick size={14} />
+                    <IconPlayerStop size={18} />
                   </ActionIcon>
                 </Tooltip>
 
-                {!item.is_active || item.is_paused ? (
-                  <ActionIcon
-                    variant="light"
-                    color="teal"
-                    size="sm"
-                    onClick={(e) => { e.stopPropagation(); handlePlay(); }}
-                    disabled={item.is_finished}
-                  >
-                    <IconPlayerPlay size={14} />
-                  </ActionIcon>
-                ) : (
-                  <ActionIcon
-                    variant="light"
-                    color="orange"
-                    size="sm"
-                    onClick={(e) => { e.stopPropagation(); handlePause(); }}
-                  >
-                    <IconPlayerPause size={14} />
-                  </ActionIcon>
-                )}
-
-                <ActionIcon
-                  variant="light"
-                  color="red"
-                  size="sm"
-                  onClick={(e) => { e.stopPropagation(); handleStop(); }}
-                  disabled={item.is_stopped}
-                >
-                  <IconPlayerStop size={14} />
-                </ActionIcon>
-
+                {/* Settings Menu */}
                 <Menu position="bottom-end" withArrow>
                   <Menu.Target>
-                    <ActionIcon variant="subtle" color="gray" size="sm">
-                      <IconSettings size={14} />
-                    </ActionIcon>
+                    <Tooltip label="Timer Settings" openDelay={500}>
+                      <ActionIcon variant="subtle" color="gray" size="lg">
+                        <IconSettings size={18} />
+                      </ActionIcon>
+                    </Tooltip>
                   </Menu.Target>
                   <Menu.Dropdown>
                     <Menu.Label>Timer Settings</Menu.Label>
@@ -877,19 +903,6 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
             </Group>
           </Group>
         </Paper>
-      </Tooltip>
-
-      {/* Separator for non-linked items */}
-      {
-        shouldShowSeparator && (
-          <Divider
-            my="xs"
-            variant="dashed"
-            color="gray.3"
-            style={{ opacity: 0.5 }}
-          />
-        )
-      }
 
       {/* Schedule Popover */}
       <Popover
@@ -911,14 +924,15 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
             <Stack gap="sm">
               <Group justify="space-between" align="center">
                 <Text size="sm" fw={600} c="gray.9">Schedule Auto-Start</Text>
-                {scheduleDateTime && (
+                {scheduleDate && scheduleTime && (
                   <Tooltip label="Clear Schedule">
                     <ActionIcon
                       variant="subtle"
                       color="red"
                       size="sm"
                       onClick={() => {
-                        setScheduleDateTime(null);
+                        setScheduleDate(null);
+                        setScheduleTime('09:00');
                         setIsAutoStartEnabled(false);
                       }}
                     >
@@ -928,21 +942,30 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
                 )}
               </Group>
 
-              <DateTimePicker
-                value={scheduleDateTime}
-                onChange={setScheduleDateTime}
-                placeholder="Pick date and time"
-                clearable
-                minDate={new Date()}
-                size="sm"
-                leftSection={<IconCalendar size={16} />}
-              />
+              <Stack gap="sm">
+                <DateInput
+                  label="Date"
+                  placeholder="Pick a date"
+                  value={scheduleDate}
+                  onChange={setScheduleDate}
+                  minDate={new Date()}
+                  size="sm"
+                  leftSection={<IconCalendar size={16} />}
+                />
+                <TimeInput
+                  label="Time"
+                  placeholder="Pick a time"
+                  value={scheduleTime}
+                  onChange={(e) => setScheduleTime(e.currentTarget.value)}
+                  size="sm"
+                />
+              </Stack>
 
               {/* Auto-Start Toggle */}
               <Paper
                 p="xs"
                 radius="sm"
-                bg={scheduleDateTime ? "var(--mantine-color-gray-0)" : "var(--mantine-color-gray-1)"}
+                bg={scheduleDate && scheduleTime ? "var(--mantine-color-gray-0)" : "var(--mantine-color-gray-1)"}
                 style={{ transition: 'background-color 0.2s ease' }}
               >
                 <Group justify="space-between" gap="sm">
@@ -950,7 +973,7 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
                     <ThemeIcon
                       size="sm"
                       variant="light"
-                      color={scheduleDateTime ? (isAutoStartEnabled ? "green" : "blue") : "gray"}
+                      color={scheduleDate && scheduleTime ? (isAutoStartEnabled ? "green" : "blue") : "gray"}
                     >
                       {isAutoStartEnabled ? <IconPlayerPlay size={12} /> : <IconCalendar size={12} />}
                     </ThemeIcon>
@@ -967,17 +990,17 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
                     checked={isAutoStartEnabled}
                     onChange={(e) => {
                       const newCheckedState = e.currentTarget.checked;
-                      if (newCheckedState && !scheduleDateTime) return;
+                      if (newCheckedState && !(scheduleDate && scheduleTime)) return;
                       setIsAutoStartEnabled(newCheckedState);
                     }}
-                    disabled={!scheduleDateTime}
+                    disabled={!(scheduleDate && scheduleTime)}
                     size="sm"
                     color="green"
                   />
                 </Group>
               </Paper>
 
-              {!scheduleDateTime && (
+              {!(scheduleDate && scheduleTime) && (
                 <Text size="xs" c="dimmed" ta="center" fs="italic">
                   Select a date and time to enable auto-start
                 </Text>
@@ -988,18 +1011,32 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
                 <Button
                   size="xs"
                   onClick={() => {
-                    const updates: any = {
-                      scheduled_start_date: scheduleDateTime ? dayjs(scheduleDateTime).format('YYYY-MM-DD') : null,
-                      scheduled_start_time: scheduleDateTime ? dayjs(scheduleDateTime).format('HH:mm:ss') : null,
-                      is_manual_start: scheduleDateTime ? !isAutoStartEnabled : true,
-                    };
+                    let updates: any;
+
+                    if (scheduleDate && scheduleTime) {
+                      const [hours, minutes] = scheduleTime.split(':');
+                      const combinedDate = new Date(scheduleDate);
+                      combinedDate.setHours(parseInt(hours), parseInt(minutes), 0);
+
+                      updates = {
+                        scheduled_start_date: dayjs(combinedDate).format('YYYY-MM-DD'),
+                        scheduled_start_time: dayjs(combinedDate).format('HH:mm:ss'),
+                        is_manual_start: !isAutoStartEnabled,
+                      };
+                    } else {
+                      updates = {
+                        scheduled_start_date: null,
+                        scheduled_start_time: null,
+                        is_manual_start: true,
+                      };
+                    }
 
                     onUpdateTimer(item.id, updates);
                     events?.onTimerEdit?.(item, 'scheduled_start_time', updates);
                     wsUpdateTimer(item.id, updates as any);
                     setSchedulePopoverOpened(false);
                   }}
-                  disabled={!scheduleDateTime && (item.scheduled_start_date === null)}
+                  disabled={!(scheduleDate && scheduleTime) && (item.scheduled_start_date === null)}
                 >
                   Save Schedule
                 </Button>
@@ -1029,9 +1066,7 @@ export function Timers({
   showConflictAlerts = true,
   selectedTimerId,
   displays = [],
-  onLinkStateChange,
-  onToggleLink,
-  forceExecuteLinkRef
+  onToggleLink
 }: TimersProps) {
   const { updateTimer: wsUpdateTimer } = useWebSocketContext();
   const features = useFeatureAccess();
@@ -1042,44 +1077,6 @@ export function Timers({
   const reorderLockRef = useRef<boolean>(false);
   const reorderLockTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // State for link confirmation dialog
-  const [linkConfirmModalOpened, setLinkConfirmModalOpened] = useState(false);
-  const pendingLinkActionRef = useRef<(() => void) | null>(null);
-
-  // Helper function to check if all timers are linked in sequence
-  const areAllTimersLinked = (): boolean => {
-    if (state.length <= 1) return false;
-
-    for (let i = 0; i < state.length - 1; i++) {
-      const currentTimer = state[i];
-      const nextTimer = state[i + 1];
-      if (currentTimer.linked_timer_id !== nextTimer.id) {
-        return false;
-      }
-    }
-    return true;
-  };
-
-  // Helper function to link all timers in sequence
-  const linkAllTimers = (): Timer[] => {
-    return state.map((timer, index) => ({
-      ...timer,
-      linked_timer_id: index < state.length - 1 ? state[index + 1].id : null,
-    }));
-  };
-
-  // Helper function to unlink all timers
-  const unlinkAllTimers = (): Timer[] => {
-    return state.map(timer => ({
-      ...timer,
-      linked_timer_id: null,
-    }));
-  };
-
-  // Helper function to check if any timer is running or paused
-  const getRunningOrPausedTimers = (): Timer[] => {
-    return state.filter(timer => timer.is_active || timer.is_paused);
-  };
 
   // Update state when props change (but not during reorder operations)
   useEffect(() => {
@@ -1138,19 +1135,6 @@ export function Timers({
     useSensor(KeyboardSensor)
   );
 
-  // Memoize the linked state check to prevent unnecessary re-renders
-  const allTimersLinked = useMemo(() => areAllTimersLinked(), [state]);
-
-  // Notify parent of link state changes
-  useEffect(() => {
-    onLinkStateChange?.(allTimersLinked);
-  }, [allTimersLinked, onLinkStateChange]);
-
-  // Register the toggle link callback with parent
-  useEffect(() => {
-    onToggleLink?.(() => handleToggleLinkAll());
-  }, [onToggleLink]);
-
   // Emit schedule conflicts
   useEffect(() => {
     if (overlaps.length > 0) {
@@ -1161,50 +1145,27 @@ export function Timers({
   // Note: All timer logic (countdown, state transitions, auto-start) is handled by backend
   // This component only displays current state and handles user interactions
 
-  // Execute the link action and reset timers
-  const executeLink = () => {
-    const newState = linkAllTimers();
-    handlers.setState(newState);
+  // Handle individual timer link toggle
+  const handleToggleLink = (timer: Timer) => {
+    const index = state.findIndex(t => t.id === timer.id);
+    if (index <= 0) return; // Cannot link first timer
 
-    // Emit the reorder event which will trigger room-controller's handleTimerReorder
-    // which sends the bulkUpdateTimers call with all linking info
-    events?.onTimerReorder?.(newState);
+    const previousTimer = state[index - 1];
+    const isCurrentlyLinked = previousTimer.linked_timer_id === timer.id;
 
-    // Reset all timers
-    state.forEach((timer) => {
-      events?.onTimerStop?.(timer);
-    });
-  };
+    const updates: Timer[] = [...state];
 
-  // Handle link/unlink all timers
-  const handleToggleLinkAll = () => {
-    const shouldLink = !areAllTimersLinked();
-
-    if (shouldLink) {
-      // Check if any timers are running or paused
-      const runningOrPausedTimers = getRunningOrPausedTimers();
-
-      if (runningOrPausedTimers.length > 0) {
-        // Request parent to handle the confirmation and execute the link
-        events?.onRequestLinkToggle?.(shouldLink, runningOrPausedTimers);
-      } else {
-        // No running or paused timers, proceed immediately
-        executeLink();
-      }
+    if (isCurrentlyLinked) {
+      // Unlink
+      updates[index - 1] = { ...previousTimer, linked_timer_id: null };
     } else {
-      // Unlinking - no confirmation needed
-      const newState = unlinkAllTimers();
-      handlers.setState(newState);
-      events?.onTimerReorder?.(newState);
+      // Link
+      updates[index - 1] = { ...previousTimer, linked_timer_id: timer.id };
     }
-  };
 
-  // Expose executeLink function for parent to call after confirmation
-  useEffect(() => {
-    if (forceExecuteLinkRef) {
-      forceExecuteLinkRef.current = executeLink;
-    }
-  }, [forceExecuteLinkRef, executeLink, state, handlers, events]);
+    handlers.setState(updates);
+    events?.onTimerReorder?.(updates);
+  };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -1224,36 +1185,28 @@ export function Timers({
       }));
 
       // Maintain linking state during reordering
-      // If all timers were linked, keep them linked in the new order
-      if (areAllTimersLinked()) {
-        newState = newState.map((timer, index) => ({
-          ...timer,
-          linked_timer_id: index < newState.length - 1 ? newState[index + 1].id : null,
-        }));
-      } else {
-        // If not all linked, break any invalid links
-        const timersToUpdate: Timer[] = [];
-        newState.forEach((timer, index) => {
-          if (timer.linked_timer_id) {
-            const nextTimer = newState[index + 1];
-            // If the linked timer is not the next one in the sequence, break the link
-            if (!nextTimer || nextTimer.id !== timer.linked_timer_id) {
-              timersToUpdate.push({
-                ...timer,
-                linked_timer_id: null
-              });
-            }
-          }
-        });
+      // Logic: If a timer is moved, we need to ensure links make sense.
+      // Requirement: "When timers are moved, if a linked timer goes before its source, the link should break"
+      // Interpretation with `linked_timer_id` (points to next):
+      // If A -> B (A points to B).
+      // If B moves above A (B, A). A's link to B is now invalid because B is not next.
+      // So A's `linked_timer_id` should be null.
 
-        // Apply link breaks to the new state
-        if (timersToUpdate.length > 0) {
-          newState = newState.map(timer => {
-            const updated = timersToUpdate.find(t => t.id === timer.id);
-            return updated || timer;
-          });
+      // General Rule: After reorder, for each timer, check if its `linked_timer_id` points to the timer IMMEDIATELY following it.
+      // If not, clear the link.
+
+      const cleanedState = newState.map((timer, index) => {
+        if (timer.linked_timer_id) {
+          const nextTimer = newState[index + 1];
+          // If there is no next timer, or the next timer is NOT the one we are linked to
+          if (!nextTimer || nextTimer.id !== timer.linked_timer_id) {
+            return { ...timer, linked_timer_id: null };
+          }
         }
-      }
+        return timer;
+      });
+
+      newState = cleanedState;
 
       handlers.setState(newState);
       events?.onTimerReorder?.(newState);
@@ -1396,7 +1349,7 @@ export function Timers({
                 onSelectTimer={handleSelectTimer}
                 onOpenSettings={handleOpenSettings}
                 events={events}
-                isAllTimersLinked={allTimersLinked}
+                onToggleLink={handleToggleLink}
                 itemIndex={index}
               />
             ))}
@@ -1558,48 +1511,6 @@ export function Timers({
         )}
       </Drawer>
 
-      {/* Link confirmation modal */}
-      <Modal
-        opened={linkConfirmModalOpened}
-        onClose={() => setLinkConfirmModalOpened(false)}
-        title="Link Timers - Confirm Reset"
-        centered
-      >
-        <Stack gap="md">
-          <Alert icon={<IconAlertTriangle />} color="orange" title="Running or Paused Timers Detected">
-            <Text size="sm">
-              The following timers are currently running or paused and will be reset when linked:
-            </Text>
-          </Alert>
-
-          <Stack gap="xs">
-            {getRunningOrPausedTimers().map((timer) => (
-              <Text key={timer.id} size="sm" style={{ marginLeft: '1rem' }}>
-                • {timer.title || `Timer ${timer.id}`} {timer.is_active && '(Running)'} {timer.is_paused && '(Paused)'}
-              </Text>
-            ))}
-          </Stack>
-
-          <Text size="sm">
-            Linking timers will automatically reset them to their full duration. Do you want to proceed?
-          </Text>
-
-          <Group justify="flex-end" gap="md">
-            <Button variant="light" onClick={() => setLinkConfirmModalOpened(false)}>
-              Cancel
-            </Button>
-            <Button
-              color="orange"
-              onClick={() => {
-                pendingLinkActionRef.current?.();
-                setLinkConfirmModalOpened(false);
-              }}
-            >
-              Link and Reset
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
     </div>
   );
 }

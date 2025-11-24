@@ -1,8 +1,8 @@
 // src/components/room/index.tsx
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Paper, Group, Button, Box, Modal, Tabs, Text, Stack, ActionIcon, Tooltip, Alert } from '@mantine/core';
-import { IconShare, IconArrowLeft, IconPlus, IconSparkles, IconSettings, IconClock, IconMessage, IconMaximize, IconLink, IconAlertTriangle } from '@tabler/icons-react';
+import { Paper, Group, Button, Box, Modal, Tabs, Stack, ActionIcon, Tooltip } from '@mantine/core';
+import { IconShare, IconArrowLeft, IconPlus, IconSparkles, IconSettings, IconClock, IconMessage, IconMaximize } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
 import { StickyHeader } from '@/components/sticky-header';
 import { EditableRoomName } from '@/layouts/dashboard/header/editable-room-name';
@@ -104,12 +104,6 @@ export default function RoomComponent({
   // Fullscreen preview state
   const [fullscreenOpened, { open: openFullscreen, close: closeFullscreen }] = useDisclosure(false);
 
-  // Link/Unlink timers state
-  const [allTimersLinked, setAllTimersLinked] = useState(false);
-  const [linkConfirmModalOpened, setLinkConfirmModalOpened] = useState(false);
-  const toggleLinkCallbackRef = useRef<(() => void) | null>(null);
-  const forceExecuteLinkRef = useRef<(() => void) | null>(null);
-  const pendingLinkActionRef = useRef<(() => void) | null>(null);
 
   // Handle fullscreen toggle
   const handleFullscreenToggle = async () => {
@@ -142,36 +136,10 @@ export default function RoomComponent({
     // Panel width changed
   };
 
-  // Handle link state changes from Timers component
-  const handleLinkStateChange = (isLinked: boolean) => {
-    setAllTimersLinked(isLinked);
-  };
-
-  // Handle toggle link callback registration
-  const handleToggleLinkRegistration = (callback: () => void) => {
-    toggleLinkCallbackRef.current = callback;
-  };
-
-  // Handle link button click
-  const handleLinkButtonClick = () => {
-    if (toggleLinkCallbackRef.current) {
-      // Call the Timers component's toggle function which will handle confirmation if needed
-      toggleLinkCallbackRef.current();
-    }
-  };
-
-  // Handle request to link timers with running/paused state warning
-  const handleRequestLinkToggle = (shouldLink: boolean, timersToReset: any[]) => {
-    if (shouldLink && timersToReset.length > 0) {
-      // Show confirmation dialog
-      pendingLinkActionRef.current = () => {
-        // After confirmation, directly execute the link via the exposed function
-        if (forceExecuteLinkRef.current) {
-          forceExecuteLinkRef.current();
-        }
-      };
-      setLinkConfirmModalOpened(true);
-    }
+  // Handle toggle link for individual timer
+  const handleToggleLinkRegistration = (timer: any) => {
+    // Link toggle is handled by the Timers component
+    // This callback just needs to exist for the prop interface
   };
 
   // Display Editor handlers
@@ -375,31 +343,16 @@ export default function RoomComponent({
                   </div>
                 </Tooltip>
               </Group>
-              {timers && timers.length > 1 && (
-                <Button
-                  variant="default"
-                  size="sm"
-                  leftSection={<IconLink size={16} />}
-                  onClick={handleLinkButtonClick}
-                >
-                  {allTimersLinked ? "Unlink All Timers" : "Link All Timers"}
-                </Button>
-              )}
             </Group>
           )}
 
           <Box style={{ flex: 1, overflow: 'auto', minHeight: 0, padding: '3px' }}>
             <Timers
               timers={timers}
-              events={{
-                ...timerEvents,
-                onRequestLinkToggle: handleRequestLinkToggle
-              }}
+              events={timerEvents}
               selectedTimerId={selectedTimerId}
               displays={displays}
-              onLinkStateChange={handleLinkStateChange}
               onToggleLink={handleToggleLinkRegistration}
-              forceExecuteLinkRef={forceExecuteLinkRef}
             />
           </Box>
         </Tabs.Panel>
@@ -576,49 +529,6 @@ export default function RoomComponent({
         )}
       </Modal>
 
-      {/* Link confirmation modal */}
-      <Modal
-        opened={linkConfirmModalOpened}
-        onClose={() => setLinkConfirmModalOpened(false)}
-        title="Link Timers - Confirm Reset"
-        centered
-      >
-        <Stack gap="md">
-          <Alert icon={<IconAlertTriangle />} color="orange" title="Running or Paused Timers Detected">
-            <Text size="sm">
-              The following timers are currently running or paused and will be reset when linked:
-            </Text>
-          </Alert>
-
-          <Stack gap="xs">
-            {/* Get running/paused timers from current timers */}
-            {timers?.filter(timer => timer.is_active || timer.is_paused).map((timer) => (
-              <Text key={timer.id} size="sm" style={{ marginLeft: '1rem' }}>
-                • {timer.title || `Timer ${timer.id}`} {timer.is_active && '(Running)'} {timer.is_paused && '(Paused)'}
-              </Text>
-            ))}
-          </Stack>
-
-          <Text size="sm">
-            Linking timers will automatically reset them to their full duration. Do you want to proceed?
-          </Text>
-
-          <Group justify="flex-end" gap="md">
-            <Button variant="light" onClick={() => setLinkConfirmModalOpened(false)}>
-              Cancel
-            </Button>
-            <Button
-              color="orange"
-              onClick={() => {
-                pendingLinkActionRef.current?.();
-                setLinkConfirmModalOpened(false);
-              }}
-            >
-              Link and Reset
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
     </Box>
   );
 }
