@@ -391,10 +391,22 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
     setIsBulkUpdatePending(isUpdating);
   }, [wsContext.pendingOperations, item.id, wsContext]);
 
-  // Reset dismissal when schedule changes
+  // Reset dismissal and sync popover state when schedule changes
   useEffect(() => {
     setScheduleWarningDismissed(false);
-  }, [item.scheduled_start_date, item.scheduled_start_time]);
+    // Also sync the popover state if it's open to reflect current item values
+    if (schedulePopoverOpened) {
+      if (item.scheduled_start_date && item.scheduled_start_time) {
+        const dateObj = new Date(`${item.scheduled_start_date}T${item.scheduled_start_time}`);
+        setScheduleDate(dateObj);
+        setScheduleTime(dayjs(dateObj).format('HH:mm'));
+      } else {
+        setScheduleDate(null);
+        setScheduleTime('09:00');
+      }
+      setIsAutoStartEnabled(!item.is_manual_start);
+    }
+  }, [item.scheduled_start_date, item.scheduled_start_time, schedulePopoverOpened]);
 
   // Update auto-start state when item changes
   useEffect(() => {
@@ -911,7 +923,15 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
         withArrow
         shadow="md"
         opened={schedulePopoverOpened}
-        onChange={setSchedulePopoverOpened}
+        onChange={(opened) => {
+          setSchedulePopoverOpened(opened);
+          // Reset popover state when closing
+          if (!opened) {
+            setScheduleDate(null);
+            setScheduleTime('09:00');
+            setIsAutoStartEnabled(false);
+          }
+        }}
         closeOnClickOutside={false}
         closeOnEscape={true}
         trapFocus

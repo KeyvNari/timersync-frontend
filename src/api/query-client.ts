@@ -16,7 +16,7 @@ export const queryClient = new QueryClient({
       retry: false,
 
       // Keep previous data while refetching to prevent UI flashing
-      keepPreviousData: true,
+      placeholderData: (previousData: unknown) => previousData,
     },
     mutations: {
       retry: false,
