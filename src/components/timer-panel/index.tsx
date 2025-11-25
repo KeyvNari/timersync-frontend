@@ -483,13 +483,11 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
           const updates = { [editingField]: totalSeconds };
           onUpdateTimer(item.id, updates);
           events?.onTimerEdit?.(item, editingField, totalSeconds);
-          wsUpdateTimer(item.id, updates as any);
         }
       } else if (editValue !== '') {
         const updates = { [editingField]: editValue };
         onUpdateTimer(item.id, updates);
         events?.onTimerEdit?.(item, editingField, editValue);
-        wsUpdateTimer(item.id, updates as any);
       }
     }
     setEditingField(null);
@@ -544,7 +542,6 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
     const updates = { is_manual_start: newValue };
     onUpdateTimer(item.id, updates);
     events?.onTimerEdit?.(item, 'is_manual_start', newValue);
-    wsUpdateTimer(item.id, updates as any);
   };
 
   // Open schedule popover with current value
@@ -1053,7 +1050,6 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
 
                     onUpdateTimer(item.id, updates);
                     events?.onTimerEdit?.(item, 'scheduled_start_time', updates);
-                    wsUpdateTimer(item.id, updates as any);
                     setSchedulePopoverOpened(false);
                   }}
                   disabled={!(scheduleDate && scheduleTime) && (item.scheduled_start_date === null)}
@@ -1340,7 +1336,6 @@ export function Timers({
 
       handleUpdateTimer(editingTimer.id, transformedValues as Partial<Timer>);
       events?.onTimerEdit?.(editingTimer, 'advanced_settings', transformedValues);
-      wsUpdateTimer(editingTimer.id, transformedValues as any);
     }
     close();
   };
