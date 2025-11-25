@@ -1049,7 +1049,12 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
                     }
 
                     onUpdateTimer(item.id, updates);
-                    events?.onTimerEdit?.(item, 'scheduled_start_time', updates);
+                    // Call parent with flattened updates - multiple fields are being updated
+                    if (events?.onTimerEdit) {
+                      Object.entries(updates).forEach(([field, value]) => {
+                        events.onTimerEdit?.(item, field, value);
+                      });
+                    }
                     setSchedulePopoverOpened(false);
                   }}
                   disabled={!(scheduleDate && scheduleTime) && (item.scheduled_start_date === null)}
@@ -1335,7 +1340,12 @@ export function Timers({
       };
 
       handleUpdateTimer(editingTimer.id, transformedValues as Partial<Timer>);
-      events?.onTimerEdit?.(editingTimer, 'advanced_settings', transformedValues);
+      // Call parent with flattened updates - multiple fields are being updated
+      if (events?.onTimerEdit) {
+        Object.entries(transformedValues).forEach(([field, value]) => {
+          events.onTimerEdit?.(editingTimer, field, value);
+        });
+      }
     }
     close();
   };
