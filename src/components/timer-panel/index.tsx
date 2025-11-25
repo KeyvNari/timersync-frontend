@@ -383,6 +383,21 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
   const [scheduleTime, setScheduleTime] = useState<string>('09:00');
   const [isAutoStartEnabled, setIsAutoStartEnabled] = useState(!item.is_manual_start);
 
+  // State for start mode selection
+  const [startMode, setStartMode] = useState<'manual' | 'scheduled' | 'linked'>('manual');
+  const [linkedScheduleEnabled, setLinkedScheduleEnabled] = useState(false);
+
+  // Helper function to determine current start mode
+  const deriveStartMode = (): 'manual' | 'scheduled' | 'linked' => {
+    if (item.linked_timer_id && allTimers[itemIndex - 1]?.id === item.linked_timer_id) {
+      return 'linked';
+    }
+    if (item.scheduled_start_date && item.scheduled_start_time && !item.is_manual_start) {
+      return 'scheduled';
+    }
+    return 'manual';
+  };
+
   // Track bulk update operations to disable hover animations during linking
   const [isBulkUpdatePending, setIsBulkUpdatePending] = useState(false);
   const wsContext = useWebSocketContext();
@@ -551,15 +566,26 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
       return;
     }
 
-    if (item.scheduled_start_date && item.scheduled_start_time) {
+    // Determine current mode and sync state
+    const currentMode = deriveStartMode();
+    setStartMode(currentMode);
+    setLinkedScheduleEnabled(false);
+
+    if (currentMode === 'linked') {
+      // Don't show date/time for linked mode
+      setScheduleDate(null);
+      setScheduleTime('09:00');
+    } else if (currentMode === 'scheduled') {
+      // Show existing date/time
       const dateObj = new Date(`${item.scheduled_start_date}T${item.scheduled_start_time}`);
       setScheduleDate(dateObj);
       setScheduleTime(dayjs(dateObj).format('HH:mm'));
     } else {
+      // Manual mode - default values
       setScheduleDate(null);
       setScheduleTime('09:00');
     }
-    setIsAutoStartEnabled(!item.is_manual_start);
+
     setSchedulePopoverOpened(true);
   };
 
@@ -773,40 +799,30 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
                 )}
               </div>
 
-              {/* Schedule & AutoStart Status Indicator - Compact */}
+              {/* Start Mode Display - Minimal Text */}
               <Tooltip
                 label={isActive && !item.is_paused
-                  ? "Cannot edit schedule while timer is running - pause or stop the timer first"
-                  : (item.scheduled_start_date && item.scheduled_start_time
-                    ? `${!item.is_manual_start ? 'Auto-start at' : 'Scheduled for'} ${dayjs(`${item.scheduled_start_date}T${item.scheduled_start_time}`).format('MMM D, HH:mm')} - Click to edit`
-                    : "Click to add a schedule")
-                }
+                  ? "Cannot edit start mode while timer is running - pause or stop the timer first"
+                  : "Click to edit start mode"}
                 openDelay={500}
               >
-                <Group gap={4} style={{
-                  padding: '2px 8px',
-                  borderRadius: '4px',
-                  backgroundColor: isActive && !item.is_paused
-                    ? 'var(--mantine-color-gray-1)'
-                    : (item.scheduled_start_date && item.scheduled_start_time
-                      ? 'transparent'
-                      : 'var(--mantine-color-gray-0)'),
-                  border: item.scheduled_start_date && item.scheduled_start_time
-                    ? `1px solid ${!item.is_manual_start ? 'var(--mantine-color-green-3)' : 'var(--mantine-color-blue-3)'}`
-                    : '1px solid var(--mantine-color-gray-3)',
-                  cursor: isActive && !item.is_paused ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-                  className={classes.scheduleBadge}
-                  onClick={handleScheduleClick}>
-                  <IconCalendar size={14} color={isActive && !item.is_paused ? "var(--mantine-color-gray-5)" : (item.scheduled_start_date && item.scheduled_start_time ? (!item.is_manual_start ? "var(--mantine-color-green-6)" : "var(--mantine-color-blue-6)") : "var(--mantine-color-gray-6)")} />
-                  <Text size="xs" c={isActive && !item.is_paused ? "var(--mantine-color-gray-6)" : (item.scheduled_start_date && item.scheduled_start_time ? (!item.is_manual_start ? "var(--mantine-color-green-7)" : "var(--mantine-color-blue-7)") : "var(--mantine-color-gray-7)")} fw={500} style={{ fontSize: '11px' }}>
-                    {item.scheduled_start_date && item.scheduled_start_time
-                      ? dayjs(`${item.scheduled_start_date}T${item.scheduled_start_time}`).format('HH:mm')
-                      : "Schedule"
-                    }
-                  </Text>
-                </Group>
+                <Text
+                  size="sm"
+                  c={isActive && !item.is_paused ? "var(--mantine-color-gray-5)" : "var(--mantine-color-gray-7)"}
+                  style={{
+                    cursor: isActive && !item.is_paused ? 'not-allowed' : 'pointer',
+                    transition: 'color 0.2s ease'
+                  }}
+                  onClick={isActive && !item.is_paused ? undefined : handleScheduleClick}
+                >
+                  {deriveStartMode() === 'linked'
+                    ? 'Linked to previous'
+                    : (item.scheduled_start_date && item.scheduled_start_time && !item.is_manual_start
+                      ? `${dayjs(`${item.scheduled_start_date}T${item.scheduled_start_time}`).format('MMM D, HH:mm')} • Auto-start`
+                      : 'Set schedule...'
+                    )
+                  }
+                </Text>
               </Tooltip>
 
               {/* Spacer to push controls to the right */}
@@ -824,20 +840,6 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
                       onClick={(e) => { e.stopPropagation(); onSelectTimer(item.id); }}
                     >
                       <IconHandClick size={18} />
-                    </ActionIcon>
-                  </Tooltip>
-                )}
-
-                {/* Link Button - Only show if not the first timer */}
-                {itemIndex > 0 && (
-                  <Tooltip label={isLinkedToPrevious ? "Unlink from previous timer" : "Link to previous timer"} openDelay={500}>
-                    <ActionIcon
-                      variant={isLinkedToPrevious ? "filled" : "subtle"}
-                      color={isLinkedToPrevious ? "blue" : "gray"}
-                      size="lg"
-                      onClick={(e) => { e.stopPropagation(); onToggleLink(item); }}
-                    >
-                      <IconLink size={18} />
                     </ActionIcon>
                   </Tooltip>
                 )}
@@ -913,9 +915,9 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
           </Group>
         </Paper>
 
-      {/* Schedule Popover */}
+      {/* Start Mode Popover */}
       <Popover
-        width={320}
+        width={340}
         position="bottom"
         withArrow
         shadow="md"
@@ -926,7 +928,7 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
           if (!opened) {
             setScheduleDate(null);
             setScheduleTime('09:00');
-            setIsAutoStartEnabled(false);
+            setLinkedScheduleEnabled(false);
           }
         }}
         closeOnClickOutside={false}
@@ -938,99 +940,106 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
         </Popover.Target>
         <Popover.Dropdown p={0} style={{ overflow: 'hidden' }}>
           <Paper p="sm" style={{ width: '100%' }}>
-            <Stack gap="sm">
-              <Group justify="space-between" align="center">
-                <Text size="sm" fw={600} c="gray.9">Schedule Auto-Start</Text>
-                {scheduleDate && scheduleTime && (
-                  <Tooltip label="Clear Schedule">
-                    <ActionIcon
-                      variant="subtle"
-                      color="red"
-                      size="sm"
-                      onClick={() => {
-                        setScheduleDate(null);
-                        setScheduleTime('09:00');
-                        setIsAutoStartEnabled(false);
-                      }}
-                    >
-                      <IconTrash size={14} />
-                    </ActionIcon>
-                  </Tooltip>
-                )}
-              </Group>
-
-              <Stack gap="sm">
-                <DateInput
-                  label="Date"
-                  placeholder="Pick a date"
-                  value={scheduleDate}
-                  onChange={setScheduleDate}
-                  minDate={new Date()}
+            <Stack gap="md">
+              <div>
+                <Text size="sm" fw={600} c="gray.9" mb="xs">Start Mode</Text>
+                <Select
+                  data={[
+                    { value: 'manual', label: 'Manual Start' },
+                    { value: 'scheduled', label: 'Scheduled Auto-Start' },
+                    ...(itemIndex > 0 ? [{ value: 'linked', label: 'Linked to Previous' }] : []),
+                  ]}
+                  value={startMode}
+                  onChange={(value) => {
+                    setStartMode(value as 'manual' | 'scheduled' | 'linked');
+                    // Reset fields when switching modes
+                    setScheduleDate(null);
+                    setScheduleTime('09:00');
+                    setLinkedScheduleEnabled(false);
+                  }}
                   size="sm"
-                  leftSection={<IconCalendar size={16} />}
+                  placeholder="Select mode"
                 />
-                <TimeInput
-                  label="Time"
-                  placeholder="Pick a time"
-                  value={scheduleTime}
-                  onChange={(e) => setScheduleTime(e.currentTarget.value)}
-                  size="sm"
-                />
-              </Stack>
+              </div>
 
-              {/* Auto-Start Toggle */}
-              <Paper
-                p="xs"
-                radius="sm"
-                bg={scheduleDate && scheduleTime ? "var(--mantine-color-gray-0)" : "var(--mantine-color-gray-1)"}
-                style={{ transition: 'background-color 0.2s ease' }}
-              >
-                <Group justify="space-between" gap="sm">
-                  <Group gap="xs">
-                    <ThemeIcon
-                      size="sm"
-                      variant="light"
-                      color={scheduleDate && scheduleTime ? (isAutoStartEnabled ? "green" : "blue") : "gray"}
-                    >
-                      {isAutoStartEnabled ? <IconPlayerPlay size={12} /> : <IconCalendar size={12} />}
-                    </ThemeIcon>
-                    <div>
-                      <Text size="sm" fw={500} c="gray.9">Auto-Start</Text>
-                      <Text size="xs" c="dimmed" style={{ lineHeight: 1.2 }}>
-                        {isAutoStartEnabled
-                          ? "Timer will start automatically"
-                          : "Timer waits for manual start"}
-                      </Text>
-                    </div>
-                  </Group>
-                  <Switch
-                    checked={isAutoStartEnabled}
-                    onChange={(e) => {
-                      const newCheckedState = e.currentTarget.checked;
-                      if (newCheckedState && !(scheduleDate && scheduleTime)) return;
-                      setIsAutoStartEnabled(newCheckedState);
-                    }}
-                    disabled={!(scheduleDate && scheduleTime)}
-                    size="sm"
-                    color="green"
-                  />
-                </Group>
-              </Paper>
-
-              {!(scheduleDate && scheduleTime) && (
-                <Text size="xs" c="dimmed" ta="center" fs="italic">
-                  Select a date and time to enable auto-start
-                </Text>
+              {/* Manual Start - No additional fields */}
+              {startMode === 'manual' && (
+                <Text size="sm" c="dimmed">Timer waits for manual start button</Text>
               )}
 
-              <Group justify="flex-end" mt="xs">
+              {/* Scheduled Auto-Start - Date and Time fields */}
+              {startMode === 'scheduled' && (
+                <Stack gap="sm">
+                  <DateInput
+                    label="Date"
+                    placeholder="Pick a date"
+                    value={scheduleDate}
+                    onChange={setScheduleDate}
+                    minDate={new Date()}
+                    size="sm"
+                    leftSection={<IconCalendar size={16} />}
+                  />
+                  <TimeInput
+                    label="Time"
+                    placeholder="Pick a time"
+                    value={scheduleTime}
+                    onChange={(e) => setScheduleTime(e.currentTarget.value)}
+                    size="sm"
+                  />
+                </Stack>
+              )}
+
+              {/* Linked to Previous - Optional schedule */}
+              {startMode === 'linked' && (
+                <Stack gap="sm">
+                  <Text size="sm" c="dimmed">Timer starts when previous timer completes</Text>
+                  <Checkbox
+                    label="Also set a schedule (optional)"
+                    checked={linkedScheduleEnabled}
+                    onChange={(e) => setLinkedScheduleEnabled(e.currentTarget.checked)}
+                    size="sm"
+                  />
+                  {linkedScheduleEnabled && (
+                    <Stack gap="sm">
+                      <DateInput
+                        label="Date"
+                        placeholder="Pick a date"
+                        value={scheduleDate}
+                        onChange={setScheduleDate}
+                        minDate={new Date()}
+                        size="sm"
+                        leftSection={<IconCalendar size={16} />}
+                      />
+                      <TimeInput
+                        label="Time"
+                        placeholder="Pick a time"
+                        value={scheduleTime}
+                        onChange={(e) => setScheduleTime(e.currentTarget.value)}
+                        size="sm"
+                      />
+                    </Stack>
+                  )}
+                </Stack>
+              )}
+
+              <Group justify="flex-end" mt="md">
                 <Button variant="subtle" size="xs" color="gray" onClick={() => setSchedulePopoverOpened(false)}>Cancel</Button>
                 <Button
                   size="xs"
                   onClick={() => {
-                    let updates: any;
+                    let updates: any = {};
 
-                    if (scheduleDate && scheduleTime) {
+                    if (startMode === 'manual') {
+                      // Clear schedule, set manual start
+                      updates = {
+                        scheduled_start_date: null,
+                        scheduled_start_time: null,
+                        is_manual_start: true,
+                      };
+                    } else if (startMode === 'scheduled') {
+                      // Require date and time for scheduled mode
+                      if (!scheduleDate || !scheduleTime) return;
+
                       const [hours, minutes] = scheduleTime.split(':');
                       const combinedDate = new Date(scheduleDate);
                       combinedDate.setHours(parseInt(hours), parseInt(minutes), 0);
@@ -1038,14 +1047,35 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
                       updates = {
                         scheduled_start_date: dayjs(combinedDate).format('YYYY-MM-DD'),
                         scheduled_start_time: dayjs(combinedDate).format('HH:mm:ss'),
-                        is_manual_start: !isAutoStartEnabled,
+                        is_manual_start: false,
                       };
-                    } else {
-                      updates = {
-                        scheduled_start_date: null,
-                        scheduled_start_time: null,
-                        is_manual_start: true,
-                      };
+                    } else if (startMode === 'linked') {
+                      // Link to previous timer, clear schedule (unless user opted to add one)
+                      const isCurrentlyLinked = itemIndex > 0 && allTimers[itemIndex - 1]?.linked_timer_id === item.id;
+
+                      if (!isCurrentlyLinked) {
+                        // Need to call onToggleLink to establish link
+                        onToggleLink(item);
+                      }
+
+                      if (linkedScheduleEnabled && scheduleDate && scheduleTime) {
+                        const [hours, minutes] = scheduleTime.split(':');
+                        const combinedDate = new Date(scheduleDate);
+                        combinedDate.setHours(parseInt(hours), parseInt(minutes), 0);
+
+                        updates = {
+                          scheduled_start_date: dayjs(combinedDate).format('YYYY-MM-DD'),
+                          scheduled_start_time: dayjs(combinedDate).format('HH:mm:ss'),
+                          is_manual_start: true, // Linked mode uses link, not auto-start
+                        };
+                      } else {
+                        // Linked mode without schedule
+                        updates = {
+                          scheduled_start_date: null,
+                          scheduled_start_time: null,
+                          is_manual_start: true,
+                        };
+                      }
                     }
 
                     onUpdateTimer(item.id, updates);
@@ -1057,9 +1087,9 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
                     }
                     setSchedulePopoverOpened(false);
                   }}
-                  disabled={!(scheduleDate && scheduleTime) && (item.scheduled_start_date === null)}
+                  disabled={startMode === 'scheduled' && (!scheduleDate || !scheduleTime)}
                 >
-                  Save Schedule
+                  Save
                 </Button>
               </Group>
             </Stack>
