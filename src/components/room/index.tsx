@@ -195,7 +195,7 @@ export default function RoomComponent({
   };
 
   // Get timer to display with memoized selection and conversion
-  const { displayTimer, convertedTimer, isAnyTimerRunning } = useDisplayTimer(timers, selectedTimerId);
+  const { displayTimer, convertedTimer } = useDisplayTimer(timers, selectedTimerId);
 
   // Get matching display config
   const matchedDisplay = useMemo(
@@ -228,19 +228,14 @@ export default function RoomComponent({
 
         <Group gap="sm">
           {showActionButtons && (
-            <Tooltip label="Cannot change display settings while a timer is running" disabled={!isAnyTimerRunning} position="top" withArrow>
-              <div>
-                <Button
-                  variant="default"
-                  size="sm"
-                  leftSection={<IconSettings size={16} />}
-                  onClick={handleOpenDisplayEditor}
-                  disabled={isAnyTimerRunning}
-                >
-                  Display Settings
-                </Button>
-              </div>
-            </Tooltip>
+            <Button
+              variant="default"
+              size="sm"
+              leftSection={<IconSettings size={16} />}
+              onClick={handleOpenDisplayEditor}
+            >
+              Display Settings
+            </Button>
           )}
           {showShareButton && (
             <Button
