@@ -165,6 +165,14 @@ export function EditableRoomName({
     }
   }, [currentTime, timeZone]);
 
+  const previewRoomTime = useMemo(() => {
+    try {
+      return currentTime.tz(modalTimeZone);
+    } catch (e) {
+      return currentTime;
+    }
+  }, [currentTime, modalTimeZone]);
+
   const localTime = currentTime;
 
   const formatTime = (time: dayjs.Dayjs) => time.format('HH:mm');
@@ -288,13 +296,13 @@ export function EditableRoomName({
               <Stack gap="xs" align="center">
                 <Badge variant="dot" size="lg" color="blue">Room Time</Badge>
                 <Text size="2.5rem" fw={800} lh={1.1} variant="gradient" gradient={{ from: 'blue', to: 'cyan', deg: 90 }}>
-                  {formatTime(roomTime)}
+                  {formatTime(previewRoomTime)}
                 </Text>
                 <Text size="sm" c="dimmed" ta="center" maw="100%">
-                  {formatDate(roomTime)}
+                  {formatDate(previewRoomTime)}
                 </Text>
                 <Text size="xs" c="dimmed" ta="center" maw="100%" style={{ wordBreak: 'break-word' }}>
-                  {timeZone}
+                  {modalTimeZone}
                 </Text>
               </Stack>
 

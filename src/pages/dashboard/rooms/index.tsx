@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Modal, TextInput, Stack, Group, Button, Select, Text, Textarea, Switch } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { modals } from '@mantine/modals';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
 import { Page } from '@/components/page';
 import { RoomsComponent } from '@/components/rooms';
 import { CurrentUser } from '@/layouts/dashboard/header/current-user';
@@ -13,6 +16,9 @@ import { paths } from '@/routes/paths';
 import { useGetRooms, useCreateRoom, useUpdateRoom, useDeleteRoom, useFeatureAccess } from '@/hooks';
 import { Room } from '@/api/entities/rooms';
 
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
 export default function RoomsPage() {
   const navigate = useNavigate();
   const { data: roomsResponse, isLoading, error } = useGetRooms();
@@ -21,11 +27,14 @@ export default function RoomsPage() {
   const { mutate: deleteRoom, isPending: isDeleting } = useDeleteRoom();
   const features = useFeatureAccess();
 
+  // Get user's local timezone
+  const userTimeZone = useMemo(() => dayjs.tz.guess(), []);
+
   const [createOpened, { open: openCreate, close: closeCreate }] = useDisclosure(false);
   const [editOpened, { open: openEdit, close: closeEdit }] = useDisclosure(false);
 
   const [roomName, setRoomName] = useState('');
-  const [timeZone, setTimeZone] = useState('Europe/Berlin');
+  const [timeZone, setTimeZone] = useState(userTimeZone);
 
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [editName, setEditName] = useState('');
@@ -38,6 +47,7 @@ export default function RoomsPage() {
   };
 
   const handleCreateRoom = () => {
+    setTimeZone(userTimeZone);
     openCreate();
   };
 
@@ -77,7 +87,7 @@ export default function RoomsPage() {
             color: 'green',
           });
           setRoomName('');
-          setTimeZone('Europe/Berlin');
+          setTimeZone(userTimeZone);
           closeCreate();
         },
         onError: (error) => {
@@ -93,7 +103,7 @@ export default function RoomsPage() {
 
   const handleCloseModal = () => {
     setRoomName('');
-    setTimeZone('Europe/Berlin');
+    setTimeZone(userTimeZone);
     closeCreate();
   };
 
@@ -197,8 +207,8 @@ export default function RoomsPage() {
 
   // Rooms data loaded
 
-  // Common time zones
-  const timeZones = [
+  // Common time zones with user's local timezone highlighted
+  const commonTimeZones = [
     { value: 'UTC', label: 'UTC' },
     { value: 'America/New_York', label: 'America/New York (EST/EDT)' },
     { value: 'America/Chicago', label: 'America/Chicago (CST/CDT)' },
@@ -216,6 +226,20 @@ export default function RoomsPage() {
     { value: 'Australia/Sydney', label: 'Australia/Sydney (AEST/AEDT)' },
     { value: 'Pacific/Auckland', label: 'Pacific/Auckland (NZST)' },
   ];
+
+  // Add user's timezone to the list if not already present
+  const timeZones = useMemo(() => {
+    const userTzExists = commonTimeZones.some((tz) => tz.value === userTimeZone);
+    if (userTzExists) {
+      return commonTimeZones.map((tz) =>
+        tz.value === userTimeZone ? { ...tz, label: `${tz.label} (Your timezone)` } : tz
+      );
+    }
+    return [
+      { value: userTimeZone, label: `${userTimeZone} (Your timezone)` },
+      ...commonTimeZones,
+    ];
+  }, [userTimeZone]);
 
   // Check if room creation is disabled
   const currentRoomCount = roomsResponse?.data?.length || 0;
