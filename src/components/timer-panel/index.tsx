@@ -475,11 +475,6 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
 
   // Inline editing functions
   const startEditing = (field: string, currentValue: string) => {
-    // Don't allow editing if timer is running
-    if (item.is_active && !item.is_paused) {
-      return;
-    }
-
     setEditingField(field);
     if (field === 'duration_seconds') {
       const { minutes, seconds } = secondsToMinutesAndSeconds(item.duration_seconds);
@@ -561,11 +556,6 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
 
   // Open schedule popover with current value
   const handleScheduleClick = () => {
-    // Don't allow editing if timer is running
-    if (item.is_active && !item.is_paused) {
-      return;
-    }
-
     // Determine current mode and sync state
     const currentMode = deriveStartMode();
     setStartMode(currentMode);
@@ -801,19 +791,17 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
 
               {/* Start Mode Display - Minimal Text */}
               <Tooltip
-                label={isActive && !item.is_paused
-                  ? "Cannot edit start mode while timer is running - pause or stop the timer first"
-                  : "Click to edit start mode"}
+                label="Click to edit start mode"
                 openDelay={500}
               >
                 <Text
                   size="sm"
-                  c={isActive && !item.is_paused ? "var(--mantine-color-gray-5)" : "var(--mantine-color-gray-7)"}
+                  c="var(--mantine-color-gray-7)"
                   style={{
-                    cursor: isActive && !item.is_paused ? 'not-allowed' : 'pointer',
+                    cursor: 'pointer',
                     transition: 'color 0.2s ease'
                   }}
-                  onClick={isActive && !item.is_paused ? undefined : handleScheduleClick}
+                  onClick={handleScheduleClick}
                 >
                   {deriveStartMode() === 'linked'
                     ? 'Linked to previous'
