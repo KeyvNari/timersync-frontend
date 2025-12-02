@@ -69,6 +69,8 @@ export function ResizableDashboard({
   }, []);
 
   useEffect(() => {
+    // Only attach listeners when these functions can change
+    // Memoized versions ensure stable references
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
 

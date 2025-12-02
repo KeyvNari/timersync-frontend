@@ -1,5 +1,5 @@
 // src/components/room/index.tsx
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Paper, Group, Button, Box, Modal, Tabs, Stack, ActionIcon, Tooltip } from '@mantine/core';
 import { IconShare, IconArrowLeft, IconPlus, IconSparkles, IconSettings, IconClock, IconMessage, IconMaximize } from '@tabler/icons-react';
@@ -16,6 +16,7 @@ import { Messages, Message } from '@/components/messages';
 import TimerAdjustmentControls from '@/components/timer-adjustment-controls';
 import { useWebSocketContext } from '@/providers/websocket-provider';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
+import { useDisplayTimer } from '@/hooks/useDisplayTimer';
 import classes from './room.module.css';
 
 export interface RoomComponentProps {
@@ -104,21 +105,21 @@ export default function RoomComponent({
   // Fullscreen preview state
   const [fullscreenOpened, { open: openFullscreen, close: closeFullscreen }] = useDisclosure(false);
 
-
-  // Handle fullscreen toggle
-  const handleFullscreenToggle = async () => {
+  // Handle fullscreen toggle with requestAnimationFrame for proper timing
+  const handleFullscreenToggle = useCallback(async () => {
     if (!document.fullscreenElement) {
-      // Enter fullscreen
       openFullscreen();
-      // Wait for modal to render, then request fullscreen
-      setTimeout(async () => {
+      // Request animation frame ensures modal is rendered before requesting fullscreen
+      requestAnimationFrame(() => {
         const modalElement = document.querySelector('[data-fullscreen-modal]') as HTMLElement;
-        if (modalElement) {
-          await modalElement.requestFullscreen();
+        if (modalElement?.requestFullscreen) {
+          modalElement.requestFullscreen().catch(() => {
+            // Fullscreen request failed, keep modal open
+          });
         }
-      }, 100);
+      });
     }
-  };
+  }, [openFullscreen]);
 
   // Listen for fullscreen changes to close modal when exiting fullscreen
   useEffect(() => {
@@ -132,15 +133,6 @@ export default function RoomComponent({
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, [fullscreenOpened, closeFullscreen]);
 
-  const handleLeftWidthChange = (width: number) => {
-    // Panel width changed
-  };
-
-  // Handle toggle link for individual timer
-  const handleToggleLinkRegistration = (timer: any) => {
-    // Link toggle is handled by the Timers component
-    // This callback just needs to exist for the prop interface
-  };
 
   // Display Editor handlers
   const handleOpenDisplayEditor = () => {
@@ -202,43 +194,14 @@ export default function RoomComponent({
     closeEditor();
   };
 
-  // Get timer to display
-  const selectedTimer = selectedTimerId ? timers?.find((timer) => timer.id === selectedTimerId) : undefined;
-  const activeTimer = timers?.find((timer) => timer.is_active);
-  const displayTimer = selectedTimer || activeTimer || timers?.[0];
-
-  // Check if any timer is currently running (not paused, finished, or stopped)
-  const isAnyTimerRunning = timers?.some((timer) => timer.is_active && !timer.is_paused) || false;
+  // Get timer to display with memoized selection and conversion
+  const { displayTimer, convertedTimer, isAnyTimerRunning } = useDisplayTimer(timers, selectedTimerId);
 
   // Get matching display config
-  const matchedDisplay = displayTimer
-    ? displays.find((d) => d.id === displayTimer.display_id)
-    : undefined;
-
-  // Convert timer data for TimerDisplay component
-  const convertedTimer = useMemo(() => {
-    return displayTimer
-      ? {
-        title: displayTimer.title,
-        speaker: displayTimer.speaker,
-        notes: displayTimer.notes,
-        display_id: displayTimer.display_id,
-        show_title: displayTimer.show_title,
-        show_speaker: displayTimer.show_speaker,
-        show_notes: displayTimer.show_notes,
-        timer_type: displayTimer.timer_type || 'countdown',
-        duration_seconds: displayTimer.duration_seconds,
-        is_active: displayTimer.is_active || false,
-        is_paused: displayTimer.is_paused || false,
-        is_finished: displayTimer.is_finished || false,
-        is_stopped: displayTimer.is_stopped || false,
-        current_time_seconds: displayTimer.current_time_seconds,
-        warning_time: displayTimer.warning_time,
-        critical_time: displayTimer.critical_time,
-        timer_format: displayTimer.timer_format,
-      }
-      : undefined;
-  }, [displayTimer]);
+  const matchedDisplay = useMemo(
+    () => displayTimer ? displays.find((d) => d.id === displayTimer.display_id) : undefined,
+    [displayTimer, displays]
+  );
 
   // Header component
   const header = showHeader ? (
@@ -294,8 +257,13 @@ export default function RoomComponent({
     </StickyHeader>
   ) : null;
 
+  // Memoized callback for timer adjustment
+  const handleAdjustTime = useCallback((timerId: number, newTimeSeconds: number) => {
+    adjustTimer(timerId, newTimeSeconds);
+  }, [adjustTimer]);
+
   // Left Panel: Timer List with Action Buttons and Messages Tab
-  const leftPanel = (
+  const leftPanel = useMemo(() => (
     <Paper
       withBorder
       p="md"
@@ -352,7 +320,6 @@ export default function RoomComponent({
               events={timerEvents}
               selectedTimerId={selectedTimerId}
               displays={displays}
-              onToggleLink={handleToggleLinkRegistration}
             />
           </Box>
         </Tabs.Panel>
@@ -364,15 +331,10 @@ export default function RoomComponent({
         </Tabs.Panel>
       </Tabs>
     </Paper>
-  );
-
-  // Handler for timer adjustment
-  const handleAdjustTime = (timerId: number, newTimeSeconds: number) => {
-    adjustTimer(timerId, newTimeSeconds);
-  };
+  ), [timers, displays, selectedTimerId, timerEvents, messages, onMessagesChange, showActionButtons, features, onAddTimer, onCreateWithAI]);
 
   // Top Right Panel: Timer Display
-  const topRightPanel = (
+  const topRightPanel = useMemo(() => (
     <Paper withBorder p="md" h="100%" style={{ position: 'relative' }}>
       {convertedTimer && matchedDisplay ? (
         <Stack gap="md" style={{ height: '100%' }}>
@@ -405,10 +367,10 @@ export default function RoomComponent({
             <TimerAdjustmentControls
               timerId={displayTimer.id}
               currentTimeSeconds={displayTimer.current_time_seconds}
-              isActive={displayTimer.is_active}
-              isPaused={displayTimer.is_paused}
-              isFinished={displayTimer.is_finished}
-              isStopped={displayTimer.is_stopped}
+              isActive={displayTimer.is_active || false}
+              isPaused={displayTimer.is_paused || false}
+              isFinished={displayTimer.is_finished || false}
+              isStopped={displayTimer.is_stopped || false}
               onAdjustTime={handleAdjustTime}
               isAdjusting={isOperationPending(`timer_adjust_${displayTimer.id}`)}
             />
@@ -429,10 +391,10 @@ export default function RoomComponent({
         <TimerDisplay display={matchedDisplay} timer={convertedTimer} message={showingMessage} />
       )}
     </Paper>
-  );
+  ), [convertedTimer, matchedDisplay, displayTimer, showingMessage, handleAdjustTime, isOperationPending, handleFullscreenToggle, roomId]);
 
   // Bottom Right Panel: Connected Devices
-  const bottomRightPanel = (
+  const bottomRightPanel = useMemo(() => (
     <Box h="100%">
       <ConnectedDevices
         connections={connections}
@@ -441,7 +403,7 @@ export default function RoomComponent({
         onRevokeAccessToken={onRevokeAccessToken}
       />
     </Box>
-  );
+  ), [connections, userAccessLevel, onRevokeAccessToken]);
 
   return (
     <Box className={classes.root}>
@@ -454,7 +416,6 @@ export default function RoomComponent({
           initialLeftWidth={66}
           minLeftWidth={30}
           maxLeftWidth={70}
-          onLeftWidthChange={handleLeftWidthChange}
           topRightAspectRatio="16:9"
           mobileBreakpoint="md"
         />
