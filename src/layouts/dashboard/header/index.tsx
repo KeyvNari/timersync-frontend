@@ -1,9 +1,9 @@
 import { Group } from '@mantine/core';
-// import { ColorSchemeToggler } from '@/components/color-scheme-toggler'; // Removed
 import { StickyHeader } from '@/components/sticky-header';
 import { CurrentUser } from './current-user';
 import { Notifications } from './notifications';
 import { EditableRoomName } from './editable-room-name';
+import { ColorSchemeToggle } from '@/pages/dashboard/home/color-scheme-toggle';
 import classes from './header.module.css';
 import {  Button } from '@mantine/core';
 import { IconShare, IconDownload, IconArrowRight } from '@tabler/icons-react';
@@ -25,14 +25,11 @@ export function Header() {
       </div>
 
       <Group>
-      
-        {/* <ColorSchemeToggler /> */}
-      <Button leftSection={<IconShare size={16} />} variant="default">
-        Share Room
-      </Button>
-        {/* <Notifications /> */}
+        <Button leftSection={<IconShare size={16} />} variant="default">
+          Share Room
+        </Button>
+        <ColorSchemeToggle />
         <CurrentUser />
-      
       </Group>
     </StickyHeader>
   );

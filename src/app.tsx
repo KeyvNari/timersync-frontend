@@ -25,7 +25,7 @@ export function App() {
         {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
         <AuthProvider>
           <WebSocketProvider >
-          <MantineProvider theme={theme} forceColorScheme="dark">
+          <MantineProvider theme={theme} defaultColorScheme="dark">
             <Notifications position="bottom-center" />
             {/* <NavigationProgress /> */}
             <ModalsProvider>

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Modal, TextInput, Stack, Group, Button, Select, Text, Textarea, Switch } from '@mantine/core';
+import { Modal, TextInput, Stack, Group, Button, Select, Text, Textarea, Switch, useMantineColorScheme } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { modals } from '@mantine/modals';
@@ -10,6 +10,7 @@ import timezone from 'dayjs/plugin/timezone';
 import { Page } from '@/components/page';
 import { RoomsComponent } from '@/components/rooms';
 import { CurrentUser } from '@/layouts/dashboard/header/current-user';
+import { ColorSchemeToggle } from '@/pages/dashboard/home/color-scheme-toggle';
 import { Logo } from '@/components/logo';
 import { Box } from '@mantine/core';
 import { paths } from '@/routes/paths';
@@ -21,6 +22,7 @@ dayjs.extend(timezone);
 
 export default function RoomsPage() {
   const navigate = useNavigate();
+  const { colorScheme } = useMantineColorScheme();
   const { data: roomsResponse, isLoading, error } = useGetRooms();
   const { mutate: createRoom, isPending: isCreating } = useCreateRoom();
   const { mutate: updateRoom, isPending: isUpdating } = useUpdateRoom();
@@ -262,8 +264,19 @@ export default function RoomsPage() {
         onEditRoom={handleEditRoom}
         onDeleteRoom={handleDeleteRoom}
         hideHeader={true}
-        actionBarLeftContent={<Logo size="200px" />}
-        actionBarRightContent={<CurrentUser size="md" />}
+        actionBarLeftContent={
+          <img
+            src={colorScheme === 'light' ? '/logo-light-full.png' : '/logo-dark-full.png'}
+            alt="Timer Sync"
+            style={{ height: '40px', width: 'auto' }}
+          />
+        }
+        actionBarRightContent={
+          <Group gap="sm">
+            <ColorSchemeToggle />
+            <CurrentUser size="md" />
+          </Group>
+        }
       />
 
       {/* Create Room Modal */}

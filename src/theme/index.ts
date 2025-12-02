@@ -17,4 +17,5 @@ export const theme = createTheme({
     '3xl': '120em',
     '4xl': '160em',
   },
+  primaryColor: 'blue',
 });
