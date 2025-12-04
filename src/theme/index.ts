@@ -18,4 +18,19 @@ export const theme = createTheme({
     '4xl': '160em',
   },
   primaryColor: 'blue',
+  white: '#f8f7f5',
+  colors: {
+    gray: [
+      '#f8f7f5',
+      '#efefed',
+      '#e1dfd8',
+      '#d3d1c9',
+      '#c5c3bb',
+      '#b7b5ad',
+      '#a9a7a0',
+      '#818179',
+      '#595952',
+      '#31312a',
+    ],
+  },
 });

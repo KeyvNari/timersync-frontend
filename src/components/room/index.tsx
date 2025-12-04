@@ -7,7 +7,6 @@ import { useDisclosure } from '@mantine/hooks';
 import { StickyHeader } from '@/components/sticky-header';
 import { EditableRoomName } from '@/layouts/dashboard/header/editable-room-name';
 import { CurrentUser } from '@/layouts/dashboard/header/current-user';
-import { ColorSchemeToggle } from '@/pages/dashboard/home/color-scheme-toggle';
 import { Timers } from '@/components/timer-panel';
 import TimerDisplay from '@/components/timer-display';
 import { ConnectedDevices } from '@/components/connected-devices';
@@ -247,7 +246,6 @@ export default function RoomComponent({
               Share Room
             </Button>
           )}
-          <ColorSchemeToggle />
           {showCurrentUser && <CurrentUser size="md" />}
         </Group>
       </Group>
