@@ -154,7 +154,6 @@
 }
 
 /* Upgrade CTA */
-/* Upgrade CTA */
 .upgradeCta {
   background: linear-gradient(135deg, var(--mantine-color-grape-0) 0%, var(--mantine-color-violet-0) 100%);
   border: 1px solid var(--mantine-color-violet-2);
@@ -224,4 +223,109 @@
 
 .timerTitle:hover {
   color: var(--mantine-color-blue-6);
+}
+
+/* --- New Modal Styles --- */
+
+.modalContent {
+  background: light-dark(rgba(255, 255, 255, 0.85), rgba(36, 36, 36, 0.85)) !important;
+  backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid light-dark(rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.1));
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  border-radius: 16px !important;
+  overflow: hidden;
+}
+
+.modalHeader {
+  background: light-dark(rgba(255, 255, 255, 0.5), rgba(0, 0, 0, 0.2));
+  border-bottom: 1px solid light-dark(rgba(0, 0, 0, 0.05), rgba(255, 255, 255, 0.05));
+  padding: 16px 24px;
+}
+
+.modalTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--mantine-color-blue-6), var(--mantine-color-violet-6));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.modalBody {
+  padding: 0 !important;
+  display: flex;
+  height: 500px; /* Fixed height for consistency */
+}
+
+.sidebar {
+  width: 200px;
+  background: light-dark(rgba(248, 249, 250, 0.5), rgba(26, 27, 30, 0.5));
+  border-right: 1px solid light-dark(rgba(0, 0, 0, 0.05), rgba(255, 255, 255, 0.05));
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tabButton {
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-gray-4));
+  transition: all 0.2s ease;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tabButton:hover {
+  background: light-dark(rgba(0, 0, 0, 0.03), rgba(255, 255, 255, 0.03));
+  color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-white));
+}
+
+.tabButtonActive {
+  background: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6));
+  color: var(--mantine-color-blue-6);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  font-weight: 600;
+}
+
+.contentArea {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  position: relative;
+}
+
+.sectionTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: light-dark(var(--mantine-color-gray-8), var(--mantine-color-gray-1));
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inputField {
+  transition: all 0.2s ease;
+}
+
+.inputField:focus-within {
+  transform: translateY(-1px);
+}
+
+.footer {
+  padding: 16px 24px;
+  border-top: 1px solid light-dark(rgba(0, 0, 0, 0.05), rgba(255, 255, 255, 0.05));
+  background: light-dark(rgba(255, 255, 255, 0.5), rgba(0, 0, 0, 0.2));
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
 }

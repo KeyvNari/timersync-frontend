@@ -14,7 +14,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { IconPlayerPlay, IconPlayerPause, IconRestore, IconGripVertical, IconSettings, IconNotes, IconTrash, IconClock, IconUser, IconCalendar, IconArrowDown, IconLink, IconPlayerStop, IconClockCheck, IconHandClick } from '@tabler/icons-react';
+import { IconPlayerPlay, IconPlayerPause, IconRestore, IconGripVertical, IconSettings, IconNotes, IconTrash, IconClock, IconUser, IconCalendar, IconArrowDown, IconLink, IconPlayerStop, IconClockCheck, IconHandClick, IconLayoutDashboard, IconBell, IconCalendarTime, IconAdjustments } from '@tabler/icons-react';
 import cx from 'clsx';
 import { Text, Button, Group, Alert, useMantineColorScheme, useMantineTheme, HoverCard, TextInput, Modal, Popover, Switch, Paper, Stack, ActionIcon, RingProgress, Badge, ThemeIcon, Collapse, Box } from '@mantine/core';
 import { Menu } from '@mantine/core';
@@ -32,6 +32,7 @@ import { Select } from '@mantine/core';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { UpgradeCta } from './upgrade-cta';
+import { TimerSettingsForm } from './timer-settings-form';
 import classes from './timers.module.css';
 
 interface Timer {
@@ -619,286 +620,286 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
         </>
       )}
 
-        <Paper
-          className={cx(classes.card, {
-            [classes.cardSelected]: item.is_selected,
-            [classes.cardActive]: isActive,
-            [classes.cardWarning]: isWarning,
-            [classes.cardCritical]: isCritical,
-          })}
-          p="sm"
-          radius="md"
-          withBorder
-        >
-          <Group gap="xs" align="center" wrap="nowrap" style={{ width: '100%' }}>
-            {/* Drag Handle */}
-            <div className={classes.dragHandle} {...listeners}>
-              <IconGripVertical size={16} />
-            </div>
+      <Paper
+        className={cx(classes.card, {
+          [classes.cardSelected]: item.is_selected,
+          [classes.cardActive]: isActive,
+          [classes.cardWarning]: isWarning,
+          [classes.cardCritical]: isCritical,
+        })}
+        p="sm"
+        radius="md"
+        withBorder
+      >
+        <Group gap="xs" align="center" wrap="nowrap" style={{ width: '100%' }}>
+          {/* Drag Handle */}
+          <div className={classes.dragHandle} {...listeners}>
+            <IconGripVertical size={16} />
+          </div>
 
-            {/* Progress Ring & Status */}
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <RingProgress
-                size={42}
-                thickness={3}
-                roundCaps
-                sections={[{ value: progress, color: isCritical ? 'red' : isWarning ? 'orange' : 'blue' }]}
-                label={
-                  isActive && (
-                    <div className={classes.pulse} style={{ width: 6, height: 6, background: 'var(--mantine-color-blue-5)', margin: '0 auto' }} />
-                  )
-                }
-              />
-            </div>
+          {/* Progress Ring & Status */}
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <RingProgress
+              size={42}
+              thickness={3}
+              roundCaps
+              sections={[{ value: progress, color: isCritical ? 'red' : isWarning ? 'orange' : 'blue' }]}
+              label={
+                isActive && (
+                  <div className={classes.pulse} style={{ width: 6, height: 6, background: 'var(--mantine-color-blue-5)', margin: '0 auto' }} />
+                )
+              }
+            />
+          </div>
 
-            {/* Main Content */}
-            <Group gap="md" style={{ flex: 1, minWidth: 0 }} align="center" wrap="nowrap">
-              {/* Duration/Time Display - Compact */}
-              <Group gap={4} className={classes.editableField}>
-                <IconClock size={14} style={{ opacity: 0.5 }} />
-                {editingField === 'duration_seconds' ? (
-                  <div
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}
-                    onBlur={(e) => {
-                      if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                        saveEdit();
-                      }
-                    }}
+          {/* Main Content */}
+          <Group gap="md" style={{ flex: 1, minWidth: 0 }} align="center" wrap="nowrap">
+            {/* Duration/Time Display - Compact */}
+            <Group gap={4} className={classes.editableField}>
+              <IconClock size={14} style={{ opacity: 0.5 }} />
+              {editingField === 'duration_seconds' ? (
+                <div
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}
+                  onBlur={(e) => {
+                    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                      saveEdit();
+                    }
+                  }}
+                >
+                  <NumberInput
+                    value={editMinutes}
+                    onChange={(value) => setEditMinutes(typeof value === 'number' ? value : Number(value) || 0)}
+                    onKeyDown={handleKeyPress}
+                    size="xs"
+                    min={0}
+                    max={59}
+                    w={36}
+                    styles={{ input: { padding: '0 2px', height: '20px', minHeight: '20px', fontSize: '11px', textAlign: 'center' } }}
+                    autoFocus
+                  />
+                  <Text size="xs" span>:</Text>
+                  <NumberInput
+                    value={editSeconds}
+                    onChange={(value) => setEditSeconds(typeof value === 'number' ? value : Number(value) || 0)}
+                    onKeyDown={handleKeyPress}
+                    size="xs"
+                    min={0}
+                    max={59}
+                    w={36}
+                    styles={{ input: { padding: '0 2px', height: '20px', minHeight: '20px', fontSize: '11px', textAlign: 'center' } }}
+                  />
+                </div>
+              ) : (
+                <Tooltip label="Click to edit duration" openDelay={500}>
+                  <Text
+                    size="sm"
+                    fw={500}
+                    onClick={() => startEditing('duration_seconds', formatDuration(item.duration_seconds))}
+                    style={{ fontVariantNumeric: 'tabular-nums' }}
                   >
-                    <NumberInput
-                      value={editMinutes}
-                      onChange={(value) => setEditMinutes(typeof value === 'number' ? value : Number(value) || 0)}
-                      onKeyDown={handleKeyPress}
-                      size="xs"
-                      min={0}
-                      max={59}
-                      w={36}
-                      styles={{ input: { padding: '0 2px', height: '20px', minHeight: '20px', fontSize: '11px', textAlign: 'center' } }}
-                      autoFocus
-                    />
-                    <Text size="xs" span>:</Text>
-                    <NumberInput
-                      value={editSeconds}
-                      onChange={(value) => setEditSeconds(typeof value === 'number' ? value : Number(value) || 0)}
-                      onKeyDown={handleKeyPress}
-                      size="xs"
-                      min={0}
-                      max={59}
-                      w={36}
-                      styles={{ input: { padding: '0 2px', height: '20px', minHeight: '20px', fontSize: '11px', textAlign: 'center' } }}
-                    />
-                  </div>
+                    {formatDuration(item.duration_seconds)}
+                  </Text>
+                </Tooltip>
+              )}
+            </Group>
+
+            <Stack gap={2} style={{ minWidth: 0 }}>
+              <Group gap="xs" wrap="nowrap">
+                {editingField === 'title' ? (
+                  <TextInput
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.currentTarget.value)}
+                    onBlur={saveEdit}
+                    onKeyDown={handleKeyPress}
+                    size="xs"
+                    classNames={{ input: classes.titleInput }}
+                    autoFocus
+                  />
                 ) : (
-                  <Tooltip label="Click to edit duration" openDelay={500}>
+                  <Tooltip label="Click to edit title" openDelay={500}>
                     <Text
-                      size="sm"
-                      fw={500}
-                      onClick={() => startEditing('duration_seconds', formatDuration(item.duration_seconds))}
-                      style={{ fontVariantNumeric: 'tabular-nums' }}
+                      className={classes.timerTitle}
+                      onClick={() => startEditing('title', item.title)}
+                      truncate
                     >
-                      {formatDuration(item.duration_seconds)}
+                      {item.title}
                     </Text>
                   </Tooltip>
                 )}
+
+                {item.notes && (
+                  <HoverCard width={320} shadow="md" withArrow>
+                    <HoverCard.Target>
+                      <div className={classes.notesIndicator}>
+                        <IconNotes size={10} />
+                      </div>
+                    </HoverCard.Target>
+                    <HoverCard.Dropdown>
+                      <Text size="sm">{item.notes}</Text>
+                    </HoverCard.Dropdown>
+                  </HoverCard>
+                )}
               </Group>
 
-              <Stack gap={2} style={{ minWidth: 0 }}>
-                <Group gap="xs" wrap="nowrap">
-                  {editingField === 'title' ? (
+              {/* Speaker - Inline below title */}
+              {(item.speaker || editingField === 'speaker') && (
+                <Group gap={4} className={classes.editableField}>
+                  <IconUser size={10} style={{ opacity: 0.7 }} />
+                  {editingField === 'speaker' ? (
                     <TextInput
                       value={editValue}
                       onChange={(e) => setEditValue(e.currentTarget.value)}
                       onBlur={saveEdit}
                       onKeyDown={handleKeyPress}
                       size="xs"
-                      classNames={{ input: classes.titleInput }}
+                      styles={{ input: { height: '18px', minHeight: '18px', padding: '0 4px', fontSize: '10px' } }}
                       autoFocus
                     />
                   ) : (
-                    <Tooltip label="Click to edit title" openDelay={500}>
+                    <Tooltip label="Click to edit speaker" openDelay={500}>
                       <Text
-                        className={classes.timerTitle}
-                        onClick={() => startEditing('title', item.title)}
-                        truncate
+                        size="xs"
+                        fs="italic"
+                        c="dimmed"
+                        style={{ fontSize: '11px' }}
+                        onClick={() => startEditing('speaker', item.speaker || '')}
                       >
-                        {item.title}
+                        {item.speaker || 'No Speaker'}
                       </Text>
                     </Tooltip>
                   )}
-
-                  {item.notes && (
-                    <HoverCard width={320} shadow="md" withArrow>
-                      <HoverCard.Target>
-                        <div className={classes.notesIndicator}>
-                          <IconNotes size={10} />
-                        </div>
-                      </HoverCard.Target>
-                      <HoverCard.Dropdown>
-                        <Text size="sm">{item.notes}</Text>
-                      </HoverCard.Dropdown>
-                    </HoverCard>
-                  )}
                 </Group>
+              )}
+            </Stack>
 
-                {/* Speaker - Inline below title */}
-                {(item.speaker || editingField === 'speaker') && (
-                  <Group gap={4} className={classes.editableField}>
-                    <IconUser size={10} style={{ opacity: 0.7 }} />
-                    {editingField === 'speaker' ? (
-                      <TextInput
-                        value={editValue}
-                        onChange={(e) => setEditValue(e.currentTarget.value)}
-                        onBlur={saveEdit}
-                        onKeyDown={handleKeyPress}
-                        size="xs"
-                        styles={{ input: { height: '18px', minHeight: '18px', padding: '0 4px', fontSize: '10px' } }}
-                        autoFocus
-                      />
-                    ) : (
-                      <Tooltip label="Click to edit speaker" openDelay={500}>
-                        <Text
-                          size="xs"
-                          fs="italic"
-                          c="dimmed"
-                          style={{ fontSize: '11px' }}
-                          onClick={() => startEditing('speaker', item.speaker || '')}
-                        >
-                          {item.speaker || 'No Speaker'}
-                        </Text>
-                      </Tooltip>
-                    )}
-                  </Group>
-                )}
-              </Stack>
-
-              {/* Large Time Display */}
-              <div style={{ textAlign: 'right', minWidth: '60px', flexShrink: 0 }}>
-                <Text
-                  className={cx(classes.timeDisplay, {
-                    [classes.timeDisplayActive]: isActive,
-                    [classes.timeDisplayWarning]: isWarning,
-                    [classes.timeDisplayCritical]: isCritical,
-                  })}
-                  size="lg"
-                  style={{ whiteSpace: 'nowrap' }}
-                >
-                  {item.current_time_seconds < 0 ? '+' : ''}{formatDuration(item.current_time_seconds)}
-                </Text>
-                {item.current_time_seconds < 0 && (
-                  <Text size="xs" c="red" fw={700} ta="right" style={{ fontSize: '9px', lineHeight: 1 }}>OVERTIME</Text>
-                )}
-              </div>
-
-              {/* Start Mode Display - Minimal Text */}
-              <Tooltip
-                label="Click to edit start mode"
-                openDelay={500}
+            {/* Large Time Display */}
+            <div style={{ textAlign: 'right', minWidth: '60px', flexShrink: 0 }}>
+              <Text
+                className={cx(classes.timeDisplay, {
+                  [classes.timeDisplayActive]: isActive,
+                  [classes.timeDisplayWarning]: isWarning,
+                  [classes.timeDisplayCritical]: isCritical,
+                })}
+                size="lg"
+                style={{ whiteSpace: 'nowrap' }}
               >
-                <Text
-                  size="sm"
-                  c="var(--mantine-color-gray-7)"
-                  style={{
-                    cursor: 'pointer',
-                    transition: 'color 0.2s ease'
-                  }}
-                  onClick={handleScheduleClick}
-                >
-                  {deriveStartMode() === 'linked'
-                    ? 'Linked to previous'
-                    : (item.scheduled_start_date && item.scheduled_start_time && !item.is_manual_start
-                      ? `${dayjs(`${item.scheduled_start_date}T${item.scheduled_start_time}`).format('MMM D, HH:mm')} • Auto-start`
-                      : 'Set schedule...'
-                    )
-                  }
-                </Text>
-              </Tooltip>
+                {item.current_time_seconds < 0 ? '+' : ''}{formatDuration(item.current_time_seconds)}
+              </Text>
+              {item.current_time_seconds < 0 && (
+                <Text size="xs" c="red" fw={700} ta="right" style={{ fontSize: '9px', lineHeight: 1 }}>OVERTIME</Text>
+              )}
+            </div>
 
-              {/* Spacer to push controls to the right */}
-              <div style={{ flex: 1 }} />
+            {/* Start Mode Display - Minimal Text */}
+            <Tooltip
+              label="Click to edit start mode"
+              openDelay={500}
+            >
+              <Text
+                size="sm"
+                c="var(--mantine-color-gray-7)"
+                style={{
+                  cursor: 'pointer',
+                  transition: 'color 0.2s ease'
+                }}
+                onClick={handleScheduleClick}
+              >
+                {deriveStartMode() === 'linked'
+                  ? 'Linked to previous'
+                  : (item.scheduled_start_date && item.scheduled_start_time && !item.is_manual_start
+                    ? `${dayjs(`${item.scheduled_start_date}T${item.scheduled_start_time}`).format('MMM D, HH:mm')} • Auto-start`
+                    : 'Set schedule...'
+                  )
+                }
+              </Text>
+            </Tooltip>
 
-              {/* Controls */}
-              <Group gap="sm" justify="flex-end" className={classes.controls}>
-                {/* Select Button */}
-                {!item.is_selected && (
-                  <Tooltip label="Select Timer" openDelay={500}>
-                    <ActionIcon
-                      variant="subtle"
-                      color="gray"
-                      size="lg"
-                      onClick={(e) => { e.stopPropagation(); onSelectTimer(item.id); }}
-                    >
-                      <IconHandClick size={18} />
-                    </ActionIcon>
-                  </Tooltip>
-                )}
+            {/* Spacer to push controls to the right */}
+            <div style={{ flex: 1 }} />
 
-                {/* Play/Pause Button */}
-                {!item.is_active || item.is_paused ? (
-                  <Tooltip label="Play Timer" openDelay={500}>
-                    <ActionIcon
-                      variant="light"
-                      color="teal"
-                      size="lg"
-                      onClick={(e) => { e.stopPropagation(); handlePlay(); }}
-                      disabled={item.is_finished}
-                    >
-                      <IconPlayerPlay size={18} />
-                    </ActionIcon>
-                  </Tooltip>
-                ) : (
-                  <Tooltip label="Pause Timer" openDelay={500}>
-                    <ActionIcon
-                      variant="light"
-                      color="orange"
-                      size="lg"
-                      onClick={(e) => { e.stopPropagation(); handlePause(); }}
-                    >
-                      <IconPlayerPause size={18} />
-                    </ActionIcon>
-                  </Tooltip>
-                )}
-
-                {/* Stop/Reset Button */}
-                <Tooltip label="Stop Timer" openDelay={500}>
+            {/* Controls */}
+            <Group gap="sm" justify="flex-end" className={classes.controls}>
+              {/* Select Button */}
+              {!item.is_selected && (
+                <Tooltip label="Select Timer" openDelay={500}>
                   <ActionIcon
-                    variant="light"
-                    color="red"
+                    variant="subtle"
+                    color="gray"
                     size="lg"
-                    onClick={(e) => { e.stopPropagation(); handleStop(); }}
-                    disabled={item.is_stopped}
+                    onClick={(e) => { e.stopPropagation(); onSelectTimer(item.id); }}
                   >
-                    <IconPlayerStop size={18} />
+                    <IconHandClick size={18} />
                   </ActionIcon>
                 </Tooltip>
+              )}
 
-                {/* Settings Menu */}
-                <Menu position="bottom-end" withArrow>
-                  <Menu.Target>
-                    <Tooltip label="Timer Settings" openDelay={500}>
-                      <ActionIcon variant="subtle" color="gray" size="lg">
-                        <IconSettings size={18} />
-                      </ActionIcon>
-                    </Tooltip>
-                  </Menu.Target>
-                  <Menu.Dropdown>
-                    <Menu.Label>Timer Settings</Menu.Label>
-                    <Menu.Item leftSection={<IconSettings size={14} />} onClick={() => onOpenSettings(item)}>
-                      Configure
-                    </Menu.Item>
-                    <Menu.Divider />
-                    <Menu.Item
-                      leftSection={<IconTrash size={14} />}
-                      color="red"
-                      onClick={handleDelete}
-                    >
-                      Delete Timer
-                    </Menu.Item>
-                  </Menu.Dropdown>
-                </Menu>
-              </Group>
+              {/* Play/Pause Button */}
+              {!item.is_active || item.is_paused ? (
+                <Tooltip label="Play Timer" openDelay={500}>
+                  <ActionIcon
+                    variant="light"
+                    color="teal"
+                    size="lg"
+                    onClick={(e) => { e.stopPropagation(); handlePlay(); }}
+                    disabled={item.is_finished}
+                  >
+                    <IconPlayerPlay size={18} />
+                  </ActionIcon>
+                </Tooltip>
+              ) : (
+                <Tooltip label="Pause Timer" openDelay={500}>
+                  <ActionIcon
+                    variant="light"
+                    color="orange"
+                    size="lg"
+                    onClick={(e) => { e.stopPropagation(); handlePause(); }}
+                  >
+                    <IconPlayerPause size={18} />
+                  </ActionIcon>
+                </Tooltip>
+              )}
+
+              {/* Stop/Reset Button */}
+              <Tooltip label="Stop Timer" openDelay={500}>
+                <ActionIcon
+                  variant="light"
+                  color="red"
+                  size="lg"
+                  onClick={(e) => { e.stopPropagation(); handleStop(); }}
+                  disabled={item.is_stopped}
+                >
+                  <IconPlayerStop size={18} />
+                </ActionIcon>
+              </Tooltip>
+
+              {/* Settings Menu */}
+              <Menu position="bottom-end" withArrow>
+                <Menu.Target>
+                  <Tooltip label="Timer Settings" openDelay={500}>
+                    <ActionIcon variant="subtle" color="gray" size="lg">
+                      <IconSettings size={18} />
+                    </ActionIcon>
+                  </Tooltip>
+                </Menu.Target>
+                <Menu.Dropdown>
+                  <Menu.Label>Timer Settings</Menu.Label>
+                  <Menu.Item leftSection={<IconSettings size={14} />} onClick={() => onOpenSettings(item)}>
+                    Configure
+                  </Menu.Item>
+                  <Menu.Divider />
+                  <Menu.Item
+                    leftSection={<IconTrash size={14} />}
+                    color="red"
+                    onClick={handleDelete}
+                  >
+                    Delete Timer
+                  </Menu.Item>
+                </Menu.Dropdown>
+              </Menu>
             </Group>
           </Group>
-        </Paper>
+        </Group>
+      </Paper>
 
       {/* Start Mode Popover */}
       <Popover
@@ -1407,149 +1408,34 @@ export function Timers({
       )}
 
       {/* Updated Drawer with compact layout */}
-      <Drawer
+      {/* Updated Modal with "Wow" Design */}
+      <Modal
         opened={opened}
         onClose={close}
         title="Timer Settings"
-        size="lg"
-        position="right"
+        size="xl"
+        centered
+        padding={0}
+        classNames={{
+          content: classes.modalContent,
+          header: classes.modalHeader,
+          body: classes.modalBody,
+        }}
+        overlayProps={{
+          backgroundOpacity: 0.55,
+          blur: 3,
+        }}
+        transitionProps={{ transition: 'pop', duration: 200 }}
       >
         {editingTimer && (
-          <form onSubmit={form.onSubmit(handleAdvancedSubmit)}>
-            <Stack gap="sm">
-              {/* Basic Information Category */}
-              <Paper p="sm" withBorder>
-                <Title order={4} mb="sm">Basic Information</Title>
-                <Stack gap="sm">
-                  <TextInput
-                    label="Title"
-                    placeholder="Enter timer title"
-                    {...form.getInputProps('title')}
-                  />
-                  <TextInput
-                    label="Speaker"
-                    placeholder="Enter speaker name (optional)"
-                    {...form.getInputProps('speaker')}
-                  />
-                  <Textarea
-                    label="Notes"
-                    placeholder="Add any additional notes"
-                    rows={3}
-                    {...form.getInputProps('notes')}
-                  />
-                </Stack>
-              </Paper>
-
-              {/* Timer Configuration Category */}
-              <Paper p="sm" withBorder>
-                <Title order={4} mb="sm">Timer Configuration</Title>
-                <Stack gap="sm">
-                  <NumberInput
-                    label="Duration (seconds)"
-                    placeholder="Enter duration in seconds"
-                    min={1}
-                    {...form.getInputProps('duration_seconds')}
-                  />
-
-                  <Select
-                    label="Timer Format"
-                    placeholder="Select timer display format"
-                    data={[
-                      { value: 'mm:ss', label: 'MM:SS (minutes:seconds)' },
-                      { value: 'h:mm:ss', label: 'H:MM:SS (hours:minutes:seconds)' },
-                      { value: 'hh:mm:ss', label: 'HH:MM:SS (zero-padded hours)' },
-                    ]}
-                    {...form.getInputProps('timer_format')}
-                  />
-
-                  <Select
-                    label="Display Configuration"
-                    placeholder="Select display configuration for this timer"
-                    clearable
-                    data={displays.map(display => ({
-                      value: display.id.toString(),
-                      label: display.name
-                    }))}
-                    {...form.getInputProps('display_id')}
-                  />
-                </Stack>
-              </Paper>
-
-              {/* Scheduling Category */}
-              <Paper p="sm" withBorder>
-                <Title order={4} mb="sm">Scheduling</Title>
-                <Stack gap="sm">
-                  <DateTimePicker
-                    label="Scheduled Start Time"
-                    placeholder="Pick date and time"
-                    clearable
-                    withSeconds={false}
-                    {...form.getInputProps('scheduled_start_time')}
-                  />
-                  <Checkbox
-                    label="Auto Start"
-                    description="Enable automatic start at scheduled time"
-                    {...form.getInputProps('is_manual_start', { type: 'checkbox' })}
-                  />
-                </Stack>
-              </Paper>
-
-              {/* Alerts & Warnings Category */}
-              <Paper p="sm" withBorder>
-                <Title order={4} mb="sm">Alerts & Warnings</Title>
-                <Stack gap="sm">
-                  <NumberInput
-                    label="Warning Time (seconds)"
-                    placeholder="Time before warning appears"
-                    min={0}
-                    {...form.getInputProps('warning_time')}
-                  />
-                  <NumberInput
-                    label="Critical Time (seconds)"
-                    placeholder="Time before critical warning appears"
-                    min={0}
-                    {...form.getInputProps('critical_time')}
-                  />
-                </Stack>
-              </Paper>
-
-              {/* Display Options Category */}
-              <Paper p="sm" withBorder>
-                <Title order={4} mb="sm">Display Options</Title>
-                <Stack gap="sm">
-                  <Checkbox
-                    label="Show Title"
-                    description="Display timer title on screen"
-                    {...form.getInputProps('show_title', { type: 'checkbox' })}
-                  />
-                  <Checkbox
-                    label="Show Speaker"
-                    description="Display speaker name on screen"
-                    {...form.getInputProps('show_speaker', { type: 'checkbox' })}
-                  />
-                  <Checkbox
-                    label="Show Notes"
-                    description="Display notes on screen"
-                    {...form.getInputProps('show_notes', { type: 'checkbox' })}
-                  />
-                </Stack>
-              </Paper>
-
-              <Divider />
-
-              {/* Action Buttons */}
-              <Group justify="flex-end" gap="md">
-                <Button variant="light" onClick={close}>
-                  Cancel
-                </Button>
-                <Button type="submit">
-                  Save Changes
-                </Button>
-              </Group>
-            </Stack>
-          </form>
+          <TimerSettingsForm
+            form={form}
+            onSubmit={handleAdvancedSubmit}
+            onClose={close}
+            displays={displays}
+          />
         )}
-      </Drawer>
+      </Modal>
 
     </div>
   );
