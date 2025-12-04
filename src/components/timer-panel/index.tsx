@@ -885,9 +885,6 @@ function SortableItem({ item, allTimers, onUpdateTimer, onSelectTimer, onOpenSet
                     <Menu.Item leftSection={<IconSettings size={14} />} onClick={() => onOpenSettings(item)}>
                       Configure
                     </Menu.Item>
-                    <Menu.Item leftSection={<IconCalendar size={14} />} onClick={handleScheduleClick}>
-                      Schedule Auto-Start
-                    </Menu.Item>
                     <Menu.Divider />
                     <Menu.Item
                       leftSection={<IconTrash size={14} />}
